@@ -1,1 +1,6 @@
-nr_startowy,imie,nazwisko,kategoria
+nr_startowy,czas_przejazdu_s,status
+1,17.62,OK
+2,18.54,OK
+3,DNF,DNF
+4,20.33,OK
+

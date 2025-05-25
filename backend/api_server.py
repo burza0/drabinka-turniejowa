@@ -1,1 +1,50 @@
-# Pusty plik Python – do uzupełnienia kodem
+# Pusty plik Python – do uzupełnienia kodemfrom flask import Flask, jsonify
+from flask import Flask, jsonify, render_template_string
+import psycopg2
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+app = Flask(__name__)
+
+DB_URL = os.getenv("DATABASE_URL")
+
+def get_all(query):
+    conn = psycopg2.connect(DB_URL)
+    cur = conn.cursor()
+    cur.execute(query)
+    rows = cur.fetchall()
+    columns = [desc[0] for desc in cur.description]
+    cur.close()
+    conn.close()
+    return [dict(zip(columns, row)) for row in rows]
+
+@app.route("/api/wyniki")
+def wyniki():
+    rows = get_all("SELECT * FROM wyniki ORDER BY nr_startowy")
+    return jsonify(rows)
+
+@app.route("/api/zawodnicy")
+def zawodnicy():
+    rows = get_all("SELECT * FROM zawodnicy ORDER BY nr_startowy")
+    return jsonify(rows)
+
+@app.route("/api/kategorie")
+def kategorie():
+    rows = get_all("SELECT DISTINCT kategoria FROM zawodnicy WHERE kategoria IS NOT NULL")
+    return jsonify([row["kategoria"] for row in rows])
+
+@app.route("/api/drabinka")
+def drabinka():
+    # Mockup drabinki: parowanie wg nr_startowy (do rozbudowy)
+    zawodnicy = get_all("SELECT nr_startowy, imie, nazwisko, kategoria FROM zawodnicy ORDER BY nr_startowy")
+    matches = []
+    for i in range(0, len(zawodnicy), 2):
+        team1 = zawodnicy[i]
+        team2 = zawodnicy[i+1] if i+1 < len(zawodnicy) else None
+        matches.append({"team1": team1, "team2": team2})
+    return jsonify(matches)
+
+if __name__ == "__main__":
+    app.run(port=5000, debug=True)
+
