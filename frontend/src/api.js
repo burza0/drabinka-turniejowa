@@ -1,17 +1,20 @@
-export async function getWyniki() {
-  const res = await fetch('/api/wyniki');
-  return await res.json();
-}
-export async function getZawodnicy() {
-  const res = await fetch('/api/zawodnicy');
-  return await res.json();
-}
-export async function getKategorie() {
-  const res = await fetch('/api/kategorie');
-  return await res.json();
-}
+import axios from 'axios'
+
 export async function getDrabinka() {
-  const res = await fetch('/api/drabinka');
-  return await res.json();
+  const res = await axios.get('/api/drabinka')
+  return res.data
+}
+
+export async function getKategorie() {
+  const res = await axios.get('/api/kategorie')
+  return res.data
+}
+
+export async function getWyniki(kategoria) {
+  // Jeśli backend pozwala filtrować po kategorii:
+  if (kategoria)
+    return (await axios.get('/api/wyniki?kategoria=' + encodeURIComponent(kategoria))).data
+  // Jeśli nie, pobierz wszystkie:
+  return (await axios.get('/api/wyniki')).data
 }
 

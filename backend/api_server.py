@@ -1,5 +1,4 @@
-# Pusty plik Python – do uzupełnienia kodemfrom flask import Flask, jsonify
-from flask import Flask, jsonify, render_template_string
+from flask import Flask, jsonify
 import psycopg2
 import os
 from dotenv import load_dotenv
@@ -19,9 +18,19 @@ def get_all(query):
     conn.close()
     return [dict(zip(columns, row)) for row in rows]
 
+@app.route("/")
+def home():
+    return "Backend działa!"
+
 @app.route("/api/wyniki")
 def wyniki():
-    rows = get_all("SELECT * FROM wyniki ORDER BY nr_startowy")
+    rows = get_all("""
+        SELECT w.id, w.nr_startowy, w.czas_przejazdu_s, w.status, 
+               z.imie, z.nazwisko, z.kategoria
+        FROM wyniki w
+        LEFT JOIN zawodnicy z ON w.nr_startowy = z.nr_startowy
+        ORDER BY w.nr_startowy
+    """)
     return jsonify(rows)
 
 @app.route("/api/zawodnicy")
@@ -36,7 +45,6 @@ def kategorie():
 
 @app.route("/api/drabinka")
 def drabinka():
-    # Mockup drabinki: parowanie wg nr_startowy (do rozbudowy)
     zawodnicy = get_all("SELECT nr_startowy, imie, nazwisko, kategoria FROM zawodnicy ORDER BY nr_startowy")
     matches = []
     for i in range(0, len(zawodnicy), 2):

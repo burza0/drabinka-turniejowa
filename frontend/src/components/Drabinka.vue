@@ -13,19 +13,29 @@
 </template>
 <script setup>
 import { ref, onMounted, watch } from 'vue'
-import { getDrabinka } from '../api'
+import axios from 'axios'
 const props = defineProps({ kategoria: String })
 const drabinka = ref([])
 const filtrowane = ref([])
-onMounted(async () => {
-  drabinka.value = await getDrabinka()
-  filtrowane.value = drabinka.value
-})
-watch(() => props.kategoria, (kat) => {
-  if (!kat) filtrowane.value = drabinka.value
-  else filtrowane.value = drabinka.value.filter(m =>
-    (!m.team1 || m.team1.kategoria === kat) && (!m.team2 || m.team2.kategoria === kat)
-  )
-})
+
+async function loadDrabinka() {
+  const res = await axios.get('/api/drabinka')
+  drabinka.value = res.data
+  filterDrabinka()
+}
+
+function filterDrabinka() {
+  if (!props.kategoria) {
+    filtrowane.value = drabinka.value
+  } else {
+    filtrowane.value = drabinka.value.filter(m =>
+      (!m.team1 || m.team1.kategoria === props.kategoria) &&
+      (!m.team2 || m.team2.kategoria === props.kategoria)
+    )
+  }
+}
+
+onMounted(loadDrabinka)
+watch(() => props.kategoria, filterDrabinka)
 </script>
 
