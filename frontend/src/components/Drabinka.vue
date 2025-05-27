@@ -1,10 +1,10 @@
 <template>
-  <div>
-    <h2>Drabinka</h2>
+  <div class="drabinka-container">
+    <h2 class="drabinka-title">🏆 Drabinka Mistrzostw Elite</h2>
     
     <!-- Kategorie -->
     <div v-for="(kategoriaData, kategoriaNazwa) in filtrowaneKategorie" :key="kategoriaNazwa" 
-         style="margin:2em 0;border:2px solid #ddd;border-radius:10px;padding:15px">
+         class="kategoria-section">
       
       <h3 style="color:#2c5aa0;margin-top:0">🏅 {{ kategoriaNazwa }}</h3>
       
