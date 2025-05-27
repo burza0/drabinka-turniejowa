@@ -6,9 +6,10 @@ CREATE TABLE zawodnicy (
 );
 
 CREATE TABLE wyniki (
+    id SERIAL PRIMARY KEY,
     nr_startowy INT REFERENCES zawodnicy(nr_startowy),
     czas_przejazdu_s VARCHAR(20),
     status VARCHAR(20),
-    PRIMARY KEY (nr_startowy)
+    UNIQUE(nr_startowy)
 );
 

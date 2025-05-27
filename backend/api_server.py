@@ -1,10 +1,12 @@
 from flask import Flask, jsonify
+from flask_cors import CORS
 import psycopg2
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
 app = Flask(__name__)
+CORS(app)
 
 DB_URL = os.getenv("DATABASE_URL")
 
@@ -25,7 +27,7 @@ def home():
 @app.route("/api/wyniki")
 def wyniki():
     rows = get_all("""
-        SELECT w.id, w.nr_startowy, w.czas_przejazdu_s, w.status, 
+        SELECT w.nr_startowy, w.czas_przejazdu_s, w.status, 
                z.imie, z.nazwisko, z.kategoria
         FROM wyniki w
         LEFT JOIN zawodnicy z ON w.nr_startowy = z.nr_startowy
