@@ -5,7 +5,6 @@
       <option :value="null">Wszystkie</option>
       <option v-for="kat in kategorie" :key="kat" :value="kat">{{ kat }}</option>
     </select>
-    <div style="color: #c00; font-size: 0.9em;">Debug: {{ kategorie }}</div>
   </div>
 </template>
 
