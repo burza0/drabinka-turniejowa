@@ -96,21 +96,54 @@
                     <div v-for="(zawodnik, index) in grupa.zawodnicy" :key="zawodnik.nr_startowy"
                          :class="['player-entry', { advancing: index < grupa.awansują, winner: index === 0 }]">
                       
-                      <div class="position-indicator">
-                        <span class="position-number">{{ index + 1 }}</span>
-                      </div>
-                      
-                      <div class="player-number-badge">{{ zawodnik.nr_startowy }}</div>
-                      
-                      <div class="player-details">
-                        <div class="player-name">{{ zawodnik.imie }} {{ zawodnik.nazwisko }}</div>
-                        <div class="player-time" :class="getTimeClass(zawodnik.czas_przejazdu_s)">
-                          {{ zawodnik.czas_przejazdu_s || 'brak' }}{{ zawodnik.czas_przejazdu_s ? 's' : '' }}
+                      <!-- Desktop view -->
+                      <div class="desktop-player-layout desktop-only">
+                        <div class="position-indicator">
+                          <span class="position-number">{{ index + 1 }}</span>
+                        </div>
+                        
+                        <div class="player-number-badge">{{ zawodnik.nr_startowy }}</div>
+                        
+                        <div class="player-details">
+                          <div class="player-name">{{ zawodnik.imie }} {{ zawodnik.nazwisko }}</div>
+                          <div class="player-time" :class="getTimeClass(zawodnik.czas_przejazdu_s)">
+                            {{ zawodnik.czas_przejazdu_s || 'brak' }}{{ zawodnik.czas_przejazdu_s ? 's' : '' }}
+                          </div>
+                        </div>
+                        
+                        <div v-if="index < grupa.awansują" class="advance-indicator">
+                          <span class="advance-arrow">→</span>
                         </div>
                       </div>
-                      
-                      <div v-if="index < grupa.awansują" class="advance-indicator">
-                        <span class="advance-arrow">→</span>
+
+                      <!-- Mobile card view -->
+                      <div class="mobile-player-card mobile-only">
+                        <div class="mobile-card-header">
+                          <div class="position-badge-card" :class="{ 
+                            'gold': index === 0, 
+                            'silver': index === 1, 
+                            'bronze': index === 2,
+                            'regular': index > 2 
+                          }">
+                            {{ index + 1 }}
+                          </div>
+                          <div class="player-name-card">{{ zawodnik.imie }} {{ zawodnik.nazwisko }}</div>
+                          <div v-if="index < grupa.awansują" class="advance-badge">AWANS</div>
+                        </div>
+                        <div class="mobile-card-details">
+                          <div class="detail-row">
+                            <div class="detail-item">
+                              <span class="detail-label">Nr startowy:</span>
+                              <span class="detail-value">{{ zawodnik.nr_startowy }}</span>
+                            </div>
+                            <div class="detail-item">
+                              <span class="detail-label">Czas:</span>
+                              <span class="detail-value time-text" :class="getTimeClass(zawodnik.czas_przejazdu_s)">
+                                {{ zawodnik.czas_przejazdu_s || 'brak' }}{{ zawodnik.czas_przejazdu_s ? 's' : '' }}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -146,21 +179,54 @@
                     <div v-for="(zawodnik, index) in grupa.zawodnicy" :key="zawodnik.nr_startowy"
                          :class="['player-entry', { advancing: index < grupa.awansują, winner: index === 0 }]">
                       
-                      <div class="position-indicator">
-                        <span class="position-number">{{ index + 1 }}</span>
-                      </div>
-                      
-                      <div class="player-number-badge">{{ zawodnik.nr_startowy }}</div>
-                      
-                      <div class="player-details">
-                        <div class="player-name">{{ zawodnik.imie }} {{ zawodnik.nazwisko }}</div>
-                        <div class="player-time" :class="getTimeClass(zawodnik.czas_przejazdu_s)">
-                          {{ zawodnik.czas_przejazdu_s || 'brak' }}{{ zawodnik.czas_przejazdu_s ? 's' : '' }}
+                      <!-- Desktop view -->
+                      <div class="desktop-player-layout desktop-only">
+                        <div class="position-indicator">
+                          <span class="position-number">{{ index + 1 }}</span>
+                        </div>
+                        
+                        <div class="player-number-badge">{{ zawodnik.nr_startowy }}</div>
+                        
+                        <div class="player-details">
+                          <div class="player-name">{{ zawodnik.imie }} {{ zawodnik.nazwisko }}</div>
+                          <div class="player-time" :class="getTimeClass(zawodnik.czas_przejazdu_s)">
+                            {{ zawodnik.czas_przejazdu_s || 'brak' }}{{ zawodnik.czas_przejazdu_s ? 's' : '' }}
+                          </div>
+                        </div>
+                        
+                        <div v-if="index < grupa.awansują" class="advance-indicator">
+                          <span class="advance-arrow">→</span>
                         </div>
                       </div>
-                      
-                      <div v-if="index < grupa.awansują" class="advance-indicator">
-                        <span class="advance-arrow">→</span>
+
+                      <!-- Mobile card view -->
+                      <div class="mobile-player-card mobile-only">
+                        <div class="mobile-card-header">
+                          <div class="position-badge-card" :class="{ 
+                            'gold': index === 0, 
+                            'silver': index === 1, 
+                            'bronze': index === 2,
+                            'regular': index > 2 
+                          }">
+                            {{ index + 1 }}
+                          </div>
+                          <div class="player-name-card">{{ zawodnik.imie }} {{ zawodnik.nazwisko }}</div>
+                          <div v-if="index < grupa.awansują" class="advance-badge">AWANS</div>
+                        </div>
+                        <div class="mobile-card-details">
+                          <div class="detail-row">
+                            <div class="detail-item">
+                              <span class="detail-label">Nr startowy:</span>
+                              <span class="detail-value">{{ zawodnik.nr_startowy }}</span>
+                            </div>
+                            <div class="detail-item">
+                              <span class="detail-label">Czas:</span>
+                              <span class="detail-value time-text" :class="getTimeClass(zawodnik.czas_przejazdu_s)">
+                                {{ zawodnik.czas_przejazdu_s || 'brak' }}{{ zawodnik.czas_przejazdu_s ? 's' : '' }}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -205,23 +271,58 @@
                            third_place: index === 2 
                          }]">
                       
-                      <div class="position-indicator final-position">
-                        <span class="position-number">{{ index + 1 }}</span>
-                      </div>
-                      
-                      <div class="player-number-badge">{{ zawodnik.nr_startowy }}</div>
-                      
-                      <div class="player-details">
-                        <div class="player-name">{{ zawodnik.imie }} {{ zawodnik.nazwisko }}</div>
-                        <div class="player-time" :class="getTimeClass(zawodnik.czas_przejazdu_s)">
-                          {{ zawodnik.czas_przejazdu_s || 'brak' }}{{ zawodnik.czas_przejazdu_s ? 's' : '' }}
+                      <!-- Desktop view -->
+                      <div class="desktop-player-layout desktop-only">
+                        <div class="position-indicator final-position">
+                          <span class="position-number">{{ index + 1 }}</span>
+                        </div>
+                        
+                        <div class="player-number-badge">{{ zawodnik.nr_startowy }}</div>
+                        
+                        <div class="player-details">
+                          <div class="player-name">{{ zawodnik.imie }} {{ zawodnik.nazwisko }}</div>
+                          <div class="player-time" :class="getTimeClass(zawodnik.czas_przejazdu_s)">
+                            {{ zawodnik.czas_przejazdu_s || 'brak' }}{{ zawodnik.czas_przejazdu_s ? 's' : '' }}
+                          </div>
+                        </div>
+                        
+                        <div class="medal-indicator">
+                          <span v-if="index === 0" class="medal gold">🥇</span>
+                          <span v-else-if="index === 1" class="medal silver">🥈</span>
+                          <span v-else-if="index === 2" class="medal bronze">🥉</span>
                         </div>
                       </div>
-                      
-                      <div class="medal-indicator">
-                        <span v-if="index === 0" class="medal gold">🥇</span>
-                        <span v-else-if="index === 1" class="medal silver">🥈</span>
-                        <span v-else-if="index === 2" class="medal bronze">🥉</span>
+
+                      <!-- Mobile card view -->
+                      <div class="mobile-player-card mobile-only">
+                        <div class="mobile-card-header">
+                          <div class="position-badge-card" :class="{ 
+                            'gold': index === 0, 
+                            'silver': index === 1, 
+                            'bronze': index === 2,
+                            'regular': index > 2 
+                          }">
+                            {{ index + 1 }}
+                          </div>
+                          <div class="player-name-card">{{ zawodnik.imie }} {{ zawodnik.nazwisko }}</div>
+                          <div v-if="index === 0" class="medal-badge">🥇</div>
+                          <div v-else-if="index === 1" class="medal-badge">🥈</div>
+                          <div v-else-if="index === 2" class="medal-badge">🥉</div>
+                        </div>
+                        <div class="mobile-card-details">
+                          <div class="detail-row">
+                            <div class="detail-item">
+                              <span class="detail-label">Nr startowy:</span>
+                              <span class="detail-value">{{ zawodnik.nr_startowy }}</span>
+                            </div>
+                            <div class="detail-item">
+                              <span class="detail-label">Czas:</span>
+                              <span class="detail-value time-text" :class="getTimeClass(zawodnik.czas_przejazdu_s)">
+                                {{ zawodnik.czas_przejazdu_s || 'brak' }}{{ zawodnik.czas_przejazdu_s ? 's' : '' }}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -262,7 +363,7 @@ import axios from 'axios'
 const props = defineProps({ 
   filtry: {
     type: Object,
-    default: () => ({ kategoria: null, plec: null })
+    default: () => ({ kategorie: [], plec: null })
   }
 })
 const emit = defineEmits(['podsumowanie-loaded'])
@@ -271,14 +372,16 @@ const drabinka = ref({})
 const filtrowaneKategorie = computed(() => {
   const { podsumowanie, ...kategorie } = drabinka.value
   
-  if (!props.filtry?.kategoria && !props.filtry?.plec) {
+  if (!props.filtry?.kategorie?.length && !props.filtry?.plec) {
     return kategorie
   }
   
   const wynik = {}
   
-  const kategorieDoWyswietlenia = props.filtry.kategoria 
-    ? { [props.filtry.kategoria]: kategorie[props.filtry.kategoria] }
+  const kategorieDoWyswietlenia = (props.filtry.kategorie && props.filtry.kategorie.length > 0)
+    ? Object.fromEntries(
+        Object.entries(kategorie).filter(([key]) => props.filtry.kategorie.includes(key))
+      )
     : kategorie
   
   for (const [kategoriaKey, kategoriaData] of Object.entries(kategorieDoWyswietlenia)) {
@@ -511,7 +614,7 @@ watch(() => props.filtry, (newFilters) => {
   padding: 2rem;
 }
 
-.section-title {
+.eliminated-section .section-title {
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -1066,6 +1169,303 @@ watch(() => props.filtry, (newFilters) => {
   .round-name {
     font-size: 1.25rem;
   }
+}
+
+/* Mobile cards styles */
+@media (max-width: 600px) {
+  .mobile-hidden {
+    display: none !important;
+  }
+  
+  .mobile-only {
+    display: block !important;
+  }
+  
+  .desktop-only {
+    display: none !important;
+  }
+  
+  /* Usunięcie kolorowych tłem player-entry na mobile */
+  .player-entry {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
+  
+  .player-entry.advancing {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  
+  .player-entry.winner {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  
+  .final-player.champion {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    animation: none !important;
+  }
+  
+  .final-player.runner_up {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  
+  .final-player.third_place {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  
+  .mobile-player-card {
+    background: white !important;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.75rem;
+    padding: 1rem;
+    margin: 0.5rem 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+    width: 100%;
+  }
+  
+  .mobile-player-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-1px);
+  }
+  
+  .mobile-card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  
+  .position-badge-card {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    font-weight: 900;
+    font-size: 1rem;
+    color: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    flex-shrink: 0;
+  }
+  
+  .position-badge-card.gold {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+  }
+  
+  .position-badge-card.silver {
+    background: linear-gradient(135deg, #9ca3af, #6b7280);
+  }
+  
+  .position-badge-card.bronze {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+  }
+  
+  .position-badge-card.regular {
+    background: linear-gradient(135deg, #64748b, #475569);
+  }
+  
+  .player-name-card {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #0f172a;
+    flex: 1;
+  }
+  
+  .advance-badge {
+    background: #22c55e;
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  
+  .medal-badge {
+    font-size: 1.5rem;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+  }
+  
+  .mobile-card-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .detail-row {
+    display: flex;
+    gap: 1rem;
+  }
+  
+  .detail-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
+  .detail-label {
+    font-weight: 600;
+    color: #64748b;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  
+  .detail-value {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #0f172a;
+  }
+  
+  .time-text.excellent {
+    color: #166534;
+    font-weight: 800;
+  }
+  
+  .time-text.good {
+    color: #1e40af;
+    font-weight: 800;
+  }
+  
+  .time-text.average {
+    color: #92400e;
+    font-weight: 800;
+  }
+  
+  .time-text.poor {
+    color: #991b1b;
+    font-weight: 800;
+  }
+  
+  .time-text.no-time {
+    color: #64748b;
+    font-style: italic;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+    border-radius: 0.75rem;
+    text-align: left;
+  }
+  .section-title {
+    justify-content: flex-start;
+    font-size: 1.2rem;
+    gap: 0.75rem;
+  }
+  .title-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 1.2rem;
+    border-radius: 5px;
+  }
+  .tournament-status {
+    align-self: flex-end;
+    margin-top: 0.5rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.95rem;
+  }
+  .category-section {
+    border-radius: 1rem;
+    margin-bottom: 2rem;
+    padding: 0.5rem;
+  }
+  .category-header {
+    padding: 1rem;
+    font-size: 1rem;
+  }
+  .gender-section {
+    padding: 1rem;
+  }
+  .gender-header {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-start;
+    padding-bottom: 0.5rem;
+  }
+  .stats-badges {
+    gap: 0.5rem;
+  }
+  .stat-badge {
+    padding: 0.5rem 1rem;
+    min-width: 60px;
+    font-size: 0.9rem;
+  }
+  .matches-container {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .match-card {
+    padding: 0.75rem;
+    border-radius: 1rem;
+  }
+  .player-number-badge, .position-indicator {
+    width: 32px;
+    height: 32px;
+    font-size: 1rem;
+  }
+  .player-details {
+    gap: 0.1rem;
+  }
+  .advance-indicator {
+    width: 32px;
+    height: 32px;
+    font-size: 1.1rem;
+  }
+  .medal-indicator {
+    width: 32px;
+    height: 32px;
+    font-size: 1.1rem;
+  }
+  .round-title {
+    font-size: 1.1rem;
+  }
+  .round-header, .final-header {
+    padding: 1rem;
+    font-size: 1rem;
+  }
+  .bracket-round {
+    padding: 1rem;
+    border-radius: 1rem;
+  }
+  .eliminated-section {
+    padding: 1rem;
+    border-radius: 1rem;
+  }
+  .no-data {
+    padding: 2rem 0.5rem;
+    border-radius: 1rem;
+  }
+}
+
+.mobile-only {
+  display: none;
+}
+
+.desktop-only {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
 }
 </style>
 

@@ -2,7 +2,7 @@
   <div class="wyniki-container">
     <div class="section-header">
       <h2 class="section-title">
-        <span class="title-icon">📊</span>
+        <span class="title-icon">🏆</span>
         Wyniki zawodników
       </h2>
       <div class="results-count">
@@ -17,42 +17,79 @@
         <table class="results-table">
           <thead>
             <tr>
-              <th class="col-position">Poz.</th>
-              <th class="col-number">Nr</th>
+              <th class="col-position mobile-hidden">Poz.</th>
+              <th class="col-number mobile-hidden">Nr</th>
               <th class="col-name">Zawodnik</th>
-              <th class="col-category">Kategoria</th>
-              <th class="col-gender">Płeć</th>
-              <th class="col-time">Czas</th>
-              <th class="col-status">Status</th>
+              <th class="col-category mobile-hidden">Kategoria</th>
+              <th class="col-time mobile-hidden">Czas</th>
+              <th class="col-status mobile-hidden">Status</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="(zawodnik, index) in filtrowaneWyniki" 
                 :key="zawodnik.nr_startowy"
                 :class="['result-row', getRowClass(index, zawodnik)]">
-              <td class="col-position">
+              <td class="col-position mobile-hidden">
                 <div class="position-badge" :class="getPositionClass(index)">
                   {{ index + 1 }}
                 </div>
               </td>
-              <td class="col-number">
+              <td class="col-number mobile-hidden">
                 <div class="number-badge">{{ zawodnik.nr_startowy }}</div>
               </td>
               <td class="col-name">
                 <div class="athlete-info">
-                  <div class="athlete-name">{{ zawodnik.imie }} {{ zawodnik.nazwisko }}</div>
+                  <!-- Desktop view -->
+                  <div class="athlete-name-row desktop-only">
+                    <div class="athlete-name">{{ zawodnik.imie }} {{ zawodnik.nazwisko }}</div>
+                  </div>
+                  
+                  <!-- Mobile card view -->
+                  <div class="mobile-card mobile-only">
+                    <div class="mobile-card-header">
+                      <div class="position-badge-card" :class="getPositionClass(index)">
+                        {{ index + 1 }}
+                      </div>
+                      <div class="athlete-name-card">{{ zawodnik.imie }} {{ zawodnik.nazwisko }}</div>
+                    </div>
+                    <div class="mobile-card-details">
+                      <div class="detail-row">
+                        <div class="detail-item">
+                          <span class="detail-label">Nr startowy:</span>
+                          <span class="detail-value">{{ zawodnik.nr_startowy }}</span>
+                        </div>
+                        <div class="detail-item">
+                          <span class="detail-label">Kategoria:</span>
+                          <span class="detail-value">{{ zawodnik.kategoria }}</span>
+                        </div>
+                      </div>
+                      <div class="detail-row">
+                        <div class="detail-item">
+                          <span class="detail-label">Status:</span>
+                          <span class="detail-value status-text" :class="getStatusClass(zawodnik.status)">
+                            {{ getStatusText(zawodnik.status) }}
+                          </span>
+                        </div>
+                        <div class="detail-item">
+                          <span class="detail-label">Czas:</span>
+                          <span v-if="zawodnik.czas_przejazdu_s" 
+                               class="detail-value time-text" 
+                               :class="getTimeClass(zawodnik.czas_przejazdu_s)">
+                            {{ zawodnik.czas_przejazdu_s }}s
+                          </span>
+                          <span v-else class="detail-value time-text no-time">
+                            Brak czasu
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </td>
-              <td class="col-category">
+              <td class="col-category mobile-hidden">
                 <div class="category-badge">{{ zawodnik.kategoria }}</div>
               </td>
-              <td class="col-gender">
-                <div class="gender-badge" :class="zawodnik.plec === 'M' ? 'male' : 'female'">
-                  {{ zawodnik.plec === 'M' ? '👨' : '👩' }}
-                  {{ zawodnik.plec === 'M' ? 'M' : 'K' }}
-                </div>
-              </td>
-              <td class="col-time">
+              <td class="col-time mobile-hidden">
                 <div v-if="zawodnik.czas_przejazdu_s" 
                      class="time-display" 
                      :class="getTimeClass(zawodnik.czas_przejazdu_s)">
@@ -62,7 +99,7 @@
                   Brak czasu
                 </div>
               </td>
-              <td class="col-status">
+              <td class="col-status mobile-hidden">
                 <div class="status-badge" :class="getStatusClass(zawodnik.status)">
                   {{ getStatusText(zawodnik.status) }}
                 </div>
@@ -89,7 +126,7 @@ import axios from 'axios'
 const props = defineProps({
   filtry: {
     type: Object,
-    default: () => ({ kategoria: null, plec: null })
+    default: () => ({ kategorie: [], plec: null })
   }
 })
 
@@ -98,8 +135,8 @@ const wyniki = ref([])
 const filtrowaneWyniki = computed(() => {
   let filtered = wyniki.value
   
-  if (props.filtry?.kategoria) {
-    filtered = filtered.filter(w => w.kategoria === props.filtry.kategoria)
+  if (props.filtry?.kategorie && props.filtry.kategorie.length > 0) {
+    filtered = filtered.filter(w => props.filtry.kategorie.includes(w.kategoria))
   }
   
   if (props.filtry?.plec) {
@@ -187,39 +224,40 @@ watch(() => props.filtry, (newFilters) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid #e2e8f0;
+  margin-bottom: 3rem;
+  padding: 2rem;
+  background: linear-gradient(135deg, #1e40af 0%, #3730a3 100%);
+  color: white;
+  border-radius: 1.5rem;
+  box-shadow: 0 10px 30px rgba(30, 64, 175, 0.3);
 }
 
 .section-title {
   display: flex;
   align-items: center;
   gap: 1rem;
-  font-size: 2rem;
-  font-weight: 800;
-  color: #0f172a;
+  font-size: 2.5rem;
+  font-weight: 900;
   margin: 0;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
 }
 
 .title-icon {
-  font-size: 2.5rem;
-  background: linear-gradient(135deg, #1e40af, #3730a3);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  font-size: 3rem;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+  animation: pulse 2s infinite;
 }
 
 .results-count {
   display: flex;
   align-items: baseline;
   gap: 0.5rem;
-  background: #1e40af;
+  background: rgba(255, 255, 255, 0.2);
   color: white;
-  padding: 0.75rem 1.5rem;
+  padding: 1rem 1.5rem;
   border-radius: 2rem;
   font-weight: 700;
-  box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
+  backdrop-filter: blur(10px);
 }
 
 .count-number {
@@ -305,35 +343,31 @@ watch(() => props.filtry, (newFilters) => {
 }
 
 .col-position {
-  width: 80px;
+  width: 50px;
   text-align: center;
 }
 
 .col-number {
-  width: 80px;
+  width: 50px;
   text-align: center;
 }
 
 .col-name {
-  min-width: 200px;
+  min-width: 180px;
+  width: auto;
 }
 
 .col-category {
-  width: 120px;
-}
-
-.col-gender {
-  width: 100px;
-  text-align: center;
+  width: 85px;
 }
 
 .col-time {
-  width: 120px;
+  width: 85px;
   text-align: center;
 }
 
 .col-status {
-  width: 140px;
+  width: 100px;
   text-align: center;
 }
 
@@ -387,6 +421,13 @@ watch(() => props.filtry, (newFilters) => {
   gap: 0.25rem;
 }
 
+.athlete-name-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
 .athlete-name {
   font-weight: 700;
   font-size: 1.1rem;
@@ -403,29 +444,6 @@ watch(() => props.filtry, (newFilters) => {
   font-size: 0.9rem;
   text-align: center;
   box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
-}
-
-.gender-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  border-radius: 1rem;
-  font-weight: 700;
-  font-size: 0.9rem;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-}
-
-.gender-badge.male {
-  background: #dbeafe;
-  color: #1e40af;
-  border: 2px solid #3b82f6;
-}
-
-.gender-badge.female {
-  background: #fce7f3;
-  color: #be185d;
-  border: 2px solid #ec4899;
 }
 
 .time-display {
@@ -550,12 +568,12 @@ watch(() => props.filtry, (newFilters) => {
   
   .section-header {
     flex-direction: column;
-    gap: 1rem;
-    align-items: flex-start;
+    gap: 1.5rem;
+    text-align: center;
   }
   
   .section-title {
-    font-size: 1.5rem;
+    font-size: 2rem;
   }
   
   .results-table {
@@ -590,16 +608,237 @@ watch(() => props.filtry, (newFilters) => {
   }
   
   .section-title {
-    font-size: 1.25rem;
+    font-size: 1.75rem;
   }
   
   .title-icon {
-    font-size: 2rem;
+    font-size: 2.5rem;
   }
   
   .results-table {
     font-size: 0.8rem;
   }
 }
-</style>
 
+/* Mobile Responsive Styles */
+@media (max-width: 600px) {
+  .mobile-hidden {
+    display: none !important;
+  }
+  
+  .mobile-only {
+    display: block !important;
+  }
+  
+  .desktop-only {
+    display: none !important;
+  }
+  
+  /* Usunięcie białego tła tabeli na mobile - karty mają własne tło */
+  .results-table-container {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0;
+    overflow: visible;
+  }
+  
+  .table-wrapper {
+    overflow: visible;
+  }
+  
+  .col-name {
+    width: 100% !important;
+    min-width: auto;
+  }
+  
+  .mobile-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.75rem;
+    padding: 1rem;
+    margin: 0.5rem 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: none;
+  }
+  
+  .mobile-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transform: none;
+  }
+  
+  /* Usunięcie kolorowych tłem dla pierwszych trzech miejsc w kartach */
+  .result-row.first-place .mobile-card,
+  .result-row.second-place .mobile-card,
+  .result-row.third-place .mobile-card {
+    background: white !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+  }
+  
+  .mobile-card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  
+  .position-badge-card {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    font-weight: 900;
+    font-size: 1rem;
+    color: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    flex-shrink: 0;
+  }
+  
+  .position-badge-card.gold {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+  }
+  
+  .position-badge-card.silver {
+    background: linear-gradient(135deg, #9ca3af, #6b7280);
+  }
+  
+  .position-badge-card.bronze {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+  }
+  
+  .position-badge-card.regular {
+    background: linear-gradient(135deg, #64748b, #475569);
+  }
+  
+  .athlete-name-card {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #0f172a;
+    flex: 1;
+  }
+  
+  .mobile-card-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .detail-row {
+    display: flex;
+    gap: 1rem;
+  }
+  
+  .detail-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
+  .detail-label {
+    font-weight: 600;
+    color: #64748b;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  
+  .detail-value {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #0f172a;
+  }
+  
+  .status-text.finished {
+    color: #166534;
+  }
+  
+  .status-text.dnf {
+    color: #991b1b;
+  }
+  
+  .status-text.dsq {
+    color: #9a3412;
+  }
+  
+  .status-text.unknown {
+    color: #64748b;
+  }
+  
+  .time-text.excellent {
+    color: #166534;
+    font-weight: 800;
+  }
+  
+  .time-text.good {
+    color: #1e40af;
+    font-weight: 800;
+  }
+  
+  .time-text.average {
+    color: #92400e;
+    font-weight: 800;
+  }
+  
+  .time-text.poor {
+    color: #991b1b;
+    font-weight: 800;
+  }
+  
+  .time-text.no-time {
+    color: #64748b;
+    font-style: italic;
+  }
+  
+  .athlete-name {
+    font-size: 0.95rem;
+    line-height: 1.3;
+  }
+}
+
+@media (max-width: 400px) {
+  .mobile-card {
+    padding: 0.75rem;
+    margin: 0.25rem 0;
+  }
+  
+  .position-badge-card {
+    width: 30px;
+    height: 30px;
+    font-size: 0.9rem;
+  }
+  
+  .athlete-name-card {
+    font-size: 1rem;
+  }
+  
+  .detail-row {
+    gap: 0.5rem;
+  }
+  
+  .detail-label {
+    font-size: 0.7rem;
+  }
+  
+  .detail-value {
+    font-size: 0.8rem;
+  }
+  
+  .athlete-name {
+    font-size: 0.85rem;
+  }
+}
+
+.mobile-only {
+  display: none;
+}
+
+.desktop-only {
+  display: block;
+}
+</style>

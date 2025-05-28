@@ -27,7 +27,7 @@
             v-for="kategoria in dostepneKategorie" 
             :key="kategoria"
             @click="selectKategoria(kategoria)"
-            :class="['filter-option', { active: wybranaKategoria === kategoria }]"
+            :class="['filter-option', { active: wybraneKategorie.includes(kategoria) }]"
           >
             {{ kategoria }}
           </button>
@@ -66,9 +66,9 @@
         Aktywne filtry:
       </div>
       <div class="active-filters-list">
-        <div v-if="wybranaKategoria" class="active-filter">
-          <span class="filter-text">{{ wybranaKategoria }}</span>
-          <button @click="selectKategoria(null)" class="remove-filter">✕</button>
+        <div v-for="kategoria in wybraneKategorie" :key="kategoria" class="active-filter">
+          <span class="filter-text">{{ kategoria }}</span>
+          <button @click="removeKategoria(kategoria)" class="remove-filter">✕</button>
         </div>
         <div v-if="wybranaPlec" class="active-filter">
           <span class="filter-text">{{ wybranaPlec === 'M' ? 'Mężczyźni' : 'Kobiety' }}</span>
@@ -84,7 +84,7 @@
         <span class="stats-text">
           Znaleziono <strong>{{ filteredCount }}</strong> z <strong>{{ totalCount }}</strong> zawodników
           <span v-if="hasActiveFilters" class="filter-info">
-            ({{ wybranaKategoria ? `kategoria: ${wybranaKategoria}` : '' }}{{ wybranaKategoria && wybranaPlec ? ', ' : '' }}{{ wybranaPlec ? `płeć: ${wybranaPlec === 'M' ? 'Mężczyźni' : 'Kobiety'}` : '' }})
+            ({{ wybraneKategorie.length > 0 ? `kategorie: ${wybraneKategorie.join(', ')}` : '' }}{{ wybranaPlec ? `, płeć: ${wybranaPlec === 'M' ? 'Mężczyźni' : 'Kobiety'}` : '' }})
           </span>
         </span>
       </div>
@@ -99,7 +99,7 @@ import axios from 'axios'
 const emit = defineEmits(['filtry-changed'])
 
 const kategorie = ref([])
-const wybranaKategoria = ref(null)
+const wybraneKategorie = ref([])
 const wybranaPlec = ref(null)
 const totalCount = ref(0)
 const filteredCount = ref(0)
@@ -109,12 +109,27 @@ const dostepneKategorie = computed(() => {
 })
 
 const hasActiveFilters = computed(() => {
-  return wybranaKategoria.value || wybranaPlec.value
+  return wybraneKategorie.value.length > 0 || wybranaPlec.value
 })
 
 function selectKategoria(kategoria) {
-  wybranaKategoria.value = wybranaKategoria.value === kategoria ? null : kategoria
+  const index = wybraneKategorie.value.indexOf(kategoria)
+  if (index > -1) {
+    // Jeśli kategoria już jest wybrana, usuń ją
+    wybraneKategorie.value.splice(index, 1)
+  } else {
+    // Jeśli kategoria nie jest wybrana, dodaj ją
+    wybraneKategorie.value.push(kategoria)
+  }
   emitFilters()
+}
+
+function removeKategoria(kategoria) {
+  const index = wybraneKategorie.value.indexOf(kategoria)
+  if (index > -1) {
+    wybraneKategorie.value.splice(index, 1)
+    emitFilters()
+  }
 }
 
 function selectPlec(plec) {
@@ -123,14 +138,14 @@ function selectPlec(plec) {
 }
 
 function clearFilters() {
-  wybranaKategoria.value = null
+  wybraneKategorie.value = []
   wybranaPlec.value = null
   emitFilters()
 }
 
 function emitFilters() {
   const filters = {
-    kategoria: wybranaKategoria.value,
+    kategorie: wybraneKategorie.value,
     plec: wybranaPlec.value
   }
   emit('filtry-changed', filters)
@@ -143,8 +158,8 @@ async function updateFilteredCount() {
     const res = await axios.get('/api/wyniki')
     let filtered = res.data
     
-    if (wybranaKategoria.value) {
-      filtered = filtered.filter(w => w.kategoria === wybranaKategoria.value)
+    if (wybraneKategorie.value.length > 0) {
+      filtered = filtered.filter(w => wybraneKategorie.value.includes(w.kategoria))
     }
     
     if (wybranaPlec.value) {
@@ -174,7 +189,7 @@ async function loadKategorie() {
 onMounted(loadKategorie)
 
 // Obserwuj zmiany i aktualizuj licznik
-watch([wybranaKategoria, wybranaPlec], () => {
+watch([wybraneKategorie, wybranaPlec], () => {
   updateFilteredCount()
 })
 </script>
