@@ -286,7 +286,7 @@ python3 sprawdz_statystyki.py     # Sprawdza statystyki
 
 ---
 
-**Autor**: System SECTRO Timing  
+**Autor**: MB  
 **Wersja**: 6.0  
 **Ostatnia aktualizacja**: Maj 2025  
 **Licencja**: MIT
