@@ -149,7 +149,6 @@ function emitFilters() {
     plec: wybranaPlec.value
   }
   emit('filtry-changed', filters)
-  updateFilteredCount()
 }
 
 async function updateFilteredCount() {
