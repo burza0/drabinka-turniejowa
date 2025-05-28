@@ -347,5 +347,5 @@ python3 sprawdz_statystyki.py     # Sprawdza statystyki
 
 **Autor**: MB  
 **Wersja**: 7.0  
-**Ostatnia aktualizacja**: Styczeń 2025  
+**Ostatnia aktualizacja**: Maj 2025  
 **Licencja**: MIT
