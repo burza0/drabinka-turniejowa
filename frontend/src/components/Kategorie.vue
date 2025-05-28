@@ -94,7 +94,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import axios from 'axios'
+import { apiClient } from '../utils/api.js'
 
 const emit = defineEmits(['filtry-changed'])
 
@@ -155,7 +155,7 @@ function emitFilters() {
 async function updateFilteredCount() {
   try {
     // Pobierz wszystkich zawodników i przefiltruj lokalnie
-    const res = await axios.get('/api/wyniki')
+    const res = await apiClient.getWyniki()
     let filtered = res.data
     
     if (wybraneKategorie.value.length > 0) {
@@ -175,14 +175,16 @@ async function updateFilteredCount() {
 
 async function loadKategorie() {
   try {
-    const res = await axios.get('/api/kategorie')
-    kategorie.value = res.data.kategorie || []
-    totalCount.value = res.data.total_zawodnikow || 0
-    filteredCount.value = totalCount.value
-    console.log('Załadowano kategorie:', kategorie.value)
+    const res = await apiClient.getKategorie()
+    if (res.data && res.data.kategorie) {
+      kategorie.value = res.data.kategorie
+      totalCount.value = res.data.total_zawodnikow || 0
+      console.log('Załadowano kategorie:', kategorie.value.length)
+    }
   } catch (error) {
     console.error('Błąd ładowania kategorii:', error)
     kategorie.value = []
+    totalCount.value = 0
   }
 }
 

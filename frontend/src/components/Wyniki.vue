@@ -121,7 +121,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import axios from 'axios'
+import { apiClient } from '../utils/api.js'
 
 const props = defineProps({
   filtry: {
@@ -198,7 +198,7 @@ function getStatusText(status) {
 
 async function loadWyniki() {
   try {
-    const res = await axios.get('/api/wyniki')
+    const res = await apiClient.getWyniki()
     wyniki.value = res.data
     console.log('Załadowano wyniki:', res.data.length, 'zawodników')
   } catch (error) {

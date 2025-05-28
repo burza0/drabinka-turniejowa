@@ -358,7 +358,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import axios from 'axios'
+import { apiClient } from '../utils/api.js'
 
 const props = defineProps({ 
   filtry: {
@@ -411,9 +411,9 @@ function getTimeClass(czas) {
 
 async function loadDrabinka() {
   try {
-    const res = await axios.get('/api/drabinka')
+    const res = await apiClient.getDrabinka()
     drabinka.value = res.data
-    console.log('Załadowano drabinkę:', res.data)
+    console.log('Załadowano drabinkę:', Object.keys(res.data).length, 'kategorii')
     
     if (res.data.podsumowanie) {
       emit('podsumowanie-loaded', res.data.podsumowanie)
