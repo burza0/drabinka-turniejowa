@@ -257,5 +257,10 @@ def drabinka():
     return jsonify(result)
 
 if __name__ == "__main__":
-    app.run(port=5000, debug=True)
+    # Konfiguracja dla produkcji (Railway, Heroku)
+    port = int(os.getenv("PORT", 5000))
+    host = os.getenv("HOST", "0.0.0.0")
+    debug = os.getenv("FLASK_ENV", "production") == "development"
+    
+    app.run(host=host, port=port, debug=debug)
 
