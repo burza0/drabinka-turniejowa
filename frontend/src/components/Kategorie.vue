@@ -76,24 +76,11 @@
         </div>
       </div>
     </div>
-
-    <!-- Statystyki filtrowania -->
-    <div class="filter-stats">
-      <div class="stats-item">
-        <span class="stats-icon">📊</span>
-        <span class="stats-text">
-          Znaleziono <strong>{{ filteredCount }}</strong> z <strong>{{ totalCount }}</strong> zawodników
-          <span v-if="hasActiveFilters" class="filter-info">
-            ({{ wybraneKategorie.length > 0 ? `kategorie: ${wybraneKategorie.join(', ')}` : '' }}{{ wybranaPlec ? `, płeć: ${wybranaPlec === 'M' ? 'Mężczyźni' : 'Kobiety'}` : '' }})
-          </span>
-        </span>
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { apiClient } from '../utils/api.js'
 
 const emit = defineEmits(['filtry-changed'])
@@ -101,8 +88,6 @@ const emit = defineEmits(['filtry-changed'])
 const kategorie = ref([])
 const wybraneKategorie = ref([])
 const wybranaPlec = ref(null)
-const totalCount = ref(0)
-const filteredCount = ref(0)
 
 const dostepneKategorie = computed(() => {
   return [...new Set(kategorie.value)].sort()
@@ -151,48 +136,20 @@ function emitFilters() {
   emit('filtry-changed', filters)
 }
 
-async function updateFilteredCount() {
-  try {
-    // Pobierz wszystkich zawodników i przefiltruj lokalnie
-    const res = await apiClient.getWyniki()
-    let filtered = res.data
-    
-    if (wybraneKategorie.value.length > 0) {
-      filtered = filtered.filter(w => wybraneKategorie.value.includes(w.kategoria))
-    }
-    
-    if (wybranaPlec.value) {
-      filtered = filtered.filter(w => w.plec === wybranaPlec.value)
-    }
-    
-    filteredCount.value = filtered.length
-  } catch (error) {
-    console.error('Błąd aktualizacji liczby filtrowanych:', error)
-    filteredCount.value = totalCount.value
-  }
-}
-
 async function loadKategorie() {
   try {
     const res = await apiClient.getKategorie()
     if (res.data && res.data.kategorie) {
       kategorie.value = res.data.kategorie
-      totalCount.value = res.data.total_zawodnikow || 0
       console.log('Załadowano kategorie:', kategorie.value.length)
     }
   } catch (error) {
     console.error('Błąd ładowania kategorii:', error)
     kategorie.value = []
-    totalCount.value = 0
   }
 }
 
 onMounted(loadKategorie)
-
-// Obserwuj zmiany i aktualizuj licznik
-watch([wybraneKategorie, wybranaPlec], () => {
-  updateFilteredCount()
-})
 </script>
 
 <style scoped>
@@ -403,37 +360,6 @@ watch([wybraneKategorie, wybranaPlec], () => {
 .remove-filter:hover {
   background: #dc2626;
   transform: scale(1.1);
-}
-
-.filter-stats {
-  background: #f8fafc;
-  border: 2px solid #e2e8f0;
-  border-radius: 1rem;
-  padding: 1.25rem;
-}
-
-.stats-item {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-size: 1rem;
-  color: #374151;
-}
-
-.stats-icon {
-  font-size: 1.25rem;
-  color: #1e40af;
-}
-
-.stats-text strong {
-  color: #1e40af;
-  font-weight: 800;
-}
-
-.filter-info {
-  color: #64748b;
-  font-style: italic;
-  font-size: 0.9em;
 }
 
 /* Responsive Design */
