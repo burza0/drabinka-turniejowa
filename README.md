@@ -1,22 +1,25 @@
-# 🏁 DRABINKA PUCHAROWA SKATECROSS
+# 🏆 Drabinka pucharowa Mistrzostw Polski w SKATECROSS
 
-Profesjonalny system do zarządzania wynikami i drabinką turniejową skatecross z zaawansowanymi funkcjami filtrowania i wizualizacji.
+Profesjonalny system do zarządzania wynikami i drabinką turniejową SKATECROSS z zaawansowanymi funkcjami filtrowania, wizualizacji i nowoczesnym interfejsem użytkownika.
 
 ## 🎯 Funkcjonalności
 
 ### ✨ Główne cechy
-- **150 zawodników** w 3 kategoriach wiekowych (MASTERS, OPEN, U18)
-- **Podział płci** - równomierny rozkład 75 mężczyzn + 75 kobiet
-- **Zaawansowane filtry** - kategoria + płeć w czasie rzeczywistym
+- **250 zawodników** w 6 kategoriach wiekowych (Junior A, Junior B, Junior C, Junior D, Masters, Senior)
+- **Podział płci** - równomierny rozkład 125 mężczyzn + 125 kobiet
+- **Zaawansowane filtry** - kategoria + płeć w czasie rzeczywistym z licznikiem wyników
 - **Drabinka turniejowa** - grupy 4-osobowe z ćwierćfinałami, półfinałami i finałem
 - **Ograniczenie uczestników** - maksymalnie 16 najlepszych do ćwierćfinałów na kategorię/płeć
 - **Kolorowe wyświetlanie** - statusy, czasy, kategorie z intuicyjną kolorystyką
 - **Responsywny design** - działa na wszystkich urządzeniach
+- **Nowoczesny interfejs** - profesjonalny design dla wielkich imprez sportowych
 
 ### 📊 Sekcje aplikacji
-1. **Podsumowanie** - statystyki ogólne pod głównym nagłówkiem
-2. **Wyniki** - tabela z filtrami kategorii i płci, sortowaniem i statystykami
-3. **Drabinka** - hierarchiczna struktura turniejowa zsynchronizowana z filtrami
+1. **Header** - "🏆 MISTRZOSTWA POLSKI SKATECROSS 2025" z wskaźnikiem "NA ŻYWO"
+2. **Podsumowanie** - statystyki ogólne (zawodnicy, kategorie, podział płci)
+3. **Filtry** - interaktywne przyciski kategorii i płci z licznikiem wyników
+4. **Wyniki** - profesjonalna tabela z sortowaniem i kolorystyką
+5. **Drabinka** - hierarchiczna struktura turniejowa zsynchronizowana z filtrami
 
 ## 🚀 Uruchamianie lokalnie
 
@@ -31,34 +34,21 @@ git clone <repository-url>
 cd drabinka-turniejowa
 ```
 
-### 2. Konfiguracja backendu
-
-#### Utworzenie środowiska wirtualnego
+### 2. Szybkie uruchomienie
 ```bash
-cd backend
-python3 -m venv venv
-source venv/bin/activate  # Linux/Mac
-# lub
-venv\Scripts\activate     # Windows
+# Uruchomienie obu serwisów jednocześnie
+./run_local.sh
 ```
 
-#### Instalacja zależności
-```bash
-pip install flask flask-cors psycopg2 python-dotenv
-```
-
-#### Konfiguracja bazy danych
-```bash
-# Utwórz plik .env
-echo 'DATABASE_URL=postgresql://username:password@host:port/database' > .env
-```
-
-### 3. Uruchomienie aplikacji
+### 3. Ręczne uruchomienie
 
 #### Backend
 ```bash
 cd backend
+python3 -m venv venv
 source venv/bin/activate
+pip install -r requirements.txt
+# Skonfiguruj .env z DATABASE_URL
 python3 api_server.py
 ```
 
@@ -80,7 +70,7 @@ npm run dev
 - nr_startowy (PRIMARY KEY)
 - imie (VARCHAR)
 - nazwisko (VARCHAR) 
-- kategoria (VARCHAR) - MASTERS/OPEN/U18
+- kategoria (VARCHAR) - Junior A/B/C/D, Masters, Senior
 - plec (VARCHAR) - M/K
 ```
 
@@ -91,41 +81,51 @@ npm run dev
 - status (VARCHAR) - FINISHED/DNF/DSQ
 ```
 
-### Statystyki bazy
-- **150 zawodników** łącznie
-- **MASTERS**: 45 zawodników (22K + 23M)
-- **OPEN**: 56 zawodników (28K + 28M) 
-- **U18**: 49 zawodników (25K + 24M)
-- **116 ukończonych** (77.3%), **15 DNF** (10.0%), **19 DSQ** (12.7%)
+### Aktualne statystyki bazy
+- **250 zawodników** łącznie (125M + 125K)
+- **Junior A**: 36 zawodników (16M + 20K)
+- **Junior B**: 39 zawodników (16M + 23K)
+- **Junior C**: 45 zawodników (25M + 20K)
+- **Junior D**: 47 zawodników (27M + 20K)
+- **Masters**: 46 zawodników (22M + 24K)
+- **Senior**: 37 zawodników (19M + 18K)
+- **195 ukończonych** (78%), **29 DNF** (11.6%), **26 DSQ** (10.4%)
 
 ## 🔧 API Endpointy
 
 - `GET /api/zawodnicy` - Lista wszystkich zawodników z płcią
-- `GET /api/kategorie` - Lista kategorii wiekowych
+- `GET /api/kategorie` - Lista kategorii z liczbą zawodników
 - `GET /api/wyniki` - Wyniki z JOIN zawodników (imię, nazwisko, kategoria, płeć)
 - `GET /api/drabinka` - Kompletna drabinka turniejowa z grupami i statystykami
 - `GET /api/statystyki` - Statystyki według kategorii i płci
 
 ## 🎨 Funkcje frontendu
 
+### Nowoczesny design
+- **Czcionka Inter** - profesjonalna typografia
+- **Gradientowe headery** - niebieski główny (#1e40af) z akcentami
+- **Animacje i hover efekty** - płynne przejścia i interakcje
+- **Doskonały kontrast** - ciemny tekst na jasnym tle dla czytelności
+- **Nieprzezroczyste tła** - belka nawigacji i sekcje bez nakładania
+
 ### Sekcja Wyniki
-- **Filtry**: Kategoria + Płeć (niezależne)
+- **Filtry**: Kategoria + Płeć (niezależne) z licznikiem wyników
 - **Sortowanie**: FINISHED (po czasie) → DNF → DSQ
 - **Kolorystyka**: 
-  - Statusy: FINISHED (zielony), DNF (żółty), DSQ (czerwony)
-  - Czasy: <45s (zielony), 45-50s (niebieski), 50-60s (żółty), >60s (czerwony)
-  - Kategorie: U18 (zielony), OPEN (niebieski), MASTERS (fioletowy)
-- **Statystyki**: Ukończone/DNF/DSQ + najlepszy czas
+  - Statusy: FINISHED (zielony ✅), DNF (czerwony ❌), DSQ (pomarańczowy 🚫)
+  - Czasy: <45s (doskonały), 45-50s (dobry), 50-60s (średni), >60s (słaby)
+  - Pozycje: Złoto 🥇, Srebro 🥈, Brąz 🥉
+- **Badges**: Kolorowe znaczki dla kategorii, płci i statusów
 
 ### Sekcja Drabinka
-- **Synchronizacja z filtrami** - reaguje na wybór kategorii/płci w sekcji Wyniki
+- **Synchronizacja z filtrami** - reaguje na wybór kategorii/płci
 - **Struktura turniejowa**:
   - **Ćwierćfinały**: Grupy po 4, awansują 2 najlepszych
   - **Półfinały**: Zwycięzcy z ćwierćfinałów
-  - **Finał**: Zwycięzcy z półfinałów
-- **Ograniczenie**: Maksymalnie 16 najlepszych do ćwierćfinałów
-- **Odpadli**: Lista zawodników poza drabinką (czerwony styl)
-- **Statystyki grup**: Liczba grup w każdej rundzie
+  - **Finał**: Zwycięzcy z półfinałów z animacją glow
+- **Status turnieju**: "Turniej w toku" z pulsującą kropką
+- **Medale**: 🥇🥈🥉 zamiast korony w finale
+- **Odpadli**: Lista zawodników poza drabinką
 
 ## 📁 Struktura projektu
 
@@ -133,38 +133,43 @@ npm run dev
 drabinka-turniejowa/
 ├── backend/                    # Flask API
 │   ├── api_server.py          # Główny serwer z logiką drabinki
-│   ├── add_zawodnicy.py       # Skrypt dodający 50 zawodników (5-54)
-│   ├── add_zawodnicy_proporcjonalnie.py # Skrypt dodający 96 zawodników (55-150)
-│   ├── uzupelnij_dane.py      # Skrypt generujący realistyczne wyniki
+│   ├── rozszerz_do_250.py     # Skrypt rozszerzający bazę do 250 zawodników
+│   ├── zmien_kategorie_i_rozszerz.py # Zmiana kategorii na Junior A-D
 │   ├── sprawdz_statystyki.py  # Skrypt sprawdzający statystyki bazy
+│   ├── uzupelnij_dane.py      # Skrypt generujący realistyczne wyniki
 │   ├── venv/                  # Środowisko wirtualne (nie w git)
+│   ├── requirements.txt       # Zależności Python
 │   └── .env                   # Konfiguracja bazy (nie w git)
 ├── frontend/                   # Vue.js frontend
 │   ├── src/
-│   │   ├── App.vue           # Główny komponent z podsumowaniem
+│   │   ├── App.vue           # Główny komponent z headerem i nawigacją
+│   │   ├── style.css         # Globalne style CSS
 │   │   └── components/
-│   │       ├── Wyniki.vue    # Tabela z filtrami i statystykami
+│   │       ├── Wyniki.vue    # Tabela z filtrami i profesjonalnym designem
+│   │       ├── Kategorie.vue # Filtry kategorii i płci z licznikami
 │   │       └── Drabinka.vue  # Hierarchiczna drabinka turniejowa
 │   ├── vite.config.js        # Konfiguracja z proxy API
 │   └── package.json
-├── README.md                   # Ten plik
+├── run_local.sh               # Skrypt uruchamiający oba serwisy
+├── README.md                  # Ten plik
 └── .gitignore                 # venv/, .env, node_modules/
 ```
 
 ## 🎯 Logika drabinki turniejowej
 
 ### Algorytm tworzenia drabinki
-1. **Sortowanie** - wszyscy zawodnicy według czasu (najlepsi pierwsi)
-2. **Ograniczenie** - maksymalnie 16 najlepszych do ćwierćfinałów
-3. **Podział na grupy** - grupy 4-osobowe w ćwierćfinałach
-4. **Awans** - 2 najlepszych z każdej grupy do następnej rundy
-5. **Finał** - zwycięzcy półfinałów
+1. **Filtrowanie** - według wybranej kategorii i płci
+2. **Sortowanie** - wszyscy zawodnicy według czasu (najlepsi pierwsi)
+3. **Ograniczenie** - maksymalnie 16 najlepszych do ćwierćfinałów
+4. **Podział na grupy** - grupy 4-osobowe w ćwierćfinałach
+5. **Awans** - 2 najlepszych z każdej grupy do następnej rundy
+6. **Finał** - zwycięzcy półfinałów z medalami
 
-### Przykład drabinki (OPEN Mężczyźni)
-- **29 zawodników** łącznie → **16 w ćwierćfinałach** → **13 odpadło**
+### Przykład drabinki (Junior A Mężczyźni)
+- **16 zawodników** łącznie → **16 w ćwierćfinałach** → **0 odpadło**
 - **4 grupy ćwierćfinałowe** → **8 awansuje** do półfinałów
 - **2 grupy półfinałowe** → **4 awansuje** do finału
-- **1 grupa finałowa** → **1 zwycięzca**
+- **1 grupa finałowa** → **1 zwycięzca** 🥇
 
 ## 🔧 Konfiguracja
 
@@ -197,14 +202,16 @@ python3 api_server.py
 2. Sprawdź konsole przeglądarki (F12)
 3. Sprawdź konfigurację proxy w `vite.config.js`
 
-### Baza danych pusta
+### Baza danych pusta lub nieaktualna
 ```bash
 cd backend
-python3 add_zawodnicy.py              # Dodaje zawodników 5-54
-python3 add_zawodnicy_proporcjonalnie.py  # Dodaje zawodników 55-150
-python3 uzupelnij_dane.py             # Generuje wyniki
-python3 sprawdz_statystyki.py         # Sprawdza statystyki
+python3 rozszerz_do_250.py        # Rozszerza bazę do 250 zawodników
+python3 sprawdz_statystyki.py     # Sprawdza statystyki
 ```
+
+### Problemy z filtrami
+- Sprawdź endpoint `/api/kategorie` - powinien zwracać obiekt z `kategorie` i `total_zawodnikow`
+- Sprawdź konsole przeglądarki pod kątem błędów JavaScript
 
 ## 📈 Historia rozwoju
 
@@ -220,7 +227,7 @@ python3 sprawdz_statystyki.py         # Sprawdza statystyki
 
 ### v3.0 - Pełna baza i drabinki
 - ✅ 150 zawodników (proporcjonalny podział)
-- ✅ Realistyczne wyniki (116 FINISHED, 15 DNF, 19 DSQ)
+- ✅ Realistyczne wyniki
 - ✅ Podstawowa drabinka turniejowa
 
 ### v4.0 - Zaawansowane funkcje
@@ -229,14 +236,22 @@ python3 sprawdz_statystyki.py         # Sprawdza statystyki
 - ✅ Statystyki i podsumowania
 - ✅ Responsywny design
 
-### v5.0 - Profesjonalna drabinka (AKTUALNA)
+### v5.0 - Profesjonalna drabinka
 - ✅ Grupy 4-osobowe z awansem 2 najlepszych
 - ✅ Ograniczenie do 16 zawodników w ćwierćfinałach
-- ✅ Hierarchiczna struktura: ćwierćfinały → półfinały → finał
+- ✅ Hierarchiczna struktura turniejowa
 - ✅ Synchronizacja filtrów między sekcjami
-- ✅ Wyświetlanie odpadłych zawodników
-- ✅ Nowy nagłówek: "DRABINKA PUCHAROWA SKATECROSS"
-- ✅ Podsumowanie na górze strony
+
+### v6.0 - Rozszerzenie do 250 zawodników (AKTUALNA)
+- ✅ **250 zawodników** w 6 kategoriach (Junior A-D, Masters, Senior)
+- ✅ **Nowy nagłówek**: "🏆 Drabinka pucharowa Mistrzostw Polski w SKATECROSS"
+- ✅ **Profesjonalny design** dla wielkich imprez sportowych
+- ✅ **Czcionka Inter** z gradientowymi headerami
+- ✅ **Medale w finale** (🥇🥈🥉) zamiast korony
+- ✅ **Nieprzezroczyste tła** - belka nawigacji nie zlewa się z treścią
+- ✅ **Poprawione statusy** - zgodne z bazą danych (FINISHED/DNF/DSQ)
+- ✅ **Liczniki filtrów** - wyświetlanie liczby znalezionych zawodników
+- ✅ **Animacje i hover efekty** - płynne przejścia i interakcje
 
 ## 🚀 Przyszłe funkcjonalności
 
@@ -246,9 +261,32 @@ python3 sprawdz_statystyki.py         # Sprawdza statystyki
 - [ ] API do zarządzania turniejami
 - [ ] Powiadomienia push o zmianach
 - [ ] Integracja z systemami timing
+- [ ] Tryb ciemny (dark mode)
+- [ ] Wielojęzyczność (PL/EN)
+
+## 🎨 Design System
+
+### Kolory
+- **Główny**: #1e40af (niebieski)
+- **Akcent**: #dc2626 (czerwony), #f59e0b (pomarańczowy)
+- **Sukces**: #059669 (zielony)
+- **Tło**: #f8fafc (jasny szary)
+- **Tekst**: #0f172a (ciemny)
+
+### Typografia
+- **Czcionka**: Inter (Google Fonts)
+- **Rozmiary**: 18px bazowy, skalowane nagłówki
+- **Wagi**: 400 (regular), 600 (semibold), 700 (bold), 800 (extrabold), 900 (black)
+
+### Komponenty
+- **Karty**: Białe tło, cienie, zaokrąglone rogi
+- **Przyciski**: Gradientowe tła, hover efekty
+- **Badges**: Kolorowe znaczki z ikonami
+- **Tabele**: Profesjonalne z gradientowymi headerami
 
 ---
 
 **Autor**: System SECTRO Timing  
-**Wersja**: 5.0  
-**Ostatnia aktualizacja**: Maj 2025
+**Wersja**: 6.0  
+**Ostatnia aktualizacja**: Maj 2025  
+**Licencja**: MIT

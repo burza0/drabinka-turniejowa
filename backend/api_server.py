@@ -43,8 +43,18 @@ def zawodnicy():
 
 @app.route("/api/kategorie")
 def kategorie():
-    rows = get_all("SELECT DISTINCT kategoria FROM zawodnicy WHERE kategoria IS NOT NULL ORDER BY kategoria")
-    return jsonify([row["kategoria"] for row in rows])
+    # Pobierz kategorie
+    kategorie_rows = get_all("SELECT DISTINCT kategoria FROM zawodnicy WHERE kategoria IS NOT NULL ORDER BY kategoria")
+    kategorie_list = [row["kategoria"] for row in kategorie_rows]
+    
+    # Pobierz łączną liczbę zawodników
+    total_rows = get_all("SELECT COUNT(*) as total FROM zawodnicy WHERE kategoria IS NOT NULL")
+    total_zawodnikow = total_rows[0]["total"] if total_rows else 0
+    
+    return jsonify({
+        "kategorie": kategorie_list,
+        "total_zawodnikow": total_zawodnikow
+    })
 
 @app.route("/api/statystyki")
 def statystyki():
