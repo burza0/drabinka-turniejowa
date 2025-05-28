@@ -1,79 +1,139 @@
 <template>
   <div class="kategorie-container">
-    <div class="filters-header">
-      <h3 class="filters-title">
-        <span class="filters-icon">🔍</span>
-        Filtry wyszukiwania
-      </h3>
+    <!-- Categories Section -->
+    <div class="filter-section">
+      <div class="section-header">
+        <h3 class="section-title">
+          <span class="section-icon">🏅</span>
+          Kategorie wiekowe
+        </h3>
+        <div class="selection-count" v-if="wybraneKategorie.length > 0">
+          {{ wybraneKategorie.length }} wybrano
+        </div>
+      </div>
+      
+      <div class="category-grid">
+        <button 
+          v-for="kategoria in dostepneKategorie" 
+          :key="kategoria"
+          @click="toggleKategoria(kategoria)"
+          :class="['category-chip', { 
+            selected: wybraneKategorie.includes(kategoria),
+            'has-selection': wybraneKategorie.length > 0 && !wybraneKategorie.includes(kategoria)
+          }]"
+        >
+          <span class="chip-text">{{ kategoria }}</span>
+          <span v-if="wybraneKategorie.includes(kategoria)" class="selected-icon">✓</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Gender Section -->
+    <div class="filter-section">
+      <div class="section-header">
+        <h3 class="section-title">
+          <span class="section-icon">👥</span>
+          Płeć
+        </h3>
+      </div>
+      
+      <div class="gender-options">
+        <button 
+          @click="togglePlec(null)"
+          :class="['gender-chip', 'all', { selected: wybranaPlec === null }]"
+        >
+          <span class="gender-icon">👥</span>
+          <span class="gender-text">Wszyscy</span>
+          <span v-if="wybranaPlec === null" class="selected-icon">✓</span>
+        </button>
+        
+        <button 
+          @click="togglePlec('M')"
+          :class="['gender-chip', 'male', { selected: wybranaPlec === 'M' }]"
+        >
+          <span class="gender-icon">👨</span>
+          <span class="gender-text">Mężczyźni</span>
+          <span v-if="wybranaPlec === 'M'" class="selected-icon">✓</span>
+        </button>
+        
+        <button 
+          @click="togglePlec('K')"
+          :class="['gender-chip', 'female', { selected: wybranaPlec === 'K' }]"
+        >
+          <span class="gender-icon">👩</span>
+          <span class="gender-text">Kobiety</span>
+          <span v-if="wybranaPlec === 'K'" class="selected-icon">✓</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Active Filters -->
+    <div v-if="hasActiveFilters" class="active-filters">
+      <div class="active-header">
+        <span class="active-icon">🎯</span>
+        <span class="active-title">Aktywne filtry</span>
+        <button @click="clearAllFilters" class="clear-all-btn">
+          <span class="clear-icon">🗑️</span>
+          Wyczyść wszystko
+        </button>
+      </div>
+      
+      <div class="active-list">
+        <!-- Selected Categories -->
+        <div 
+          v-for="kategoria in wybraneKategorie" 
+          :key="`kategoria-${kategoria}`"
+          class="active-tag category-tag"
+        >
+          <span class="tag-icon">🏅</span>
+          <span class="tag-text">{{ kategoria }}</span>
+          <button @click="removeKategoria(kategoria)" class="remove-btn">
+            <span class="remove-icon">✕</span>
+          </button>
+        </div>
+        
+        <!-- Selected Gender -->
+        <div 
+          v-if="wybranaPlec" 
+          class="active-tag gender-tag"
+        >
+          <span class="tag-icon">{{ wybranaPlec === 'M' ? '👨' : '👩' }}</span>
+          <span class="tag-text">{{ wybranaPlec === 'M' ? 'Mężczyźni' : 'Kobiety' }}</span>
+          <button @click="togglePlec(null)" class="remove-btn">
+            <span class="remove-icon">✕</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
       <button 
-        v-if="hasActiveFilters" 
-        @click="clearFilters"
-        class="clear-button"
+        v-if="dostepneKategorie.length > 0 && wybraneKategorie.length < dostepneKategorie.length"
+        @click="selectAllCategories"
+        class="quick-btn select-all"
       >
-        <span class="clear-icon">✕</span>
-        Wyczyść filtry
+        <span class="quick-icon">✅</span>
+        <span>Wybierz wszystkie kategorie</span>
+      </button>
+      
+      <button 
+        v-if="wybraneKategorie.length > 0"
+        @click="clearCategories"
+        class="quick-btn clear-categories"
+      >
+        <span class="quick-icon">❌</span>
+        <span>Wyczyść kategorie</span>
       </button>
     </div>
 
-    <div class="filters-grid">
-      <!-- Filtr kategorii -->
-      <div class="filter-group">
-        <label class="filter-label">
-          <span class="label-icon">🏅</span>
-          Kategoria wiekowa
-        </label>
-        <div class="filter-options">
-          <button 
-            v-for="kategoria in dostepneKategorie" 
-            :key="kategoria"
-            @click="selectKategoria(kategoria)"
-            :class="['filter-option', { active: wybraneKategorie.includes(kategoria) }]"
-          >
-            {{ kategoria }}
-          </button>
-        </div>
-      </div>
-
-      <!-- Filtr płci -->
-      <div class="filter-group">
-        <label class="filter-label">
-          <span class="label-icon">👥</span>
-          Płeć
-        </label>
-        <div class="filter-options">
-          <button 
-            @click="selectPlec('M')"
-            :class="['filter-option gender-male', { active: wybranaPlec === 'M' }]"
-          >
-            <span class="gender-icon">👨</span>
-            Mężczyźni
-          </button>
-          <button 
-            @click="selectPlec('K')"
-            :class="['filter-option gender-female', { active: wybranaPlec === 'K' }]"
-          >
-            <span class="gender-icon">👩</span>
-            Kobiety
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Aktywne filtry -->
-    <div v-if="hasActiveFilters" class="active-filters">
-      <div class="active-filters-header">
-        <span class="active-icon">🎯</span>
-        Aktywne filtry:
-      </div>
-      <div class="active-filters-list">
-        <div v-for="kategoria in wybraneKategorie" :key="kategoria" class="active-filter">
-          <span class="filter-text">{{ kategoria }}</span>
-          <button @click="removeKategoria(kategoria)" class="remove-filter">✕</button>
-        </div>
-        <div v-if="wybranaPlec" class="active-filter">
-          <span class="filter-text">{{ wybranaPlec === 'M' ? 'Mężczyźni' : 'Kobiety' }}</span>
-          <button @click="selectPlec(null)" class="remove-filter">✕</button>
-        </div>
+    <!-- Filter Summary -->
+    <div v-if="hasActiveFilters" class="filter-summary">
+      <div class="summary-content">
+        <span class="summary-icon">📊</span>
+        <span class="summary-text">
+          Filtr aktywny: {{ getFilterSummary() }}
+        </span>
       </div>
     </div>
   </div>
@@ -85,10 +145,12 @@ import { apiClient } from '../utils/api.js'
 
 const emit = defineEmits(['filtry-changed'])
 
+// State
 const kategorie = ref([])
 const wybraneKategorie = ref([])
 const wybranaPlec = ref(null)
 
+// Computed
 const dostepneKategorie = computed(() => {
   return [...new Set(kategorie.value)].sort()
 })
@@ -97,13 +159,12 @@ const hasActiveFilters = computed(() => {
   return wybraneKategorie.value.length > 0 || wybranaPlec.value
 })
 
-function selectKategoria(kategoria) {
+// Functions
+function toggleKategoria(kategoria) {
   const index = wybraneKategorie.value.indexOf(kategoria)
   if (index > -1) {
-    // Jeśli kategoria już jest wybrana, usuń ją
     wybraneKategorie.value.splice(index, 1)
   } else {
-    // Jeśli kategoria nie jest wybrana, dodaj ją
     wybraneKategorie.value.push(kategoria)
   }
   emitFilters()
@@ -117,15 +178,43 @@ function removeKategoria(kategoria) {
   }
 }
 
-function selectPlec(plec) {
-  wybranaPlec.value = wybranaPlec.value === plec ? null : plec
+function togglePlec(plec) {
+  wybranaPlec.value = plec
   emitFilters()
 }
 
-function clearFilters() {
+function selectAllCategories() {
+  wybraneKategorie.value = [...dostepneKategorie.value]
+  emitFilters()
+}
+
+function clearCategories() {
+  wybraneKategorie.value = []
+  emitFilters()
+}
+
+function clearAllFilters() {
   wybraneKategorie.value = []
   wybranaPlec.value = null
   emitFilters()
+}
+
+function getFilterSummary() {
+  const parts = []
+  
+  if (wybraneKategorie.value.length > 0) {
+    if (wybraneKategorie.value.length === 1) {
+      parts.push(`kategoria "${wybraneKategorie.value[0]}"`)
+    } else {
+      parts.push(`${wybraneKategorie.value.length} kategorii`)
+    }
+  }
+  
+  if (wybranaPlec.value) {
+    parts.push(wybranaPlec.value === 'M' ? 'mężczyźni' : 'kobiety')
+  }
+  
+  return parts.join(', ')
 }
 
 function emitFilters() {
@@ -149,200 +238,259 @@ async function loadKategorie() {
   }
 }
 
+// Lifecycle
 onMounted(loadKategorie)
 </script>
 
 <style scoped>
 .kategorie-container {
   font-family: 'Inter', sans-serif;
-  background: white;
-  border-radius: 1rem;
-  padding: 2rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e2e8f0;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
-.filters-header {
+/* Filter Section */
+.filter-section {
+  background: var(--surface);
+  border-radius: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid #f1f5f9;
+  margin-bottom: 1rem;
 }
 
-.filters-title {
+.section-title {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #0f172a;
+  gap: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
   margin: 0;
 }
 
-.filters-icon {
-  font-size: 1.75rem;
-  background: linear-gradient(135deg, #1e40af, #3730a3);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.clear-button {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: #ef4444;
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 2rem;
-  font-weight: 600;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
-}
-
-.clear-button:hover {
-  background: #dc2626;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
-}
-
-.clear-icon {
-  font-size: 1rem;
-  font-weight: 700;
-}
-
-.filters-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 2rem;
-  margin-bottom: 2rem;
-}
-
-.filter-group {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.filter-label {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
+.section-icon {
   font-size: 1.1rem;
-  font-weight: 700;
-  color: #374151;
-  margin-bottom: 0.5rem;
 }
 
-.label-icon {
-  font-size: 1.25rem;
+.selection-count {
+  background: var(--primary);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.8rem;
+  font-weight: 500;
 }
 
-.filter-options {
-  display: flex;
-  flex-wrap: wrap;
+/* Category Grid */
+.category-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
   gap: 0.75rem;
 }
 
-.filter-option {
+.category-chip {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  background: #f8fafc;
-  color: #64748b;
-  border: 2px solid #e2e8f0;
-  padding: 0.75rem 1.25rem;
-  border-radius: 2rem;
-  font-weight: 600;
-  font-size: 0.9rem;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  border-radius: 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-family: inherit;
-  white-space: nowrap;
+  min-height: 44px;
+  position: relative;
 }
 
-.filter-option:hover {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
+.category-chip:hover {
+  border-color: var(--primary);
+  color: var(--primary);
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow);
 }
 
-.filter-option.active {
-  background: #1e40af;
+.category-chip.selected {
+  background: var(--primary);
+  border-color: var(--primary);
   color: white;
-  border-color: #1e40af;
-  box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
+  box-shadow: var(--shadow);
 }
 
-.filter-option.gender-male.active {
+.category-chip.has-selection {
+  opacity: 0.6;
+}
+
+.chip-text {
+  flex: 1;
+  text-align: center;
+}
+
+.selected-icon {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+/* Gender Options */
+.gender-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.75rem;
+}
+
+.gender-chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  border: 2px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  border-radius: 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 60px;
+  position: relative;
+}
+
+.gender-chip:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
+
+.gender-chip.selected {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+  box-shadow: var(--shadow);
+}
+
+.gender-chip.male.selected {
   background: #3b82f6;
   border-color: #3b82f6;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
-.filter-option.gender-female.active {
+.gender-chip.female.selected {
   background: #ec4899;
   border-color: #ec4899;
-  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
 }
 
 .gender-icon {
-  font-size: 1.1rem;
+  font-size: 1.2rem;
 }
 
+.gender-text {
+  font-weight: 600;
+}
+
+/* Active Filters */
 .active-filters {
-  background: #f0f9ff;
-  border: 2px solid #bfdbfe;
+  background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+  border: 2px solid #bae6fd;
   border-radius: 1rem;
-  padding: 1.5rem;
-  margin-bottom: 2rem;
+  padding: 1rem;
 }
 
-.active-filters-header {
+.active-header {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  font-weight: 700;
-  color: #1e40af;
+  gap: 0.5rem;
   margin-bottom: 1rem;
-  font-size: 1rem;
+  flex-wrap: wrap;
 }
 
 .active-icon {
-  font-size: 1.25rem;
+  font-size: 1.1rem;
 }
 
-.active-filters-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
+.active-title {
+  font-weight: 600;
+  color: var(--primary);
+  flex: 1;
+  min-width: 0;
 }
 
-.active-filter {
+.clear-all-btn {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  background: white;
-  border: 2px solid #3b82f6;
-  border-radius: 2rem;
-  padding: 0.5rem 1rem;
-  font-weight: 600;
-  color: #1e40af;
-  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.2);
+  gap: 0.25rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--error);
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.filter-text {
+.clear-all-btn:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+}
+
+.clear-icon {
   font-size: 0.9rem;
 }
 
-.remove-filter {
-  background: #ef4444;
+.active-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.active-tag {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: white;
+  border: 2px solid var(--primary);
+  border-radius: 1rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--primary);
+  box-shadow: var(--shadow);
+}
+
+.category-tag {
+  border-color: var(--secondary);
+  color: var(--secondary);
+}
+
+.gender-tag {
+  border-color: #ec4899;
+  color: #ec4899;
+}
+
+.tag-icon {
+  font-size: 0.9rem;
+}
+
+.tag-text {
+  font-weight: 600;
+}
+
+.remove-btn {
+  background: var(--error);
   color: white;
   border: none;
   width: 20px;
@@ -352,72 +500,212 @@ onMounted(loadKategorie)
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 700;
   transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
-.remove-filter:hover {
+.remove-btn:hover {
   background: #dc2626;
   transform: scale(1.1);
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
+.remove-icon {
+  line-height: 1;
+}
+
+/* Quick Actions */
+.quick-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.quick-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  border-radius: 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quick-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
+
+.quick-btn.select-all:hover {
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.quick-btn.clear-categories:hover {
+  border-color: var(--error);
+  color: var(--error);
+}
+
+.quick-icon {
+  font-size: 1rem;
+}
+
+/* Filter Summary */
+.filter-summary {
+  background: var(--primary);
+  color: white;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  box-shadow: var(--shadow);
+}
+
+.summary-content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.summary-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.summary-text {
+  font-size: 0.9rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+/* Very small screens */
+@media (max-width: 360px) {
   .kategorie-container {
-    padding: 1.5rem;
-  }
-  
-  .filters-header {
-    flex-direction: column;
+    padding: 0.75rem;
     gap: 1rem;
+  }
+  
+  .filter-section {
+    padding: 0.75rem;
+  }
+  
+  .section-header {
+    flex-direction: column;
     align-items: flex-start;
+    gap: 0.5rem;
   }
   
-  .filters-title {
-    font-size: 1.25rem;
+  .category-grid {
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: 0.5rem;
   }
   
-  .filters-grid {
+  .category-chip {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
+    min-height: 40px;
+  }
+  
+  .gender-options {
     grid-template-columns: 1fr;
-    gap: 1.5rem;
-  }
-  
-  .filter-options {
     gap: 0.5rem;
   }
   
-  .filter-option {
-    padding: 0.5rem 1rem;
-    font-size: 0.85rem;
+  .gender-chip {
+    padding: 0.75rem;
+    min-height: 50px;
   }
   
-  .active-filters-list {
-    gap: 0.5rem;
+  .active-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  
+  .clear-all-btn {
+    align-self: stretch;
+    justify-content: center;
+  }
+  
+  .quick-actions {
+    gap: 0.75rem;
+  }
+  
+  .quick-btn {
+    padding: 1rem;
+    font-size: 0.8rem;
   }
 }
 
-@media (max-width: 480px) {
+/* Landscape mode adjustments */
+@media (max-height: 500px) and (orientation: landscape) {
   .kategorie-container {
-    padding: 1rem;
+    gap: 1rem;
   }
   
-  .filters-title {
-    font-size: 1.1rem;
+  .filter-section {
+    padding: 0.75rem;
   }
   
-  .filters-icon {
-    font-size: 1.5rem;
+  .gender-chip {
+    min-height: 50px;
   }
   
-  .filter-option {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.8rem;
+  .category-chip {
+    min-height: 40px;
+  }
+}
+
+/* Medium screens - tablets */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .category-grid {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   }
   
-  .clear-button {
-    padding: 0.5rem 1rem;
-    font-size: 0.8rem;
+  .gender-options {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .quick-actions {
+    flex-direction: row;
+    gap: 1rem;
+  }
+  
+  .quick-btn {
+    flex: 1;
+  }
+}
+
+/* Large screens */
+@media (min-width: 1025px) {
+  .kategorie-container {
+    gap: 2rem;
+  }
+  
+  .category-grid {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+  
+  .gender-options {
+    grid-template-columns: repeat(3, 1fr);
+    max-width: 600px;
+  }
+  
+  .quick-actions {
+    flex-direction: row;
+    gap: 1rem;
+    max-width: 600px;
+  }
+  
+  .quick-btn {
+    flex: 1;
   }
 }
 </style>
