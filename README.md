@@ -314,12 +314,9 @@ python3 sprawdz_statystyki.py     # Sprawdza statystyki
 - [ ] Export drabinki do PDF
 - [ ] System logowania i autoryzacji
 - [ ] API do zarządzania turniejami
-- [ ] Powiadomienia push o zmianach
 - [ ] Integracja z systemami timing
-- [ ] Tryb ciemny (dark mode)
 - [ ] Wielojęzyczność (PL/EN)
 - [ ] Progressive Web App (PWA)
-- [ ] Offline support
 
 ## 🎨 Design System
 
