@@ -153,7 +153,7 @@
           <!-- Płcie w kategorii -->
           <div class="space-y-8">
             <div v-for="(plecData, plecName) in kategoria" :key="plecName" 
-                 v-show="selectedPlcie.includes(String(plecName))"
+                 v-show="selectedPlcie.length === 0 || selectedPlcie.includes(String(plecName))"
                  class="border-l-4 border-indigo-500 pl-4">
               <h4 class="text-lg font-medium text-gray-800 mb-4">{{ String(plecName) === 'Mężczyźni' ? '👨 Mężczyźni' : '👩 Kobiety' }}</h4>
               
