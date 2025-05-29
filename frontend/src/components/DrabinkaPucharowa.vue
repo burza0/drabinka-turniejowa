@@ -257,7 +257,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import axios from 'axios'
 import { ExclamationTriangleIcon, TrophyIcon, UsersIcon, UserIcon } from '@heroicons/vue/24/outline'
 import StatsCard from './StatsCard.vue'
@@ -272,7 +272,7 @@ const drabinka = ref<DrabinkaResponse | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
 
-// Filtry
+// Filtry - domyślnie wszystkie kategorie i obie płcie
 const selectedKategorie = ref<string[]>([])
 const selectedPlcie = ref<string[]>(['Mężczyźni', 'Kobiety'])
 
@@ -306,6 +306,13 @@ const filteredKategorieData = computed(() => {
 const uniqueKategorie = computed(() => {
   return Object.keys(kategorieData.value).sort()
 })
+
+// Watch dla automatycznego ustawienia wszystkich kategorii po załadowaniu danych
+watch(allKategorie, (newKategorie) => {
+  if (newKategorie.length > 0 && selectedKategorie.value.length === 0) {
+    selectedKategorie.value = [...newKategorie]
+  }
+}, { immediate: true })
 
 // Methods
 const formatTime = (seconds: number | null): string => {
@@ -354,12 +361,6 @@ const fetchDrabinka = async () => {
     
     const response = await axios.get<DrabinkaResponse>('/api/drabinka')
     drabinka.value = response.data
-    
-    // Ustaw domyślne filtry - wszystkie kategorie
-    if (drabinka.value) {
-      const { podsumowanie, ...kategorie } = drabinka.value
-      selectedKategorie.value = Object.keys(kategorie).sort()
-    }
   } catch (err) {
     console.error('Błąd podczas pobierania drabinki:', err)
     error.value = 'Nie udało się załadować drabinki turniejowej'
