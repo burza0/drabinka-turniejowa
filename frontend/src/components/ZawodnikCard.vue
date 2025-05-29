@@ -1,28 +1,28 @@
 <template>
   <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-3 border border-gray-200 dark:border-gray-700 transition-colors duration-200">
-    <!-- Numer + Imię/nazwisko + klub + kategoria w jednej linii -->
-    <div class="flex items-center justify-between mb-3 text-lg">
-      <div class="flex items-center space-x-3 flex-1">
-        <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 text-base font-bold">
-          {{ zawodnik.nr_startowy }}
+    <!-- Numer + Imię/nazwisko -->
+    <div class="flex items-center space-x-3 mb-2">
+      <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 text-base font-bold flex-shrink-0">
+        {{ zawodnik.nr_startowy }}
+      </span>
+      <h3 class="font-bold text-gray-900 dark:text-white leading-tight text-lg">
+        {{ zawodnik.imie }} {{ zawodnik.nazwisko }}
+      </h3>
+    </div>
+
+    <!-- Klub + Kategoria w osobnej linii -->
+    <div class="flex flex-col xs:flex-row xs:items-center xs:justify-between gap-2 mb-3 text-sm">
+      <div class="flex items-center space-x-1 min-w-0">
+        <BuildingOfficeIcon class="h-4 w-4 text-blue-500 dark:text-blue-400 flex-shrink-0" />
+        <span class="font-medium text-gray-700 dark:text-gray-300 truncate">
+          {{ zawodnik.klub }}
         </span>
-        <h3 class="font-bold text-gray-900 dark:text-white leading-tight">
-          {{ zawodnik.imie }} {{ zawodnik.nazwisko }}
-        </h3>
       </div>
-      <div class="flex items-center space-x-3 text-base">
-        <div class="flex items-center space-x-1">
-          <BuildingOfficeIcon class="h-4 w-4 text-blue-500 dark:text-blue-400 flex-shrink-0" />
-          <span class="font-medium text-gray-700 dark:text-gray-300 truncate">
-            {{ zawodnik.klub }}
-          </span>
-        </div>
-        <div class="flex items-center space-x-1">
-          <TagIcon class="h-4 w-4 text-green-500 dark:text-green-400 flex-shrink-0" />
-          <span class="font-medium text-gray-700 dark:text-gray-300">
-            {{ zawodnik.kategoria }}
-          </span>
-        </div>
+      <div class="flex items-center space-x-1 min-w-0 xs:flex-shrink-0">
+        <TagIcon class="h-4 w-4 text-green-500 dark:text-green-400 flex-shrink-0" />
+        <span class="font-medium text-gray-700 dark:text-gray-300 truncate">
+          {{ zawodnik.kategoria }}
+        </span>
       </div>
     </div>
 
