@@ -257,7 +257,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
 import { ExclamationTriangleIcon, TrophyIcon, UsersIcon, UserIcon } from '@heroicons/vue/24/outline'
 import StatsCard from './StatsCard.vue'
@@ -272,9 +272,9 @@ const drabinka = ref<DrabinkaResponse | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
 
-// Filtry - domyślnie wszystkie kategorie i obie płcie
+// Filtry - domyślnie odznaczone (puste) - tak jak w Lista zawodników
 const selectedKategorie = ref<string[]>([])
-const selectedPlcie = ref<string[]>(['Mężczyźni', 'Kobiety'])
+const selectedPlcie = ref<string[]>([])
 
 // Computed
 const kategorieData = computed(() => {
@@ -306,13 +306,6 @@ const filteredKategorieData = computed(() => {
 const uniqueKategorie = computed(() => {
   return Object.keys(kategorieData.value).sort()
 })
-
-// Watch dla automatycznego ustawienia wszystkich kategorii po załadowaniu danych
-watch(allKategorie, (newKategorie) => {
-  if (newKategorie.length > 0 && selectedKategorie.value.length === 0) {
-    selectedKategorie.value = [...newKategorie]
-  }
-}, { immediate: true })
 
 // Methods
 const formatTime = (seconds: number | null): string => {
@@ -351,7 +344,7 @@ const selectAllGenders = () => {
 
 const clearFilters = () => {
   selectedKategorie.value = []
-  selectedPlcie.value = ['Mężczyźni', 'Kobiety']
+  selectedPlcie.value = []
 }
 
 const fetchDrabinka = async () => {
