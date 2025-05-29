@@ -1,1 +1,3 @@
-web: gunicorn --bind 0.0.0.0:$PORT app:app 
+# Backend API
+web: cd backend && python api_server.py
+# QR Scanner będzie serwowany jako statyczne pliki przez backend 

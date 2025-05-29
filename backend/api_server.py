@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 import psycopg2
 import os
@@ -701,5 +701,19 @@ def qr_stats():
         print(f"Błąd w QR stats: {e}")
         return jsonify({"error": str(e)}), 500
 
+@app.route("/qr-scanner")
+@app.route("/qr-scanner/")
+def qr_scanner():
+    """Serwuje QR Scanner aplikację"""
+    qr_scanner_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'qr-scanner')
+    return send_from_directory(qr_scanner_path, 'index.html')
+
+@app.route("/qr-scanner/<path:filename>")
+def qr_scanner_static(filename):
+    """Serwuje statyczne pliki QR Scanner"""
+    qr_scanner_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'qr-scanner')
+    return send_from_directory(qr_scanner_path, filename)
+
 if __name__ == '__main__':
-    app.run(debug=True) 
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False) 
