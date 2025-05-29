@@ -131,13 +131,6 @@
           <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <div class="flex justify-between items-center mb-4">
               <h3 class="text-lg font-medium text-gray-900 dark:text-white">Lista zawodników</h3>
-              <button 
-                @click="clearFilters"
-                class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 flex items-center"
-              >
-                <XMarkIcon class="h-4 w-4 mr-1" />
-                Wyczyść filtry
-              </button>
             </div>
             
             <!-- Filtry -->
