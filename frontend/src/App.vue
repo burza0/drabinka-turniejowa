@@ -390,7 +390,6 @@ import {
   TrophyIcon,
   ChartBarIcon,
   ListBulletIcon,
-  XMarkIcon,
   PencilIcon,
   TrashIcon
 } from '@heroicons/vue/24/outline'

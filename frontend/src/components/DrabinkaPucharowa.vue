@@ -160,51 +160,8 @@ import axios from 'axios'
 import { ExclamationTriangleIcon, TrophyIcon } from '@heroicons/vue/24/outline'
 
 // Types
-interface Zawodnik {
-  nr_startowy: number
-  imie: string
-  nazwisko: string
-  kategoria: string
-  plec: string
-  czas_przejazdu_s: number | null
-  status: string
-}
-
-interface Grupa {
-  grupa: number
-  zawodnicy: Zawodnik[]
-  awansują: number
-}
-
-interface DrabinkaPlec {
-  ćwierćfinały: Grupa[]
-  półfinały: Grupa[]
-  finał: Grupa[]
-  odpadli: Zawodnik[]
-  statystyki: {
-    łącznie_zawodników: number
-    w_ćwierćfinałach: number
-    odpadło: number
-    grup_ćwierćfinały: number
-    grup_półfinały: number
-    grup_finał: number
-  }
-}
-
-interface DrabinkaKategoria {
-  [plec: string]: DrabinkaPlec
-}
-
 interface DrabinkaResponse {
-  [kategoria: string]: DrabinkaKategoria
-  podsumowanie: {
-    wszystkie_kategorie: string[]
-    łączna_liczba_zawodników: number
-    podział_płeć: {
-      mężczyźni: number
-      kobiety: number
-    }
-  }
+  [key: string]: any
 }
 
 // Reactive data
