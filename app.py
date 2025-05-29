@@ -14,10 +14,11 @@ from api_server import app as api_app
 app = Flask(__name__, static_folder='frontend/dist')
 CORS(app)
 
-# Zarejestruj wszystkie endpointy API z backend aplikacji
+# Zarejestruj wszystkie endpointy API z backend aplikacji (pomijając 'static')
 for rule in api_app.url_map.iter_rules():
-    endpoint = api_app.view_functions[rule.endpoint]
-    app.add_url_rule(rule.rule, rule.endpoint, endpoint, methods=rule.methods)
+    if rule.endpoint != 'static':  # Pomijamy endpoint 'static' aby uniknąć konfliktu
+        endpoint = api_app.view_functions[rule.endpoint]
+        app.add_url_rule(rule.rule, rule.endpoint, endpoint, methods=rule.methods)
 
 # Serwuj frontend (statyczne pliki Vue)
 @app.route('/')
