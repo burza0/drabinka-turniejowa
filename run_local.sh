@@ -15,7 +15,7 @@ echo "📊 Uruchamianie backend (Flask)..."
 cd backend
 python3 -m venv venv 2>/dev/null || true
 source venv/bin/activate
-pip install -r requirements.txt -q
+pip install -r ../requirements.txt -q
 python api_server.py &
 BACKEND_PID=$!
 cd ..
@@ -26,7 +26,7 @@ sleep 3
 # Uruchom frontend
 echo "🎨 Uruchamianie frontend (Vue + Vite)..."
 cd frontend
-npm install
+npm install -q
 npm run dev &
 FRONTEND_PID=$!
 cd ..

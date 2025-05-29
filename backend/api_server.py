@@ -38,7 +38,13 @@ def wyniki():
 
 @app.route("/api/zawodnicy")
 def zawodnicy():
-    rows = get_all("SELECT * FROM zawodnicy ORDER BY nr_startowy")
+    rows = get_all("""
+        SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+               w.czas_przejazdu_s, w.status
+        FROM zawodnicy z
+        LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+        ORDER BY z.nr_startowy
+    """)
     return jsonify(rows)
 
 @app.route("/api/kategorie")

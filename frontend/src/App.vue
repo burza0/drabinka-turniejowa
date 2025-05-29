@@ -1,869 +1,602 @@
 <template>
-  <div class="app" :class="{ 'fullscreen': isFullscreen }">
-    <!-- Mobile Header -->
-    <header class="mobile-header">
-      <div class="header-content">
-        <div class="event-logo">
-          <div class="logo-icon">🏆</div>
-          <div class="event-info">
-            <h1 class="event-title">Skatecross 2025</h1>
-            <p class="event-subtitle">Mistrzostwa Polski</p>
+  <div class="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+    <!-- Header -->
+    <header class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 transition-colors duration-200">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center h-16">
+          <!-- Logo/Brand -->
+          <div class="flex items-center">
+            <h1 class="text-xl font-semibold text-gray-900 dark:text-white transition-colors duration-200">
+              SKATECROSS Dashboard
+              <span v-if="isAdmin" class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200">
+                🔧 ADMIN
+              </span>
+            </h1>
+          </div>
+          
+          <!-- Search Bar -->
+          <div class="flex-1 max-w-lg mx-8">
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <MagnifyingGlassIcon class="h-5 w-5 text-gray-400" />
+              </div>
+              <input 
+                type="text" 
+                class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md leading-5 bg-white dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-colors duration-200"
+                placeholder="Szukaj zawodników..."
+                v-model="searchTerm"
+              />
+            </div>
+          </div>
+          
+          <!-- Header Icons -->
+          <div class="flex items-center space-x-4">
+            <!-- Admin Toggle -->
+            <div class="flex items-center space-x-2">
+              <label class="text-sm text-gray-600 dark:text-gray-300">Admin:</label>
+              <button
+                @click="toggleAdminMode"
+                :class="[
+                  'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2',
+                  isAdmin ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-600'
+                ]"
+              >
+                <span
+                  :class="[
+                    'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+                    isAdmin ? 'translate-x-5' : 'translate-x-0'
+                  ]"
+                />
+              </button>
+            </div>
+            
+            <button class="p-2 text-gray-400 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-200">
+              <GlobeAltIcon class="h-6 w-6" />
+            </button>
+            <button 
+              @click="toggleDarkMode"
+              class="p-2 text-gray-400 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-200 transition-colors duration-200"
+              :title="isDarkMode ? 'Przełącz na tryb jasny' : 'Przełącz na tryb ciemny'"
+            >
+              <SunIcon v-if="isDarkMode" class="h-6 w-6" />
+              <MoonIcon v-else class="h-6 w-6" />
+            </button>
+            
+            <!-- User Avatar -->
+            <div class="w-8 h-8 bg-indigo-500 rounded-full flex items-center justify-center">
+              <span class="text-white text-sm font-medium">{{ isAdmin ? 'A' : 'U' }}</span>
+            </div>
           </div>
         </div>
-        <button 
-          class="menu-button"
-          @click="showSettings = !showSettings"
-          :class="{ active: showSettings }"
-        >
-          <span class="menu-icon">⚙️</span>
-        </button>
       </div>
     </header>
 
-    <!-- Settings Panel -->
-    <div v-if="showSettings" class="settings-panel" @click="showSettings = false">
-      <div class="settings-content" @click.stop>
-        <div class="settings-header">
-          <h3>Ustawienia</h3>
-          <button @click="showSettings = false" class="close-btn">✕</button>
-        </div>
-        <div class="settings-options">
-          <button @click="toggleFullscreen" class="setting-option">
-            <span class="setting-icon">📱</span>
-            <span>{{ isFullscreen ? 'Wyjdź z pełnego ekranu' : 'Pełny ekran' }}</span>
+    <!-- Navigation Tabs -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="border-b border-gray-200 dark:border-gray-700">
+        <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+          <button
+            v-for="tab in tabs"
+            :key="tab.id"
+            @click="activeTab = tab.id"
+            :class="[
+              activeTab === tab.id
+                ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600',
+              'whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200'
+            ]"
+          >
+            <component :is="tab.icon" class="h-5 w-5 mr-2 inline" />
+            {{ tab.name }}
           </button>
-          <button @click="refreshData" class="setting-option">
-            <span class="setting-icon">🔄</span>
-            <span>Odśwież dane</span>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Quick Stats Bar -->
-    <div v-if="podsumowanie && !isFullscreen" class="quick-stats">
-      <div class="stat-item">
-        <span class="stat-number">{{ podsumowanie.łączna_liczba_zawodników }}</span>
-        <span class="stat-label">zawodników</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-number">{{ podsumowanie.wszystkie_kategorie?.length || 0 }}</span>
-        <span class="stat-label">kategorii</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-number">{{ filtrowaneCount }}</span>
-        <span class="stat-label">wyników</span>
+        </nav>
       </div>
     </div>
 
     <!-- Main Content -->
-    <main class="main-content">
-      <!-- Pull to Refresh -->
-      <div v-if="isPulling" class="pull-refresh-indicator">
-        <div class="refresh-icon">🔄</div>
-        <span>Potągnij aby odświeżyć</span>
-      </div>
+    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      <!-- Lista Zawodników -->
+      <div v-if="activeTab === 'zawodnicy'">
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+          <StatsCard 
+            title="Wszyscy zawodnicy" 
+            :value="stats.total"
+            :icon="UsersIcon"
+            color="blue"
+          />
+          <StatsCard 
+            title="Ukończyli" 
+            :value="stats.finished"
+            :icon="CheckCircleIcon"
+            color="green"
+          />
+          <StatsCard 
+            title="DNF/DSQ" 
+            :value="stats.dnfDsq"
+            :icon="XCircleIcon"
+            color="red"
+          />
+          <StatsCard 
+            title="Rekord toru" 
+            :value="stats.recordTime"
+            :icon="ClockIcon"
+            color="purple"
+            :subtitle="stats.recordHolder !== '-' ? `Rekord: ${stats.recordHolder}` : ''"
+          />
+        </div>
 
-      <!-- Filters -->
-      <div v-if="showFilters" class="filters-overlay" @click="showFilters = false">
-        <div class="filters-panel" @click.stop>
-          <div class="filters-header">
-            <h3>Filtry</h3>
-            <button @click="showFilters = false" class="close-btn">✕</button>
+        <!-- Table -->
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg transition-colors duration-200">
+          <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-lg font-medium text-gray-900 dark:text-white">Lista zawodników</h3>
+              <button 
+                @click="clearFilters"
+                class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 flex items-center"
+              >
+                <XMarkIcon class="h-4 w-4 mr-1" />
+                Wyczyść filtry
+              </button>
+            </div>
+            
+            <!-- Filtry -->
+            <div class="space-y-4">
+              <!-- Filtry w formie chip/tag buttons -->
+              
+              <!-- Filtr Kluby -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-3">
+                  Kluby <span class="text-xs text-gray-500">({{ filters.kluby.length }} wybranych)</span>
+                </label>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    v-for="klub in uniqueKluby"
+                    :key="klub"
+                    @click="toggleFilter('kluby', klub)"
+                    :class="[
+                      'px-3 py-2 rounded-full text-sm font-medium transition-colors duration-200',
+                      filters.kluby.includes(klub)
+                        ? 'bg-blue-100 text-blue-800 border-2 border-blue-300'
+                        : 'bg-gray-100 text-gray-700 border-2 border-transparent hover:bg-gray-200'
+                    ]"
+                  >
+                    {{ klub }}
+                  </button>
+                </div>
+              </div>
+              
+              <!-- Filtr Kategorie -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-3">
+                  Kategorie <span class="text-xs text-gray-500">({{ filters.kategorie.length }} wybranych)</span>
+                </label>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    v-for="kategoria in uniqueKategorie"
+                    :key="kategoria"
+                    @click="toggleFilter('kategorie', kategoria)"
+                    :class="[
+                      'px-3 py-2 rounded-full text-sm font-medium transition-colors duration-200',
+                      filters.kategorie.includes(kategoria)
+                        ? 'bg-green-100 text-green-800 border-2 border-green-300'
+                        : 'bg-gray-100 text-gray-700 border-2 border-transparent hover:bg-gray-200'
+                    ]"
+                  >
+                    {{ kategoria }}
+                  </button>
+                </div>
+              </div>
+              
+              <!-- Filtr Płeć -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-3">
+                  Płeć <span class="text-xs text-gray-500">({{ filters.plcie.length }} wybranych)</span>
+                </label>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    @click="toggleFilter('plcie', 'M')"
+                    :class="[
+                      'px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200',
+                      filters.plcie.includes('M')
+                        ? 'bg-indigo-100 text-indigo-800 border-2 border-indigo-300'
+                        : 'bg-gray-100 text-gray-700 border-2 border-transparent hover:bg-gray-200'
+                    ]"
+                  >
+                    👨 Mężczyźni
+                  </button>
+                  <button
+                    @click="toggleFilter('plcie', 'K')"
+                    :class="[
+                      'px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200',
+                      filters.plcie.includes('K')
+                        ? 'bg-pink-100 text-pink-800 border-2 border-pink-300'
+                        : 'bg-gray-100 text-gray-700 border-2 border-transparent hover:bg-gray-200'
+                    ]"
+                  >
+                    👩 Kobiety
+                  </button>
+                </div>
+              </div>
+              
+              <!-- Filtr Statusy -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-3">
+                  Statusy <span class="text-xs text-gray-500">({{ filters.statusy.length }} wybranych)</span>
+                </label>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    @click="toggleFilter('statusy', 'FINISHED')"
+                    :class="[
+                      'px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200',
+                      filters.statusy.includes('FINISHED')
+                        ? 'bg-emerald-100 text-emerald-800 border-2 border-emerald-300'
+                        : 'bg-gray-100 text-gray-700 border-2 border-transparent hover:bg-gray-200'
+                    ]"
+                  >
+                    ✅ Ukończone
+                  </button>
+                  <button
+                    @click="toggleFilter('statusy', 'DNF')"
+                    :class="[
+                      'px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200',
+                      filters.statusy.includes('DNF')
+                        ? 'bg-yellow-100 text-yellow-800 border-2 border-yellow-300'
+                        : 'bg-gray-100 text-gray-700 border-2 border-transparent hover:bg-gray-200'
+                    ]"
+                  >
+                    ⚠️ DNF
+                  </button>
+                  <button
+                    @click="toggleFilter('statusy', 'DSQ')"
+                    :class="[
+                      'px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200',
+                      filters.statusy.includes('DSQ')
+                        ? 'bg-red-100 text-red-800 border-2 border-red-300'
+                        : 'bg-gray-100 text-gray-700 border-2 border-transparent hover:bg-gray-200'
+                    ]"
+                  >
+                    ❌ DSQ
+                  </button>
+                </div>
+              </div>
+              
+              <!-- Szybkie akcje filtrowania -->
+              <div class="flex flex-wrap gap-2 pt-4 border-t border-gray-200">
+                <button 
+                  @click="selectAllClubs"
+                  class="px-4 py-2 text-sm bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors duration-200"
+                >
+                  Wszystkie kluby
+                </button>
+                <button 
+                  @click="selectAllCategories"
+                  class="px-4 py-2 text-sm bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors duration-200"
+                >
+                  Wszystkie kategorie
+                </button>
+                <button 
+                  @click="selectFinishedOnly"
+                  class="px-4 py-2 text-sm bg-emerald-500 text-white rounded-full hover:bg-emerald-600 transition-colors duration-200"
+                >
+                  Tylko ukończone
+                </button>
+                <button 
+                  @click="clearFilters"
+                  class="px-4 py-2 text-sm bg-gray-500 text-white rounded-full hover:bg-gray-600 transition-colors duration-200"
+                >
+                  🗑️ Wyczyść wszystko
+                </button>
+              </div>
+            </div>
+            
+            <!-- Licznik przefiltrowanych wyników -->
+            <div class="mt-4 flex justify-between items-center text-sm text-gray-500">
+              <div>
+                Wyświetlanych: {{ filteredZawodnicy.length }} z {{ zawodnicy.length }} zawodników
+              </div>
+              <div v-if="isAdmin" class="text-red-600 font-medium">
+                👤 Tryb administratora - widoczne akcje edycji
+              </div>
+            </div>
           </div>
-          <Kategorie @filtry-changed="handleFiltryChanged" />
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead class="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                  <th class="px-6 py-3 text-left text-sm font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Nr startowy
+                  </th>
+                  <th class="px-6 py-3 text-left text-sm font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Klub
+                  </th>
+                  <th class="px-6 py-3 text-left text-sm font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Zawodnik
+                  </th>
+                  <th class="px-6 py-3 text-left text-sm font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Kategoria
+                  </th>
+                  <th class="px-6 py-3 text-left text-sm font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th class="px-6 py-3 text-left text-sm font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Czas
+                  </th>
+                  <th v-if="isAdmin" class="px-6 py-3 text-left text-sm font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Akcje
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                <tr v-for="zawodnik in filteredZawodnicy" :key="zawodnik.nr_startowy">
+                  <td class="px-6 py-4 whitespace-nowrap text-base font-medium text-gray-900 dark:text-white">
+                    {{ zawodnik.nr_startowy }}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-base text-gray-600 dark:text-gray-300">
+                    {{ zawodnik.klub }}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-base font-medium text-gray-900 dark:text-white">
+                      {{ zawodnik.imie }} {{ zawodnik.nazwisko }}
+                    </div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400">{{ zawodnik.plec }}</div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-base text-gray-600 dark:text-gray-300">
+                    {{ zawodnik.kategoria }}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <StatusBadge :status="zawodnik.status" />
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-base font-medium text-gray-900 dark:text-white">
+                    {{ zawodnik.czas_przejazdu_s ? formatTime(zawodnik.czas_przejazdu_s) : '-' }}
+                  </td>
+                  <td v-if="isAdmin" class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div class="flex flex-col space-y-2">
+                      <button class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 hover:bg-indigo-200 transition-colors duration-200">
+                        <PencilIcon class="h-3 w-3 mr-1" />
+                        Edytuj
+                      </button>
+                      <button class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 hover:bg-red-200 transition-colors duration-200">
+                        <TrashIcon class="h-3 w-3 mr-1" />
+                        Usuń
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
-      <!-- Content -->
-      <div class="content-wrapper">
-        <Wyniki 
-          v-if="activeTab === 'wyniki'" 
-          :filtry="filtry"
-          @results-count="handleResultsCount"
-        />
-        <Drabinka 
-          v-if="activeTab === 'drabinka'" 
-          :filtry="filtry" 
-          @podsumowanie-loaded="handlePodsumowanieLoaded"
-        />
+      <!-- Drabinka Pucharowa -->
+      <div v-if="activeTab === 'drabinka'">
+        <DrabinkaPucharowa />
+      </div>
+
+      <!-- Rankingi -->
+      <div v-if="activeTab === 'rankingi'">
+        <Rankingi />
       </div>
     </main>
-
-    <!-- Floating Action Button -->
-    <button 
-      class="fab-filter"
-      @click="showFilters = true"
-      v-if="activeTab === 'wyniki' || activeTab === 'drabinka'"
-    >
-      <span class="fab-icon">🔍</span>
-    </button>
-
-    <!-- Bottom Navigation -->
-    <nav class="bottom-nav">
-      <button 
-        v-for="tab in tabs" 
-        :key="tab.id"
-        @click="activeTab = tab.id"
-        :class="['nav-tab', { active: activeTab === tab.id }]"
-      >
-        <span class="tab-icon">{{ tab.icon }}</span>
-        <span class="tab-label">{{ tab.label }}</span>
-        <div v-if="activeTab === tab.id" class="active-indicator"></div>
-      </button>
-    </nav>
-
-    <!-- Loading State -->
-    <div v-if="isLoading" class="loading-overlay">
-      <div class="loading-spinner">
-        <div class="spinner"></div>
-        <p>Ładowanie danych...</p>
-      </div>
-    </div>
-
-    <!-- Toast Notifications -->
-    <div class="toast-container">
-      <div 
-        v-for="toast in toasts" 
-        :key="toast.id"
-        :class="['toast', toast.type]"
-        @click="removeToast(toast.id)"
-      >
-        <span class="toast-icon">{{ getToastIcon(toast.type) }}</span>
-        <span class="toast-message">{{ toast.message }}</span>
-      </div>
-    </div>
   </div>
 </template>
 
-<script setup>
-import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
-import Wyniki from './components/Wyniki.vue'
-import Drabinka from './components/Drabinka.vue'
-import Kategorie from './components/Kategorie.vue'
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
+import axios from 'axios'
+import { 
+  MagnifyingGlassIcon, 
+  GlobeAltIcon, 
+  SunIcon, 
+  MoonIcon,
+  UsersIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  ClockIcon,
+  TrophyIcon,
+  ChartBarIcon,
+  ListBulletIcon,
+  XMarkIcon,
+  PencilIcon,
+  TrashIcon
+} from '@heroicons/vue/24/outline'
+import StatsCard from './components/StatsCard.vue'
+import StatusBadge from './components/StatusBadge.vue'
+import DrabinkaPucharowa from './components/DrabinkaPucharowa.vue'
+import Rankingi from './components/Rankingi.vue'
 
-// State
-const activeTab = ref('wyniki')
-const podsumowanie = ref(null)
-const filtry = reactive({ kategorie: [], plec: null })
-const filtrowaneCount = ref(0)
-const isFullscreen = ref(false)
-const showSettings = ref(false)
-const showFilters = ref(false)
-const isLoading = ref(false)
-const isPulling = ref(false)
-const toasts = ref([])
+// Types
+interface Zawodnik {
+  nr_startowy: number
+  imie: string
+  nazwisko: string
+  kategoria: string
+  plec: string
+  klub: string
+  czas_przejazdu_s: number | null
+  status: string
+}
+
+interface Stats {
+  total: number
+  finished: number
+  dnfDsq: number
+  recordTime: string
+  recordHolder: string
+}
+
+// Reactive data
+const zawodnicy = ref<Zawodnik[]>([])
+const searchTerm = ref('')
+const loading = ref(true)
+const activeTab = ref('zawodnicy')
+const filters = ref({
+  kluby: [] as string[],
+  kategorie: [] as string[],
+  plcie: [] as string[],
+  statusy: [] as string[]
+})
+const isAdmin = ref(false)
+const isDarkMode = ref(false)
 
 // Tabs configuration
 const tabs = [
-  { id: 'wyniki', label: 'Wyniki', icon: '🏆' },
-  { id: 'drabinka', label: 'Drabinka', icon: '🌟' }
+  { 
+    id: 'zawodnicy', 
+    name: 'Lista zawodników', 
+    icon: ListBulletIcon 
+  },
+  { 
+    id: 'drabinka', 
+    name: 'Drabinka pucharowa', 
+    icon: TrophyIcon 
+  },
+  { 
+    id: 'rankingi', 
+    name: 'Rankingi', 
+    icon: ChartBarIcon 
+  }
 ]
 
-// Touch/Gesture handling
-let startY = 0
-let pullDistance = 0
-
-// Functions
-function handleFiltryChanged(newFiltry) {
-  Object.assign(filtry, newFiltry)
-  showToast('Filtry zaktualizowane', 'success')
-}
-
-function handlePodsumowanieLoaded(data) {
-  podsumowanie.value = data
-}
-
-function handleResultsCount(count) {
-  filtrowaneCount.value = count
-}
-
-function toggleFullscreen() {
-  isFullscreen.value = !isFullscreen.value
-  showSettings.value = false
-  showToast(isFullscreen.value ? 'Tryb pełnoekranowy' : 'Tryb normalny', 'info')
-}
-
-async function refreshData() {
-  isLoading.value = true
-  showSettings.value = false
+// Computed
+const filteredZawodnicy = computed(() => {
+  let result = zawodnicy.value
   
+  // Filtrowanie tekstowe
+  if (searchTerm.value) {
+    const term = searchTerm.value.toLowerCase()
+    result = result.filter(z => 
+      z.imie.toLowerCase().includes(term) ||
+      z.nazwisko.toLowerCase().includes(term) ||
+      z.kategoria.toLowerCase().includes(term) ||
+      z.nr_startowy.toString().includes(term) ||
+      z.klub.toLowerCase().includes(term)
+    )
+  }
+  
+  // Filtrowanie po klubie
+  if (filters.value.kluby.length > 0) {
+    result = result.filter(z => filters.value.kluby.includes(z.klub))
+  }
+  
+  // Filtrowanie po kategorii
+  if (filters.value.kategorie.length > 0) {
+    result = result.filter(z => filters.value.kategorie.includes(z.kategoria))
+  }
+  
+  // Filtrowanie po płci
+  if (filters.value.plcie.length > 0) {
+    result = result.filter(z => filters.value.plcie.includes(z.plec))
+  }
+  
+  // Filtrowanie po statusie
+  if (filters.value.statusy.length > 0) {
+    result = result.filter(z => filters.value.statusy.includes(z.status))
+  }
+  
+  return result
+})
+
+const stats = computed((): Stats => {
+  const total = zawodnicy.value.length
+  const finished = zawodnicy.value.filter(z => z.status === 'FINISHED').length
+  const dnfDsq = zawodnicy.value.filter(z => z.status === 'DNF' || z.status === 'DSQ').length
+  
+  const finishedContestants = zawodnicy.value.filter(z => z.status === 'FINISHED' && z.czas_przejazdu_s)
+  
+  let recordTime = '-'
+  let recordHolder = '-'
+  
+  if (finishedContestants.length > 0) {
+    const bestContestant = finishedContestants.reduce((best, current) => 
+      current.czas_przejazdu_s! < best.czas_przejazdu_s! ? current : best
+    )
+    recordTime = formatTime(bestContestant.czas_przejazdu_s!)
+    recordHolder = `${bestContestant.imie} ${bestContestant.nazwisko}`
+  }
+
+  return { total, finished, dnfDsq, recordTime, recordHolder }
+})
+
+const uniqueKluby = computed(() => {
+  return [...new Set(zawodnicy.value.map(z => z.klub))]
+})
+
+const uniqueKategorie = computed(() => {
+  return [...new Set(zawodnicy.value.map(z => z.kategoria))]
+})
+
+// Methods
+const formatTime = (seconds: number): string => {
+  const mins = Math.floor(seconds / 60)
+  const secs = (seconds % 60).toFixed(2)
+  return `${mins}:${secs.padStart(5, '0')}`
+}
+
+const fetchZawodnicy = async () => {
   try {
-    // Simulate refresh
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    showToast('Dane odświeżone', 'success')
+    loading.value = true
+    const response = await axios.get<Zawodnik[]>('/api/zawodnicy')
+    zawodnicy.value = response.data
   } catch (error) {
-    showToast('Błąd odświeżania', 'error')
+    console.error('Błąd podczas pobierania zawodników:', error)
   } finally {
-    isLoading.value = false
+    loading.value = false
   }
 }
 
-function showToast(message, type = 'info') {
-  const id = Date.now()
-  toasts.value.push({ id, message, type })
-  
-  setTimeout(() => {
-    removeToast(id)
-  }, 3000)
-}
-
-function removeToast(id) {
-  const index = toasts.value.findIndex(t => t.id === id)
-  if (index > -1) {
-    toasts.value.splice(index, 1)
+const clearFilters = () => {
+  filters.value = {
+    kluby: [],
+    kategorie: [],
+    plcie: [],
+    statusy: []
   }
 }
 
-function getToastIcon(type) {
-  switch(type) {
-    case 'success': return '✅'
-    case 'error': return '❌'
-    case 'warning': return '⚠️'
-    default: return 'ℹ️'
+const selectAllClubs = () => {
+  filters.value.kluby = [...uniqueKluby.value]
+}
+
+const selectAllCategories = () => {
+  filters.value.kategorie = [...uniqueKategorie.value]
+}
+
+const selectFinishedOnly = () => {
+  filters.value.statusy = ['FINISHED']
+}
+
+const toggleFilter = (filterType: keyof typeof filters.value, value: string) => {
+  const currentFilter = filters.value[filterType]
+  if (currentFilter.includes(value)) {
+    filters.value[filterType] = currentFilter.filter(v => v !== value)
+  } else {
+    filters.value[filterType] = [...currentFilter, value]
   }
 }
 
-// Pull to refresh handling
-function handleTouchStart(event) {
-  if (window.scrollY === 0) {
-    startY = event.touches[0].clientY
-  }
+const toggleAdminMode = () => {
+  isAdmin.value = !isAdmin.value
 }
 
-function handleTouchMove(event) {
-  if (window.scrollY === 0 && startY > 0) {
-    pullDistance = event.touches[0].clientY - startY
-    if (pullDistance > 50) {
-      isPulling.value = true
-    }
+const toggleDarkMode = () => {
+  isDarkMode.value = !isDarkMode.value
+  // Aplikuj dark mode do dokumentu
+  if (isDarkMode.value) {
+    document.documentElement.classList.add('dark')
+  } else {
+    document.documentElement.classList.remove('dark')
   }
-}
-
-function handleTouchEnd() {
-  if (isPulling.value && pullDistance > 80) {
-    refreshData()
-  }
-  isPulling.value = false
-  startY = 0
-  pullDistance = 0
 }
 
 // Lifecycle
 onMounted(() => {
-  document.addEventListener('touchstart', handleTouchStart, { passive: true })
-  document.addEventListener('touchmove', handleTouchMove, { passive: true })
-  document.addEventListener('touchend', handleTouchEnd, { passive: true })
-})
-
-onUnmounted(() => {
-  document.removeEventListener('touchstart', handleTouchStart)
-  document.removeEventListener('touchmove', handleTouchMove)
-  document.removeEventListener('touchend', handleTouchEnd)
+  fetchZawodnicy()
 })
 </script>
 
-<style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-
-/* CSS Variables */
-:root {
-  --primary: #3b82f6;
-  --primary-dark: #2563eb;
-  --secondary: #f59e0b;
-  --success: #10b981;
-  --error: #ef4444;
-  --warning: #f59e0b;
-  --surface: #ffffff;
-  --background: #f8fafc;
-  --text-primary: #1f2937;
-  --text-secondary: #6b7280;
-  --text-muted: #9ca3af;
-  --border: #e5e7eb;
-  --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
-  --radius: 0.75rem;
-  --nav-height: 70px;
-  --header-height: 60px;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-.app {
-  font-family: 'Inter', sans-serif;
-  min-height: 100vh;
-  background: var(--background);
-  color: var(--text-primary);
-  display: flex;
-  flex-direction: column;
-  overflow-x: hidden;
-}
-
-/* Mobile Header */
-.mobile-header {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-  color: white;
-  height: var(--header-height);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  box-shadow: var(--shadow-lg);
-}
-
-.header-content {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 1rem;
-  height: 100%;
-  max-width: 100%;
-}
-
-.event-logo {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex: 1;
-  min-width: 0;
-}
-
-.logo-icon {
-  font-size: 1.5rem;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
-}
-
-.event-info {
-  min-width: 0;
-  flex: 1;
-}
-
-.event-title {
-  font-size: 1.1rem;
-  font-weight: 700;
-  margin: 0;
-  line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.event-subtitle {
-  font-size: 0.8rem;
-  font-weight: 400;
-  margin: 0;
-  opacity: 0.9;
-  line-height: 1;
-}
-
-.menu-button {
-  background: rgba(255, 255, 255, 0.2);
-  border: none;
-  color: white;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  backdrop-filter: blur(10px);
-}
-
-.menu-button:hover,
-.menu-button.active {
-  background: rgba(255, 255, 255, 0.3);
-  transform: scale(1.05);
-}
-
-.menu-icon {
-  font-size: 1.2rem;
-}
-
-/* Settings Panel */
-.settings-panel {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 200;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding-top: var(--header-height);
-}
-
-.settings-content {
-  background: var(--surface);
-  width: 90%;
-  max-width: 400px;
-  border-radius: var(--radius);
-  margin-top: 1rem;
-  box-shadow: var(--shadow-lg);
-  animation: slideDown 0.3s ease;
-}
-
-.settings-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid var(--border);
-}
-
-.settings-header h3 {
-  margin: 0;
-  font-size: 1.1rem;
-  font-weight: 600;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 1.2rem;
-  color: var(--text-secondary);
-  cursor: pointer;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: all 0.2s ease;
-}
-
-.close-btn:hover {
-  background: var(--background);
-  color: var(--text-primary);
-}
-
-.settings-options {
-  padding: 1rem;
-}
-
-.setting-option {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  width: 100%;
-  padding: 1rem;
-  border: none;
-  background: none;
-  text-align: left;
-  font-size: 1rem;
-  color: var(--text-primary);
-  border-radius: var(--radius);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.setting-option:hover {
-  background: var(--background);
-}
-
-.setting-icon {
-  font-size: 1.2rem;
-}
-
-/* Quick Stats */
-.quick-stats {
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  padding: 1rem;
-  gap: 1rem;
-  overflow-x: auto;
-}
-
-.stat-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 0;
-  flex: 1;
-  text-align: center;
-}
-
-.stat-number {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--primary);
-  line-height: 1;
-}
-
-.stat-label {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  font-weight: 500;
-  margin-top: 0.25rem;
-}
-
-/* Main Content */
-.main-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  margin-bottom: var(--nav-height);
-  min-height: 0;
-}
-
-.content-wrapper {
-  flex: 1;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-/* Pull to Refresh */
-.pull-refresh-indicator {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 1rem;
-  background: var(--primary);
-  color: white;
-  font-size: 0.9rem;
-  font-weight: 500;
-}
-
-.refresh-icon {
-  animation: spin 1s linear infinite;
-}
-
-/* Filters Panel */
-.filters-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 150;
-  display: flex;
-  align-items: flex-end;
-}
-
-.filters-panel {
-  background: var(--surface);
-  width: 100%;
-  max-height: 80vh;
-  border-radius: var(--radius) var(--radius) 0 0;
-  animation: slideUp 0.3s ease;
-  overflow-y: auto;
-}
-
-.filters-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
-  background: var(--surface);
-  z-index: 10;
-}
-
-.filters-header h3 {
-  margin: 0;
-  font-size: 1.1rem;
-  font-weight: 600;
-}
-
-/* Floating Action Button */
-.fab-filter {
-  position: fixed;
-  bottom: calc(var(--nav-height) + 1rem);
-  right: 1rem;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: var(--primary);
-  color: white;
-  border: none;
-  box-shadow: var(--shadow-lg);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  z-index: 50;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.fab-filter:hover {
-  transform: scale(1.1);
-  background: var(--primary-dark);
-}
-
-.fab-icon {
-  font-size: 1.5rem;
-}
-
-/* Bottom Navigation */
-.bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: var(--surface);
-  border-top: 1px solid var(--border);
-  display: flex;
-  height: var(--nav-height);
-  z-index: 100;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
-}
-
-.nav-tab {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.25rem;
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  position: relative;
-  padding: 0.5rem;
-}
-
-.nav-tab.active {
-  color: var(--primary);
-}
-
-.tab-icon {
-  font-size: 1.5rem;
-  transition: transform 0.2s ease;
-}
-
-.tab-label {
-  font-size: 0.7rem;
-  font-weight: 500;
-  line-height: 1;
-}
-
-.nav-tab.active .tab-icon {
-  transform: scale(1.1);
-}
-
-.active-indicator {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 30px;
-  height: 3px;
-  background: var(--primary);
-  border-radius: 0 0 2px 2px;
-}
-
-/* Loading */
-.loading-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(255, 255, 255, 0.9);
-  z-index: 300;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.loading-spinner {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid var(--border);
-  border-top: 3px solid var(--primary);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-.loading-spinner p {
-  margin: 0;
-  color: var(--text-secondary);
-  font-weight: 500;
-}
-
-/* Toast Notifications */
-.toast-container {
-  position: fixed;
-  top: calc(var(--header-height) + 1rem);
-  left: 1rem;
-  right: 1rem;
-  z-index: 250;
-  pointer-events: none;
-}
-
-.toast {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  background: var(--surface);
-  padding: 1rem;
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-lg);
-  margin-bottom: 0.5rem;
-  border-left: 4px solid var(--primary);
-  pointer-events: auto;
-  cursor: pointer;
-  animation: slideInRight 0.3s ease;
-}
-
-.toast.success {
-  border-left-color: var(--success);
-}
-
-.toast.error {
-  border-left-color: var(--error);
-}
-
-.toast.warning {
-  border-left-color: var(--warning);
-}
-
-.toast-icon {
-  font-size: 1.2rem;
-  flex-shrink: 0;
-}
-
-.toast-message {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
-/* Fullscreen Mode */
-.app.fullscreen .mobile-header,
-.app.fullscreen .bottom-nav,
-.app.fullscreen .quick-stats,
-.app.fullscreen .fab-filter {
-  display: none;
-}
-
-.app.fullscreen .main-content {
-  margin-bottom: 0;
-}
-
-/* Animations */
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes slideUp {
-  from {
-    transform: translateY(100%);
-  }
-  to {
-    transform: translateY(0);
-  }
-}
-
-@keyframes slideInRight {
-  from {
-    opacity: 0;
-    transform: translateX(100%);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-/* Very small screens (320px+) */
-@media (max-width: 360px) {
-  .event-title {
-    font-size: 1rem;
-  }
-  
-  .event-subtitle {
-    font-size: 0.7rem;
-  }
-  
-  .header-content {
-    padding: 0 0.75rem;
-  }
-  
-  .quick-stats {
-    padding: 0.75rem;
-    gap: 0.75rem;
-  }
-  
-  .stat-number {
-    font-size: 1.3rem;
-  }
-  
-  .stat-label {
-    font-size: 0.7rem;
-  }
-  
-  .tab-label {
-    font-size: 0.65rem;
-  }
-  
-  .tab-icon {
-    font-size: 1.3rem;
-  }
-}
-
-/* Landscape orientation for mobile */
-@media (max-height: 500px) and (orientation: landscape) {
-  .bottom-nav {
-    height: 50px;
-  }
-  
-  :root {
-    --nav-height: 50px;
-  }
-  
-  .tab-icon {
-    font-size: 1.2rem;
-  }
-  
-  .tab-label {
-    display: none;
-  }
-  
-  .nav-tab {
-    gap: 0;
-  }
-}
-
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --surface: #1f2937;
-    --background: #111827;
-    --text-primary: #f9fafb;
-    --text-secondary: #d1d5db;
-    --text-muted: #9ca3af;
-    --border: #374151;
-  }
-}
+<style>
+/* Custom styles if needed */
 </style>
 
