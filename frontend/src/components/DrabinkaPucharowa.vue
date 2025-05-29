@@ -26,34 +26,136 @@
 
     <!-- Drabinka Content -->
     <div v-else-if="drabinka">
-      <!-- Podsumowanie -->
-      <div v-if="drabinka.podsumowanie" class="bg-white shadow rounded-lg p-6 mb-6">
-        <h3 class="text-lg font-medium text-gray-900 mb-4">📊 Podsumowanie</h3>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div class="text-center">
-            <div class="text-2xl font-bold text-indigo-600">{{ drabinka.podsumowanie.łączna_liczba_zawodników }}</div>
-            <div class="text-sm text-gray-500">Zawodników w turnieju</div>
+      <!-- Stats Cards -->
+      <div class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-6">
+        <StatsCard 
+          title="Zawodnicy w turnieju" 
+          :value="drabinka.podsumowanie?.łączna_liczba_zawodników || 0"
+          :icon="UsersIcon"
+          color="blue"
+        />
+        <StatsCard 
+          title="W ćwierćfinałach" 
+          :value="drabinka.podsumowanie?.w_ćwierćfinałach || 0"
+          :icon="TrophyIcon"
+          color="green"
+        />
+        <StatsCard 
+          title="Mężczyźni" 
+          :value="drabinka.podsumowanie?.podział_płeć?.mężczyźni || 0"
+          :icon="UserIcon"
+          color="purple"
+        />
+        <StatsCard 
+          title="Kobiety" 
+          :value="drabinka.podsumowanie?.podział_płeć?.kobiety || 0"
+          :icon="UserIcon"
+          color="red"
+        />
+      </div>
+
+      <!-- Filtry -->
+      <div class="bg-white shadow rounded-lg p-4 mb-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">🔍 Filtry</h3>
+        
+        <div class="space-y-4">
+          <!-- Filtry w formie chip/tag buttons -->
+          
+          <!-- Filtr Kategorie -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+              Kategorie <span class="text-xs text-gray-500">({{ selectedKategorie.length }} wybranych)</span>
+            </label>
+            <div class="flex flex-wrap gap-2">
+              <button
+                v-for="kategoria in uniqueKategorie"
+                :key="kategoria"
+                @click="toggleKategoria(kategoria)"
+                :class="[
+                  'px-3 py-2 rounded-full text-sm font-medium transition-colors duration-200',
+                  selectedKategorie.includes(kategoria)
+                    ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 border-2 border-green-300 dark:border-green-600'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-2 border-transparent hover:bg-gray-200 dark:hover:bg-gray-600'
+                ]"
+              >
+                {{ kategoria }}
+              </button>
+            </div>
           </div>
-          <div class="text-center">
-            <div class="text-2xl font-bold text-blue-600">{{ drabinka.podsumowanie.podział_płeć.mężczyźni }}</div>
-            <div class="text-sm text-gray-500">Mężczyźni</div>
+          
+          <!-- Filtr Płeć -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+              Płeć <span class="text-xs text-gray-500">({{ selectedPlcie.length }} wybranych)</span>
+            </label>
+            <div class="flex flex-wrap gap-2">
+              <button
+                @click="togglePlec('Mężczyźni')"
+                :class="[
+                  'px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200',
+                  selectedPlcie.includes('Mężczyźni')
+                    ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 border-2 border-indigo-300 dark:border-indigo-600'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-2 border-transparent hover:bg-gray-200 dark:hover:bg-gray-600'
+                ]"
+              >
+                👨 Mężczyźni
+              </button>
+              <button
+                @click="togglePlec('Kobiety')"
+                :class="[
+                  'px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200',
+                  selectedPlcie.includes('Kobiety')
+                    ? 'bg-pink-100 dark:bg-pink-900 text-pink-800 dark:text-pink-200 border-2 border-pink-300 dark:border-pink-600'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-2 border-transparent hover:bg-gray-200 dark:hover:bg-gray-600'
+                ]"
+              >
+                👩 Kobiety
+              </button>
+            </div>
           </div>
-          <div class="text-center">
-            <div class="text-2xl font-bold text-pink-600">{{ drabinka.podsumowanie.podział_płeć.kobiety }}</div>
-            <div class="text-sm text-gray-500">Kobiety</div>
+          
+          <!-- Szybkie akcje filtrowania -->
+          <div class="flex flex-wrap gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <button 
+              @click="selectAllCategories"
+              class="px-4 py-2 text-sm bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors duration-200"
+            >
+              Wszystkie kategorie
+            </button>
+            <button 
+              @click="selectAllGenders"
+              class="px-4 py-2 text-sm bg-indigo-500 text-white rounded-full hover:bg-indigo-600 transition-colors duration-200"
+            >
+              Obie płcie
+            </button>
+            <button 
+              @click="clearFilters"
+              class="px-4 py-2 text-sm bg-gray-500 text-white rounded-full hover:bg-gray-600 transition-colors duration-200"
+            >
+              🗑️ Wyczyść wszystko
+            </button>
+          </div>
+        </div>
+        
+        <!-- Licznik przefiltrowanych wyników -->
+        <div class="mt-4 flex justify-between items-center text-sm text-gray-500 dark:text-gray-400">
+          <div>
+            Wyświetlane kategorie: {{ Object.keys(filteredKategorieData).length }} z {{ Object.keys(kategorieData).length }}
           </div>
         </div>
       </div>
 
       <!-- Kategorie -->
       <div class="space-y-8">
-        <div v-for="(kategoria, kategoriaName) in kategorieData" :key="kategoriaName" class="bg-white shadow rounded-lg p-6">
+        <div v-for="(kategoria, kategoriaName) in filteredKategorieData" :key="kategoriaName" class="bg-white shadow rounded-lg p-6">
           <h3 class="text-xl font-semibold text-gray-900 mb-6">🏆 {{ kategoriaName }}</h3>
           
           <!-- Płcie w kategorii -->
           <div class="space-y-8">
-            <div v-for="(plecData, plecName) in kategoria" :key="plecName" class="border-l-4 border-indigo-500 pl-4">
-              <h4 class="text-lg font-medium text-gray-800 mb-4">{{ plecName }}</h4>
+            <div v-for="(plecData, plecName) in kategoria" :key="plecName" 
+                 v-show="selectedPlcie.includes(String(plecName))"
+                 class="border-l-4 border-indigo-500 pl-4">
+              <h4 class="text-lg font-medium text-gray-800 mb-4">{{ String(plecName) === 'Mężczyźni' ? '👨 Mężczyźni' : '👩 Kobiety' }}</h4>
               
               <!-- Statystyki -->
               <div v-if="plecData.statystyki" class="bg-gray-50 rounded-lg p-4 mb-4">
@@ -157,7 +259,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
-import { ExclamationTriangleIcon, TrophyIcon } from '@heroicons/vue/24/outline'
+import { ExclamationTriangleIcon, TrophyIcon, UsersIcon, UserIcon } from '@heroicons/vue/24/outline'
+import StatsCard from './StatsCard.vue'
 
 // Types
 interface DrabinkaResponse {
@@ -169,12 +272,39 @@ const drabinka = ref<DrabinkaResponse | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
 
+// Filtry
+const selectedKategorie = ref<string[]>([])
+const selectedPlcie = ref<string[]>(['Mężczyźni', 'Kobiety'])
+
 // Computed
 const kategorieData = computed(() => {
   if (!drabinka.value) return {}
   
   const { podsumowanie, ...kategorie } = drabinka.value
   return kategorie
+})
+
+const allKategorie = computed(() => {
+  return Object.keys(kategorieData.value).sort()
+})
+
+const filteredKategorieData = computed(() => {
+  if (!drabinka.value) return {}
+  
+  const { podsumowanie, ...kategorie } = drabinka.value
+  const filtered: any = {}
+  
+  for (const [kategoriaName, kategoria] of Object.entries(kategorie)) {
+    if (selectedKategorie.value.length === 0 || selectedKategorie.value.includes(kategoriaName)) {
+      filtered[kategoriaName] = kategoria
+    }
+  }
+  
+  return filtered
+})
+
+const uniqueKategorie = computed(() => {
+  return Object.keys(kategorieData.value).sort()
 })
 
 // Methods
@@ -185,6 +315,38 @@ const formatTime = (seconds: number | null): string => {
   return `${mins}:${secs.padStart(5, '0')}`
 }
 
+// Filter methods
+const toggleKategoria = (kategoria: string) => {
+  const index = selectedKategorie.value.indexOf(kategoria)
+  if (index > -1) {
+    selectedKategorie.value.splice(index, 1)
+  } else {
+    selectedKategorie.value.push(kategoria)
+  }
+}
+
+const togglePlec = (plec: string) => {
+  const index = selectedPlcie.value.indexOf(plec)
+  if (index > -1) {
+    selectedPlcie.value.splice(index, 1)
+  } else {
+    selectedPlcie.value.push(plec)
+  }
+}
+
+const selectAllCategories = () => {
+  selectedKategorie.value = allKategorie.value
+}
+
+const selectAllGenders = () => {
+  selectedPlcie.value = ['Mężczyźni', 'Kobiety']
+}
+
+const clearFilters = () => {
+  selectedKategorie.value = []
+  selectedPlcie.value = ['Mężczyźni', 'Kobiety']
+}
+
 const fetchDrabinka = async () => {
   try {
     loading.value = true
@@ -192,6 +354,12 @@ const fetchDrabinka = async () => {
     
     const response = await axios.get<DrabinkaResponse>('/api/drabinka')
     drabinka.value = response.data
+    
+    // Ustaw domyślne filtry - wszystkie kategorie
+    if (drabinka.value) {
+      const { podsumowanie, ...kategorie } = drabinka.value
+      selectedKategorie.value = Object.keys(kategorie).sort()
+    }
   } catch (err) {
     console.error('Błąd podczas pobierania drabinki:', err)
     error.value = 'Nie udało się załadować drabinki turniejowej'
