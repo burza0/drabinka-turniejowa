@@ -3,69 +3,89 @@
     <!-- Header -->
     <header class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 transition-colors duration-200">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Main Header Row -->
         <div class="flex justify-between items-center h-16">
           <!-- Logo/Brand -->
-          <div class="flex items-center">
-            <h1 class="text-xl font-semibold text-gray-900 dark:text-white transition-colors duration-200">
-              SKATECROSS Dashboard
-              <span v-if="isAdmin" class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200">
-                🔧 ADMIN
+          <div class="flex items-center flex-shrink-0">
+            <h1 class="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white transition-colors duration-200">
+              <span class="hidden sm:inline">SKATECROSS Dashboard</span>
+              <span class="sm:hidden">SKATECROSS</span>
+              <span v-if="isAdmin" class="ml-1 sm:ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200">
+                🔧
+                <span class="hidden sm:inline ml-1">ADMIN</span>
               </span>
             </h1>
           </div>
           
-          <!-- Search Bar -->
-          <div class="flex-1 max-w-lg mx-8">
-            <div class="relative">
-              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <MagnifyingGlassIcon class="h-5 w-5 text-gray-400" />
-              </div>
-              <input 
-                type="text" 
-                class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md leading-5 bg-white dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-colors duration-200"
-                placeholder="Szukaj zawodników..."
-                v-model="searchTerm"
-              />
-            </div>
-          </div>
-          
-          <!-- Header Icons -->
-          <div class="flex items-center space-x-4">
-            <!-- Admin Toggle -->
-            <div class="flex items-center space-x-2">
-              <label class="text-sm text-gray-600 dark:text-gray-300">Admin:</label>
+          <!-- Header Icons - Compact on mobile -->
+          <div class="flex items-center space-x-2 sm:space-x-4">
+            <!-- Admin Toggle - More compact on mobile -->
+            <div class="flex items-center space-x-1 sm:space-x-2">
+              <label class="text-xs sm:text-sm text-gray-600 dark:text-gray-300 hidden sm:inline">Admin:</label>
               <button
                 @click="toggleAdminMode"
                 :class="[
-                  'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2',
+                  'relative inline-flex h-5 w-9 sm:h-6 sm:w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2',
                   isAdmin ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-600'
                 ]"
               >
                 <span
                   :class="[
-                    'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
-                    isAdmin ? 'translate-x-5' : 'translate-x-0'
+                    'pointer-events-none inline-block h-4 w-4 sm:h-5 sm:w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+                    isAdmin ? 'translate-x-4 sm:translate-x-5' : 'translate-x-0'
                   ]"
                 />
               </button>
             </div>
             
-            <button class="p-2 text-gray-400 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-200">
-              <GlobeAltIcon class="h-6 w-6" />
+            <button class="p-1 sm:p-2 text-gray-400 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-200">
+              <GlobeAltIcon class="h-5 w-5 sm:h-6 sm:w-6" />
             </button>
             <button 
               @click="toggleDarkMode"
-              class="p-2 text-gray-400 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-200 transition-colors duration-200"
+              class="p-1 sm:p-2 text-gray-400 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-200 transition-colors duration-200"
               :title="isDarkMode ? 'Przełącz na tryb jasny' : 'Przełącz na tryb ciemny'"
             >
-              <SunIcon v-if="isDarkMode" class="h-6 w-6" />
-              <MoonIcon v-else class="h-6 w-6" />
+              <SunIcon v-if="isDarkMode" class="h-5 w-5 sm:h-6 sm:w-6" />
+              <MoonIcon v-else class="h-5 w-5 sm:h-6 sm:w-6" />
             </button>
             
             <!-- User Avatar -->
-            <div class="w-8 h-8 bg-indigo-500 rounded-full flex items-center justify-center">
-              <span class="text-white text-sm font-medium">{{ isAdmin ? 'A' : 'U' }}</span>
+            <div class="w-7 h-7 sm:w-8 sm:h-8 bg-indigo-500 rounded-full flex items-center justify-center">
+              <span class="text-white text-xs sm:text-sm font-medium">{{ isAdmin ? 'A' : 'U' }}</span>
             </div>
+          </div>
+        </div>
+        
+        <!-- Search Bar - Below header on mobile -->
+        <div class="pb-4 sm:hidden">
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <MagnifyingGlassIcon class="h-4 w-4 text-gray-400" />
+            </div>
+            <input 
+              type="text" 
+              class="block w-full pl-9 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md leading-5 bg-white dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 text-sm transition-colors duration-200"
+              placeholder="Szukaj zawodników..."
+              v-model="searchTerm"
+            />
+          </div>
+        </div>
+      </div>
+      
+      <!-- Search Bar - Inline on desktop -->
+      <div class="hidden sm:block max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-4">
+        <div class="flex justify-center">
+          <div class="relative max-w-lg w-full">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <MagnifyingGlassIcon class="h-5 w-5 text-gray-400" />
+            </div>
+            <input 
+              type="text" 
+              class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md leading-5 bg-white dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-colors duration-200"
+              placeholder="Szukaj zawodników..."
+              v-model="searchTerm"
+            />
           </div>
         </div>
       </div>
@@ -74,7 +94,7 @@
     <!-- Navigation Tabs -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="border-b border-gray-200 dark:border-gray-700">
-        <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+        <nav class="-mb-px flex flex-wrap gap-x-4 gap-y-2 sm:space-x-8 sm:gap-y-0" aria-label="Tabs">
           <button
             v-for="tab in tabs"
             :key="tab.id"
@@ -83,11 +103,11 @@
               activeTab === tab.id
                 ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
                 : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600',
-              'whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200'
+              'whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 flex items-center'
             ]"
           >
-            <component :is="tab.icon" class="h-5 w-5 mr-2 inline" />
-            {{ tab.name }}
+            <component :is="tab.icon" class="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2" />
+            <span class="text-xs sm:text-sm">{{ tab.name }}</span>
           </button>
         </nav>
       </div>
