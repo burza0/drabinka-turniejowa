@@ -2,6 +2,8 @@
 
 Nowoczesny system zarządzania turniejami SKATECROSS z zaawansowanym interfejsem Vue.js + TypeScript, trybem administratora, ciemnym motywem i responsywnym designem mobilnym.
 
+**🌐 Aplikacja LIVE**: https://drabinka-turniejowa-skatecross-17be0c216c6f.herokuapp.com/
+
 ## 🎯 Funkcjonalności
 
 ### ✨ Główne cechy
@@ -10,12 +12,13 @@ Nowoczesny system zarządzania turniejami SKATECROSS z zaawansowanym interfejsem
 - **Responsywne karty mobilne** - kompaktowy układ na najwęższych ekranach
 - **Tryb administratora** - możliwość edycji i usuwania zawodników
 - **Tryb ciemny** - pełne wsparcie dark mode z przełącznikiem
-- **Drabinka turniejowa** - grupy 4-osobowe z automatycznym awansem
+- **Drabinka turniejowa** - grupy 4-osobowe z automatycznym awansem i filtrami
 - **Statystyki real-time** - karty z aktualnymi danymi turnieju
 - **Rekord toru** - śledzenie najlepszego czasu z nazwiskiem rekordzisty
+- **Pole wyszukiwania** - w jednej linii z tytułem na desktopie
 
 ### 📱 Responsywny design
-- **Desktop**: Tabele z pełnymi informacjami
+- **Desktop**: Tabele z pełnymi informacjami + pole wyszukiwania w headerze
 - **Mobile**: Karty zawodników w kompaktowym układzie:
   ```
   ┌─────────────────────────────────────────┐
@@ -30,9 +33,18 @@ Nowoczesny system zarządzania turniejami SKATECROSS z zaawansowanym interfejsem
 ### 🎛️ System filtrowania
 - **Filtry chipowe**: Multi-select przyciski z kolorami
 - **Real-time liczniki**: Pokazują liczbę wybranych filtrów
+- **Domyślne ustawienia**: Wszystkie filtry początkowo odznaczone
+- **Logika filtrowania**: Puste filtry = wszystko widoczne, wypełnione = tylko wybrane
 - **Szybkie akcje**: Buttons dla typowych kombinacji filtrów
 - **Wyczyść wszystko**: Reset filtrów jednym kliknięciem
 - **Licznik wyników**: Dynamiczne wyświetlanie przefiltrowanych zawodników
+
+### 🏆 Drabinka Pucharowa
+- **Grupy turniejowe**: Ćwierćfinały, półfinały, finały
+- **Filtry kategorii i płci**: Domyślnie odznaczone, pokazują wszystko
+- **Statystyki uproszczone**: Tylko łączna liczba zawodników i w ćwierćfinałach
+- **Kolorowe wskaźniki**: Awansujący zawodnicy podświetleni
+- **Podział na płcie**: Oddzielne sekcje dla mężczyzn i kobiet
 
 ### 👨‍💼 Tryb administratora
 - **Toggle w headerze**: Przełącznik admin/user
@@ -73,7 +85,7 @@ Nowoczesny system zarządzania turniejami SKATECROSS z zaawansowanym interfejsem
 ## 🚀 Uruchamianie
 
 ### Wymagania
-- **Backend**: Python 3.8+, Flask
+- **Backend**: Python 3.8+, Flask, Flask-CORS
 - **Frontend**: Node.js 16+, Vue 3, TypeScript
 - **Baza**: PostgreSQL/Supabase
 
@@ -84,7 +96,9 @@ Nowoczesny system zarządzania turniejami SKATECROSS z zaawansowanym interfejsem
 cd backend
 python3 -m venv venv
 source venv/bin/activate
-pip install flask flask-cors psycopg2-binary python-dotenv
+pip install -r requirements.txt
+# Lub ręcznie:
+# pip install flask flask-cors psycopg2-binary python-dotenv
 # Skonfiguruj .env z DATABASE_URL
 python3 api_server.py
 # Serwer: http://localhost:5000
@@ -98,112 +112,14 @@ npm run dev
 # Aplikacja: http://localhost:5173 (lub 5174/5175)
 ```
 
-## 🔧 API Endpointy
-
-- `GET /api/zawodnicy` - Lista zawodników z JOIN wyników (klub, kategoria, płeć, czas, status)
-- `GET /api/drabinka` - Drabinka turniejowa z grupami ćwierćfinał/półfinał/finał
-- `GET /api/statystyki` - Statystyki według kategorii i płci
-
-## 🎨 Tech Stack
-
-### Frontend
-- **Vue 3** - Composition API
-- **TypeScript** - Pełna typizacja
-- **Vite** - Build tool i dev server  
-- **Tailwind CSS** - Utility-first styling
-- **Heroicons** - Spójny zestaw ikon
-- **Axios** - HTTP client
-
-### Backend
-- **Flask** - Python web framework
-- **Flask-CORS** - Cross-origin requests
-- **psycopg2** - PostgreSQL adapter
-- **python-dotenv** - Environment variables
-
-### Komponenty Vue
-```
-App.vue                    # Główny layout z headerem i nawigacją
-├── StatsCard.vue         # Karty statystyk (4 główne metryki)
-├── StatusBadge.vue       # Kolorowe badges statusów
-├── ZawodnikCard.vue      # Karty zawodników na mobile
-├── DrabinkaPucharowa.vue # Drabinka turniejowa
-└── Rankingi.vue          # Placeholder dla rankingów
-```
-
-## 📁 Struktura projektu
-
-```
-drabinka-turniejowa/
-├── backend/
-│   ├── api_server.py           # Flask API z endpoints
-│   ├── requirements.txt        # Python dependencies
-│   └── .env                    # Database config (nie w git)
-├── frontend/
-│   ├── src/
-│   │   ├── App.vue            # Main layout, filtry, tabela/karty
-│   │   ├── style.css          # Global styles
-│   │   └── components/
-│   │       ├── StatsCard.vue   # Responsywne karty statystyk
-│   │       ├── StatusBadge.vue # FINISHED/DNF/DSQ badges
-│   │       ├── ZawodnikCard.vue # Kompaktowe karty mobile
-│   │       ├── DrabinkaPucharowa.vue # Tournament bracket
-│   │       └── Rankingi.vue    # Rankings placeholder
-│   ├── index.html             # HTML template
-│   ├── package.json           # Dependencies & scripts
-│   ├── tailwind.config.js     # Tailwind + dark mode config
-│   ├── tsconfig.json          # TypeScript config
-│   └── vite.config.ts         # Vite config z proxy
-├── README.md                   # Ten plik
-└── .gitignore                 # venv/, node_modules/, .env
-```
-
-## 🎯 Kluczowe features
-
-### Filtry chipowe
-- **Multi-select**: Możliwość wyboru kilku opcji jednocześnie
-- **Kolorowa identyfikacja**: Różne kolory dla klubów/kategorii/płci/statusów
-- **Liczniki**: "(X wybranych)" przy każdej grupie filtrów
-- **Szybkie akcje**: Przyciski "Wszystkie kluby", "Tylko ukończone", etc.
-
-### Karty mobilne (ZawodnikCard)
-- **Kompaktowy layout**: 3 główne linie + opcjonalne akcje admin
-- **Ikony zamiast tekstu**: 🏢 klub, 🏷️ kategoria, ⏰ czas
-- **Größe czcionki**: text-lg dla głównych danych, text-2xl dla czasu
-- **Status z czasem**: W jednej linii z kolorowym tłem
-
-### Tryb administratora
-- **Toggle switch**: W headerze obok avatara
-- **Wizualne wskaźniki**: "🔧 ADMIN" badge, A zamiast U w avatarze
-- **Akcje**: Przyciski edycji/usuwania w kartach i tabeli
-- **Conditional rendering**: Akcje widoczne tylko w trybie admin
-
-### Dark mode
-- **Comprehensive**: Wszystkie komponenty z dark variants
-- **Toggle UI**: Słońce/księżyc w headerze
-- **Class-based**: `dark:` prefixes w Tailwind
-- **Smooth transitions**: 200ms duration na wszystkich elementach
-
-## 📊 Statystyki turnieju
-
-### Karty główne
-1. **Wszyscy zawodnicy**: 250 (ikona UsersIcon, niebieski)
-2. **Ukończyli**: 195 (ikona CheckCircleIcon, zielony)  
-3. **DNF/DSQ**: 55 (ikona XCircleIcon, czerwony)
-4. **Rekord toru**: 0:35.01 (ikona ClockIcon, fioletowy)
-   - Subtitle: "Rekord: Irena Pietrzak"
-
-### Responsywne układy
-- **Desktop**: 4 karty w rzędzie
-- **Tablet**: 2 karty w rzędzie  
-- **Mobile**: 2 karty w rzędzie (zmniejszone paddingi i czcionki)
-
 ## 🔄 Workflow developmentu
 
 ### Git workflow
 ```bash
 git add .
 git commit -m "feat: opis zmian"
-git push origin main
+git push origin master        # Backup na GitHub
+git push heroku master       # Deployment na produkcję
 ```
 
 ### Development
@@ -224,8 +140,15 @@ System gotowy do wdrożenia na:
 - **Backend**: Heroku, Railway, Render
 - **Database**: Supabase, PostgreSQL on cloud
 
+### Produkcja - Heroku
+- **URL**: https://drabinka-turniejowa-skatecross-17be0c216c6f.herokuapp.com/
+- **Wersja**: v18 (najnowsza)
+- **Backend + Frontend**: Zintegrowane na jednej dyno
+- **Baza danych**: PostgreSQL na Heroku
+
 ---
 
 **Autor**: System zaprojektowany dla profesjonalnych turniejów SKATECROSS  
 **Tech Lead**: Vue.js 3 + TypeScript + Tailwind CSS + Flask  
-**Wersja**: 2024 - Responsive Mobile-First Design
+**Wersja**: 2024 v18 - Responsive Mobile-First Design  
+**Deployment**: Heroku Production Ready

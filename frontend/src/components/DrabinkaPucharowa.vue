@@ -159,7 +159,7 @@
               
               <!-- Statystyki -->
               <div v-if="plecData.statystyki" class="bg-gray-50 rounded-lg p-4 mb-4">
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div class="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <span class="font-medium">Łącznie:</span>
                     <span class="ml-1">{{ plecData.statystyki.łącznie_zawodników }}</span>
@@ -167,14 +167,6 @@
                   <div>
                     <span class="font-medium">W ćwierćfinałach:</span>
                     <span class="ml-1">{{ plecData.statystyki.w_ćwierćfinałach }}</span>
-                  </div>
-                  <div>
-                    <span class="font-medium">Odpadło:</span>
-                    <span class="ml-1">{{ plecData.statystyki.odpadło }}</span>
-                  </div>
-                  <div>
-                    <span class="font-medium">Grup finałowych:</span>
-                    <span class="ml-1">{{ plecData.statystyki.grup_finał }}</span>
                   </div>
                 </div>
               </div>
