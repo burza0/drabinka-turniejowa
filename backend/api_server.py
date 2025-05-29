@@ -171,286 +171,243 @@ def kluby():
         'total_klubow': len(rows)
     })
 
-def create_tournament_bracket(zawodnicy_list):
-    """
-    Tworzy drabinkę turniejową z grupami 4-osobowymi
-    Do ćwierćfinałów wchodzi maksymalnie 16 najlepszych zawodników
-    Pozostali odpadają z turnieju
-    """
-    # Sortuj wszystkich zawodników według czasu (najlepsi pierwsi)
-    zawodnicy_sorted = sorted(zawodnicy_list, 
-        key=lambda x: float(x['czas_przejazdu_s']) if x['czas_przejazdu_s'] else 999999)
-    
-    # Weź maksymalnie 16 najlepszych do ćwierćfinałów
-    max_zawodnikow_cwierćfinaly = 16
-    zawodnicy_cwierćfinaly = zawodnicy_sorted[:max_zawodnikow_cwierćfinaly]
-    odpadli_zawodnicy = zawodnicy_sorted[max_zawodnikow_cwierćfinaly:]
-    
-    liczba_zawodnikow_cwierćfinaly = len(zawodnicy_cwierćfinaly)
-    
-    # Jeśli mniej niż 4 zawodników, wszyscy przechodzą do półfinału
-    if liczba_zawodnikow_cwierćfinaly < 4:
-        return {
-            "ćwierćfinały": [],
-            "półfinały": [{"grupa": 1, "zawodnicy": zawodnicy_cwierćfinaly, "awansują": min(2, len(zawodnicy_cwierćfinaly))}],
-            "finał": [],
-            "odpadli": odpadli_zawodnicy,
-            "info": f"Za mało zawodników na ćwierćfinały ({liczba_zawodnikow_cwierćfinaly}/4)",
-            "statystyki": {
-                "łącznie_zawodników": len(zawodnicy_list),
-                "w_ćwierćfinałach": liczba_zawodnikow_cwierćfinaly,
-                "odpadło": len(odpadli_zawodnicy),
-                "grup_ćwierćfinały": 0,
-                "grup_półfinały": 1,
-                "grup_finał": 0
-            }
-        }
-    
-    # Oblicz liczbę grup w ćwierćfinałach (maksymalnie 4 grupy po 4 zawodników)
-    liczba_grup_cwierćfinaly = math.ceil(liczba_zawodnikow_cwierćfinaly / 4)
-    
-    # Podziel zawodników na grupy 4-osobowe dla ćwierćfinałów
-    cwierćfinały = []
-    awansujący_do_półfinałów = []
-    
-    for i in range(liczba_grup_cwierćfinaly):
-        start_idx = i * 4
-        end_idx = min(start_idx + 4, liczba_zawodnikow_cwierćfinaly)
-        grupa_zawodnicy = zawodnicy_cwierćfinaly[start_idx:end_idx]
-        
-        cwierćfinały.append({
-            "grupa": i + 1,
-            "zawodnicy": grupa_zawodnicy,
-            "awansują": min(2, len(grupa_zawodnicy))
-        })
-        
-        # Dodaj 2 najlepszych z grupy do półfinałów
-        liczba_awansujących = min(2, len(grupa_zawodnicy))
-        awansujący_do_półfinałów.extend(grupa_zawodnicy[:liczba_awansujących])
-    
-    # Utwórz grupy półfinałowe z faktycznymi zawodnikami
-    liczba_grup_półfinały = math.ceil(len(awansujący_do_półfinałów) / 4)
-    półfinały = []
-    awansujący_do_finału = []
-    
-    for i in range(liczba_grup_półfinały):
-        start_idx = i * 4
-        end_idx = min(start_idx + 4, len(awansujący_do_półfinałów))
-        grupa_zawodnicy = awansujący_do_półfinałów[start_idx:end_idx]
-        
-        # Sortuj zawodników w grupie według czasu
-        grupa_zawodnicy_sorted = sorted(grupa_zawodnicy, 
-            key=lambda x: float(x['czas_przejazdu_s']) if x['czas_przejazdu_s'] else 999999)
-        
-        półfinały.append({
-            "grupa": i + 1,
-            "zawodnicy": grupa_zawodnicy_sorted,
-            "awansują": min(2, len(grupa_zawodnicy_sorted))
-        })
-        
-        # Dodaj 2 najlepszych z grupy do finału
-        liczba_awansujących = min(2, len(grupa_zawodnicy_sorted))
-        awansujący_do_finału.extend(grupa_zawodnicy_sorted[:liczba_awansujących])
-    
-    # Utwórz finał z faktycznymi zawodnikami
-    finał = []
-    if len(awansujący_do_finału) >= 2:
-        # Sortuj finalistów według czasu
-        finaliści_sorted = sorted(awansujący_do_finału, 
-            key=lambda x: float(x['czas_przejazdu_s']) if x['czas_przejazdu_s'] else 999999)
-        
-        finał.append({
-            "grupa": 1,
-            "zawodnicy": finaliści_sorted,
-            "awansują": 1
-        })
-    
-    return {
-        "ćwierćfinały": cwierćfinały,
-        "półfinały": półfinały,
-        "finał": finał,
-        "odpadli": odpadli_zawodnicy,
-        "statystyki": {
-            "łącznie_zawodników": len(zawodnicy_list),
-            "w_ćwierćfinałach": liczba_zawodnikow_cwierćfinaly,
-            "odpadło": len(odpadli_zawodnicy),
-            "grup_ćwierćfinały": len(cwierćfinały),
-            "grup_półfinały": len(półfinały),
-            "grup_finał": len(finał)
-        }
-    }
-
-@app.route("/api/drabinka")
-def drabinka():
-    """Endpoint zwracający drabinkę turniejową z grupami 4-osobowymi"""
-    # Pobierz wszystkich zawodników z wynikami (tylko ukończonych)
-    zawodnicy = get_all("""
-        SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, 
-               w.czas_przejazdu_s, w.status
-        FROM zawodnicy z
-        LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
-        WHERE z.kategoria IS NOT NULL AND z.plec IS NOT NULL
-        AND (w.status = 'FINISHED' OR w.status IS NULL)
-        ORDER BY z.kategoria, z.plec, 
-                 CASE WHEN w.czas_przejazdu_s IS NOT NULL 
-                      THEN CAST(w.czas_przejazdu_s AS FLOAT) 
-                      ELSE 999999 END
-    """)
-    
-    # Pogrupuj zawodników według kategorii i płci
-    grupy = {}
-    
-    for zawodnik in zawodnicy:
-        kategoria = zawodnik['kategoria']
-        plec = zawodnik['plec']
-        
-        if kategoria not in grupy:
-            grupy[kategoria] = {'M': [], 'K': []}
-        
-        grupy[kategoria][plec].append(zawodnik)
-    
-    # Utwórz drabinki dla każdej kategorii i płci
-    result = {}
-    
-    for kategoria in grupy:
-        result[kategoria] = {}
-        
-        for plec in ['M', 'K']:
-            zawodnicy_plec = grupy[kategoria][plec]
-            plec_nazwa = "Mężczyźni" if plec == 'M' else "Kobiety"
-            
-            # Utwórz drabinkę dla tej grupy
-            drabinka_grupa = create_tournament_bracket(zawodnicy_plec)
-            result[kategoria][plec_nazwa] = drabinka_grupa
-    
-    # Dodaj podsumowanie wszystkich kategorii
-    result["podsumowanie"] = {
-        "wszystkie_kategorie": list(grupy.keys()),
-        "łączna_liczba_zawodników": len(zawodnicy),
-        "podział_płeć": {
-            "mężczyźni": len([z for z in zawodnicy if z['plec'] == 'M']),
-            "kobiety": len([z for z in zawodnicy if z['plec'] == 'K'])
-        }
-    }
-    
-    return jsonify(result)
-
 @app.route("/api/zawodnicy", methods=['POST'])
 def add_zawodnik():
-    data = request.get_json()
-    nr_startowy = data['nr_startowy']
-    imie = data['imie']
-    nazwisko = data['nazwisko']
-    kategoria = data['kategoria']
-    plec = data['plec']
-    klub = data['klub']
-    
-    rowcount = execute_query("""
+    data = request.json
+    query = """
         INSERT INTO zawodnicy (nr_startowy, imie, nazwisko, kategoria, plec, klub)
         VALUES (%s, %s, %s, %s, %s, %s)
-    """, (nr_startowy, imie, nazwisko, kategoria, plec, klub))
+    """
+    params = (
+        data['nr_startowy'],
+        data['imie'],
+        data['nazwisko'],
+        data['kategoria'],
+        data['plec'],
+        data.get('klub')  # klub jest opcjonalny
+    )
+    execute_query(query, params)
     
-    return jsonify({"message": f"Zawodnik o nr_startowym {nr_startowy} został dodany"}), 201
+    # Dodaj rekord do tabeli wyniki
+    query_wyniki = """
+        INSERT INTO wyniki (nr_startowy, status)
+        VALUES (%s, %s)
+    """
+    execute_query(query_wyniki, (data['nr_startowy'], 'NOT_STARTED'))
+    
+    return jsonify({"message": "Zawodnik dodany"}), 201
 
 @app.route("/api/zawodnicy/<int:nr_startowy>", methods=['DELETE'])
 def delete_zawodnik(nr_startowy):
-    rowcount = execute_query("""
-        DELETE FROM zawodnicy WHERE nr_startowy = %s
-    """, (nr_startowy,))
-    
-    return jsonify({"message": f"Zawodnik o nr_startowym {nr_startowy} został usunięty"}), 200
+    query = "DELETE FROM zawodnicy WHERE nr_startowy = %s"
+    execute_query(query, (nr_startowy,))
+    return jsonify({"message": "Zawodnik usunięty"}), 200
 
 @app.route("/api/zawodnicy/<int:nr_startowy>", methods=['PUT'])
 def update_zawodnik(nr_startowy):
-    """Aktualizuje dane zawodnika i jego wynik"""
-    try:
-        data = request.get_json()
-        
-        # Pobierz dane zawodnika
-        new_nr_startowy = data.get('nr_startowy', nr_startowy)
-        imie = data.get('imie')
-        nazwisko = data.get('nazwisko')
-        kategoria = data.get('kategoria')
-        plec = data.get('plec')
-        klub = data.get('klub')
-        
-        # Pobierz dane wyniku
-        czas_str = data.get('czas_przejazdu')
-        status = data.get('status')
-        
-        # Walidacja formatu czasu
-        czas_przejazdu_s = None
-        if czas_str:
-            try:
-                czas_przejazdu_s = validate_time_format(czas_str)
-            except ValueError as e:
-                return jsonify({"error": str(e)}), 400
-        
-        # Sprawdź czy nowy nr_startowy nie jest już zajęty (jeśli zmieniony)
-        if new_nr_startowy != nr_startowy:
-            existing = get_all("SELECT nr_startowy FROM zawodnicy WHERE nr_startowy = %s", (new_nr_startowy,))
-            if existing:
-                return jsonify({"error": f"Nr startowy {new_nr_startowy} jest już zajęty"}), 400
-        
-        # Aktualizuj dane zawodnika
-        execute_query("""
-            UPDATE zawodnicy 
-            SET nr_startowy = %s, imie = %s, nazwisko = %s, kategoria = %s, plec = %s, klub = %s
-            WHERE nr_startowy = %s
-        """, (new_nr_startowy, imie, nazwisko, kategoria, plec, klub, nr_startowy))
-        
-        # Aktualizuj wynik jeśli podano
-        if czas_przejazdu_s is not None or status:
-            # Sprawdź czy wynik istnieje
-            existing_wynik = get_all("SELECT nr_startowy FROM wyniki WHERE nr_startowy = %s", (new_nr_startowy,))
-            
-            if existing_wynik:
-                # Aktualizuj istniejący wynik
-                if czas_przejazdu_s is not None and status:
-                    execute_query("""
-                        UPDATE wyniki SET czas_przejazdu_s = %s, status = %s WHERE nr_startowy = %s
-                    """, (czas_przejazdu_s, status, new_nr_startowy))
-                elif czas_przejazdu_s is not None:
-                    execute_query("""
-                        UPDATE wyniki SET czas_przejazdu_s = %s WHERE nr_startowy = %s
-                    """, (czas_przejazdu_s, new_nr_startowy))
-                elif status:
-                    execute_query("""
-                        UPDATE wyniki SET status = %s WHERE nr_startowy = %s
-                    """, (status, new_nr_startowy))
-            else:
-                # Utwórz nowy wynik
-                execute_query("""
-                    INSERT INTO wyniki (nr_startowy, czas_przejazdu_s, status)
-                    VALUES (%s, %s, %s)
-                """, (new_nr_startowy, czas_przejazdu_s, status or 'DNF'))
-        
-        return jsonify({
-            "message": f"Zawodnik nr {nr_startowy} został zaktualizowany",
-            "new_nr_startowy": new_nr_startowy
-        }), 200
-        
-    except Exception as e:
-        return jsonify({"error": f"Błąd podczas aktualizacji: {str(e)}"}), 500
+    data = request.json
+    query = """
+        UPDATE zawodnicy 
+        SET imie = %s, nazwisko = %s, kategoria = %s, plec = %s, klub = %s
+        WHERE nr_startowy = %s
+    """
+    params = (
+        data['imie'],
+        data['nazwisko'],
+        data['kategoria'],
+        data['plec'],
+        data.get('klub'),  # klub jest opcjonalny
+        nr_startowy
+    )
+    execute_query(query, params)
+    return jsonify({"message": "Zawodnik zaktualizowany"}), 200
 
 @app.route("/api/wyniki", methods=['PUT'])
 def update_wynik():
-    data = request.get_json()
+    data = request.json
     nr_startowy = data['nr_startowy']
-    czas_przejazdu_s = data['czas_przejazdu_s']
-    status = data['status']
+    czas = data.get('czas_przejazdu_s')
+    status = data.get('status')
     
-    rowcount = execute_query("""
-        UPDATE wyniki SET czas_przejazdu_s = %s, status = %s WHERE nr_startowy = %s
-    """, (czas_przejazdu_s, status, nr_startowy))
+    if czas is not None:
+        czas = validate_time_format(czas)
     
-    return jsonify({"message": f"Wynik o nr_startowym {nr_startowy} został zaktualizowany"}), 200
+    query = """
+        UPDATE wyniki 
+        SET czas_przejazdu_s = %s, status = %s
+        WHERE nr_startowy = %s
+    """
+    params = (czas, status, nr_startowy)
+    execute_query(query, params)
+    return jsonify({"message": "Wynik zaktualizowany"}), 200
 
-if __name__ == "__main__":
-    # Konfiguracja dla produkcji (Railway, Heroku)
-    port = int(os.getenv("PORT", 5000))
-    host = os.getenv("HOST", "0.0.0.0")
-    debug = os.getenv("FLASK_ENV", "production") == "development"
-    
-    app.run(host=host, port=port, debug=debug)
+@app.route("/api/drabinka")
+def drabinka():
+    """Endpoint zwracający drabinkę turniejową"""
+    try:
+        # Pobierz wszystkich zawodników z czasami
+        zawodnicy_rows = get_all("""
+            SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                   w.czas_przejazdu_s, w.status
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE z.kategoria IS NOT NULL AND z.plec IS NOT NULL
+            ORDER BY z.kategoria, z.plec, w.czas_przejazdu_s ASC NULLS LAST
+        """)
+        
+        if not zawodnicy_rows:
+            return jsonify({
+                "podsumowanie": {
+                    "wszystkie_kategorie": [],
+                    "łączna_liczba_zawodników": 0,
+                    "w_ćwierćfinałach": 0,
+                    "podział_płeć": {"mężczyźni": 0, "kobiety": 0}
+                }
+            })
+        
+        # Organizuj zawodników według kategorii i płci
+        kategorie_dict = {}
+        for zawodnik in zawodnicy_rows:
+            kategoria = zawodnik['kategoria']
+            plec = "Mężczyźni" if zawodnik['plec'] == 'M' else "Kobiety"
+            
+            if kategoria not in kategorie_dict:
+                kategorie_dict[kategoria] = {}
+            if plec not in kategorie_dict[kategoria]:
+                kategorie_dict[kategoria][plec] = []
+            
+            kategorie_dict[kategoria][plec].append(zawodnik)
+        
+        # Generuj drabinkę dla każdej kategorii/płci
+        drabinka_data = {}
+        total_w_cwierćfinałach = 0
+        total_mezczyzni = 0
+        total_kobiety = 0
+        
+        for kategoria, plcie in kategorie_dict.items():
+            drabinka_data[kategoria] = {}
+            
+            for plec, zawodnicy_list in plcie.items():
+                if plec == "Mężczyźni":
+                    total_mezczyzni += len(zawodnicy_list)
+                else:
+                    total_kobiety += len(zawodnicy_list)
+                
+                # Filtruj zawodników z czasami (FINISHED)
+                zawodnicy_z_czasami = [z for z in zawodnicy_list if z['czas_przejazdu_s'] is not None and z['status'] == 'FINISHED']
+                
+                if len(zawodnicy_z_czasami) < 4:
+                    # Za mało zawodników do drabinki
+                    drabinka_data[kategoria][plec] = {
+                        "info": f"Za mało zawodników z czasami ({len(zawodnicy_z_czasami)}/4) do utworzenia drabinki",
+                        "statystyki": {
+                            "łącznie_zawodników": len(zawodnicy_list),
+                            "z_czasami": len(zawodnicy_z_czasami),
+                            "w_ćwierćfinałach": 0,
+                            "grup_ćwierćfinały": 0,
+                            "grup_półfinały": 0,
+                            "grup_finał": 0
+                        }
+                    }
+                    continue
+                
+                # Weź maksymalnie 16 najlepszych (najszybszych)
+                najlepsi = zawodnicy_z_czasami[:16]
+                w_cwierćfinałach = len(najlepsi)
+                total_w_cwierćfinałach += w_cwierćfinałach
+                
+                # Podziel na grupy po 4
+                grupy_ćwierćfinały = []
+                for i in range(0, len(najlepsi), 4):
+                    grupa = najlepsi[i:i+4]
+                    if len(grupa) >= 4:  # Tylko pełne grupy
+                        grupy_ćwierćfinały.append({
+                            "grupa": f"Ć{len(grupy_ćwierćfinały) + 1}",
+                            "awansują": 2,
+                            "zawodnicy": grupa
+                        })
+                
+                # Wygeneruj półfinały (zwycięzcy + drudzy z ćwierćfinałów)
+                półfinałowcy = []
+                for grupa in grupy_ćwierćfinały:
+                    # Awansują 2 najlepszych z każdej grupy
+                    półfinałowcy.extend(grupa["zawodnicy"][:2])
+                
+                grupy_półfinały = []
+                for i in range(0, len(półfinałowcy), 4):
+                    grupa = półfinałowcy[i:i+4]
+                    if len(grupa) >= 4:
+                        grupy_półfinały.append({
+                            "grupa": f"P{len(grupy_półfinały) + 1}",
+                            "awansują": 2,
+                            "zawodnicy": grupa
+                        })
+                    elif len(grupa) > 0:
+                        # Niepełna grupa w półfinałach
+                        grupy_półfinały.append({
+                            "grupa": f"P{len(grupy_półfinały) + 1}",
+                            "awansują": min(2, len(grupa)),
+                            "zawodnicy": grupa
+                        })
+                
+                # Wygeneruj finał
+                finałowcy = []
+                for grupa in grupy_półfinały:
+                    awansuje = grupa["awansują"]
+                    finałowcy.extend(grupa["zawodnicy"][:awansuje])
+                
+                grupy_finał = []
+                if len(finałowcy) >= 4:
+                    grupy_finał.append({
+                        "grupa": "F1",
+                        "awansują": 4,  # Wszyscy w finale mają miejsca 1-4
+                        "zawodnicy": finałowcy[:4]
+                    })
+                elif len(finałowcy) > 0:
+                    grupy_finał.append({
+                        "grupa": "F1",
+                        "awansują": len(finałowcy),
+                        "zawodnicy": finałowcy
+                    })
+                
+                drabinka_data[kategoria][plec] = {
+                    "statystyki": {
+                        "łącznie_zawodników": len(zawodnicy_list),
+                        "z_czasami": len(zawodnicy_z_czasami),
+                        "w_ćwierćfinałach": w_cwierćfinałach,
+                        "grup_ćwierćfinały": len(grupy_ćwierćfinały),
+                        "grup_półfinały": len(grupy_półfinały),
+                        "grup_finał": len(grupy_finał)
+                    },
+                    "ćwierćfinały": grupy_ćwierćfinały,
+                    "półfinały": grupy_półfinały,
+                    "finał": grupy_finał
+                }
+        
+        # Dodaj podsumowanie
+        wszystkie_kategorie = list(kategorie_dict.keys())
+        łączna_liczba = sum(len(plcie) for kategoria in kategorie_dict.values() for plcie in kategoria.values())
+        
+        result = {
+            "podsumowanie": {
+                "wszystkie_kategorie": sorted(wszystkie_kategorie),
+                "łączna_liczba_zawodników": łączna_liczba,
+                "w_ćwierćfinałach": total_w_cwierćfinałach,
+                "podział_płeć": {
+                    "mężczyźni": total_mezczyzni,
+                    "kobiety": total_kobiety
+                }
+            }
+        }
+        
+        # Dodaj dane kategorii
+        result.update(drabinka_data)
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"Błąd w endpoincie drabinki: {e}")
+        return jsonify({"error": str(e)}), 500
 
+if __name__ == '__main__':
+    app.run(debug=True) 
