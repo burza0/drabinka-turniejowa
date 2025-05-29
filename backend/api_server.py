@@ -71,7 +71,9 @@ def validate_time_format(time_str):
 
 @app.route("/")
 def home():
-    return "Backend działa!"
+    """Serwuje frontend Vue 3"""
+    frontend_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'frontend', 'dist')
+    return send_from_directory(frontend_path, 'index.html')
 
 @app.route("/api/wyniki")
 def wyniki():
@@ -300,15 +302,15 @@ def drabinka():
                     # Za mało zawodników do drabinki
                     drabinka_data[kategoria][plec] = {
                         "info": f"Za mało zawodników z czasami ({len(zawodnicy_z_czasami)}/4) do utworzenia drabinki",
-                        "statystyki": {
-                            "łącznie_zawodników": len(zawodnicy_list),
+            "statystyki": {
+                "łącznie_zawodników": len(zawodnicy_list),
                             "z_czasami": len(zawodnicy_z_czasami),
                             "w_ćwierćfinałach": 0,
-                            "grup_ćwierćfinały": 0,
+                "grup_ćwierćfinały": 0,
                             "grup_półfinały": 0,
-                            "grup_finał": 0
-                        }
-                    }
+                "grup_finał": 0
+            }
+        }
                     continue
                 
                 # Weź maksymalnie 16 najlepszych (najszybszych)
@@ -348,8 +350,8 @@ def drabinka():
                             "grupa": f"P{len(grupy_półfinały) + 1}",
                             "awansują": min(2, len(grupa)),
                             "zawodnicy": grupa
-                        })
-                
+        })
+        
                 # Wygeneruj finał
                 finałowcy = []
                 for grupa in grupy_półfinały:
@@ -542,9 +544,9 @@ def qr_verify_result():
         zawodnik_data = get_all("""
             SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
                    z.checked_in, z.check_in_time,
-                   w.czas_przejazdu_s, w.status
-            FROM zawodnicy z
-            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+               w.czas_przejazdu_s, w.status
+        FROM zawodnicy z
+        LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
             WHERE z.qr_code = %s
         """, (qr_code,))
         
@@ -713,6 +715,16 @@ def qr_scanner_static(filename):
     """Serwuje statyczne pliki QR Scanner"""
     qr_scanner_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'qr-scanner')
     return send_from_directory(qr_scanner_path, filename)
+
+@app.route("/<path:filename>")
+def frontend_static(filename):
+    """Serwuje statyczne pliki frontendu"""
+    frontend_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'frontend', 'dist')
+    try:
+        return send_from_directory(frontend_path, filename)
+    except FileNotFoundError:
+        # Dla Vue Router - zwróć index.html dla nieznanych ścieżek
+        return send_from_directory(frontend_path, 'index.html')
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
