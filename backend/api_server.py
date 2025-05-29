@@ -1,9 +1,10 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 import psycopg2
 import os
 from dotenv import load_dotenv
 import math
+import re
 
 load_dotenv()
 app = Flask(__name__)
@@ -11,15 +12,62 @@ CORS(app)
 
 DB_URL = os.getenv("DATABASE_URL")
 
-def get_all(query):
+def get_all(query, params=None):
     conn = psycopg2.connect(DB_URL)
     cur = conn.cursor()
-    cur.execute(query)
+    if params:
+        cur.execute(query, params)
+    else:
+        cur.execute(query)
     rows = cur.fetchall()
     columns = [desc[0] for desc in cur.description]
     cur.close()
     conn.close()
     return [dict(zip(columns, row)) for row in rows]
+
+def execute_query(query, params=None):
+    """Wykonuje zapytanie INSERT/UPDATE/DELETE i zwraca liczbę zmienionych wierszy"""
+    conn = psycopg2.connect(DB_URL)
+    cur = conn.cursor()
+    try:
+        if params:
+            cur.execute(query, params)
+        else:
+            cur.execute(query)
+        conn.commit()
+        rowcount = cur.rowcount
+        cur.close()
+        conn.close()
+        return rowcount
+    except Exception as e:
+        conn.rollback()
+        cur.close()
+        conn.close()
+        raise e
+
+def validate_time_format(time_str):
+    """Waliduje format czasu MM:SS.ms lub SS.ms"""
+    if not time_str:
+        return None
+    
+    # Usuń białe znaki
+    time_str = time_str.strip()
+    
+    # Pattern dla MM:SS.ms lub SS.ms
+    pattern = r'^(?:(\d{1,2}):)?(\d{1,2})\.(\d{1,3})$'
+    match = re.match(pattern, time_str)
+    
+    if not match:
+        raise ValueError(f"Nieprawidłowy format czasu: {time_str}. Użyj MM:SS.ms lub SS.ms")
+    
+    minutes = int(match.group(1)) if match.group(1) else 0
+    seconds = int(match.group(2))
+    milliseconds = match.group(3).ljust(3, '0')[:3]  # Uzupełnij do 3 cyfr
+    
+    # Konwertuj na sekundy z częściami dziesiętnymi
+    total_seconds = minutes * 60 + seconds + int(milliseconds) / 1000
+    
+    return total_seconds
 
 @app.route("/")
 def home():
@@ -286,6 +334,117 @@ def drabinka():
     }
     
     return jsonify(result)
+
+@app.route("/api/zawodnicy", methods=['POST'])
+def add_zawodnik():
+    data = request.get_json()
+    nr_startowy = data['nr_startowy']
+    imie = data['imie']
+    nazwisko = data['nazwisko']
+    kategoria = data['kategoria']
+    plec = data['plec']
+    klub = data['klub']
+    
+    rowcount = execute_query("""
+        INSERT INTO zawodnicy (nr_startowy, imie, nazwisko, kategoria, plec, klub)
+        VALUES (%s, %s, %s, %s, %s, %s)
+    """, (nr_startowy, imie, nazwisko, kategoria, plec, klub))
+    
+    return jsonify({"message": f"Zawodnik o nr_startowym {nr_startowy} został dodany"}), 201
+
+@app.route("/api/zawodnicy/<int:nr_startowy>", methods=['DELETE'])
+def delete_zawodnik(nr_startowy):
+    rowcount = execute_query("""
+        DELETE FROM zawodnicy WHERE nr_startowy = %s
+    """, (nr_startowy,))
+    
+    return jsonify({"message": f"Zawodnik o nr_startowym {nr_startowy} został usunięty"}), 200
+
+@app.route("/api/zawodnicy/<int:nr_startowy>", methods=['PUT'])
+def update_zawodnik(nr_startowy):
+    """Aktualizuje dane zawodnika i jego wynik"""
+    try:
+        data = request.get_json()
+        
+        # Pobierz dane zawodnika
+        new_nr_startowy = data.get('nr_startowy', nr_startowy)
+        imie = data.get('imie')
+        nazwisko = data.get('nazwisko')
+        kategoria = data.get('kategoria')
+        plec = data.get('plec')
+        klub = data.get('klub')
+        
+        # Pobierz dane wyniku
+        czas_str = data.get('czas_przejazdu')
+        status = data.get('status')
+        
+        # Walidacja formatu czasu
+        czas_przejazdu_s = None
+        if czas_str:
+            try:
+                czas_przejazdu_s = validate_time_format(czas_str)
+            except ValueError as e:
+                return jsonify({"error": str(e)}), 400
+        
+        # Sprawdź czy nowy nr_startowy nie jest już zajęty (jeśli zmieniony)
+        if new_nr_startowy != nr_startowy:
+            existing = get_all("SELECT nr_startowy FROM zawodnicy WHERE nr_startowy = %s", (new_nr_startowy,))
+            if existing:
+                return jsonify({"error": f"Nr startowy {new_nr_startowy} jest już zajęty"}), 400
+        
+        # Aktualizuj dane zawodnika
+        execute_query("""
+            UPDATE zawodnicy 
+            SET nr_startowy = %s, imie = %s, nazwisko = %s, kategoria = %s, plec = %s, klub = %s
+            WHERE nr_startowy = %s
+        """, (new_nr_startowy, imie, nazwisko, kategoria, plec, klub, nr_startowy))
+        
+        # Aktualizuj wynik jeśli podano
+        if czas_przejazdu_s is not None or status:
+            # Sprawdź czy wynik istnieje
+            existing_wynik = get_all("SELECT nr_startowy FROM wyniki WHERE nr_startowy = %s", (new_nr_startowy,))
+            
+            if existing_wynik:
+                # Aktualizuj istniejący wynik
+                if czas_przejazdu_s is not None and status:
+                    execute_query("""
+                        UPDATE wyniki SET czas_przejazdu_s = %s, status = %s WHERE nr_startowy = %s
+                    """, (czas_przejazdu_s, status, new_nr_startowy))
+                elif czas_przejazdu_s is not None:
+                    execute_query("""
+                        UPDATE wyniki SET czas_przejazdu_s = %s WHERE nr_startowy = %s
+                    """, (czas_przejazdu_s, new_nr_startowy))
+                elif status:
+                    execute_query("""
+                        UPDATE wyniki SET status = %s WHERE nr_startowy = %s
+                    """, (status, new_nr_startowy))
+            else:
+                # Utwórz nowy wynik
+                execute_query("""
+                    INSERT INTO wyniki (nr_startowy, czas_przejazdu_s, status)
+                    VALUES (%s, %s, %s)
+                """, (new_nr_startowy, czas_przejazdu_s, status or 'DNF'))
+        
+        return jsonify({
+            "message": f"Zawodnik nr {nr_startowy} został zaktualizowany",
+            "new_nr_startowy": new_nr_startowy
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": f"Błąd podczas aktualizacji: {str(e)}"}), 500
+
+@app.route("/api/wyniki", methods=['PUT'])
+def update_wynik():
+    data = request.get_json()
+    nr_startowy = data['nr_startowy']
+    czas_przejazdu_s = data['czas_przejazdu_s']
+    status = data['status']
+    
+    rowcount = execute_query("""
+        UPDATE wyniki SET czas_przejazdu_s = %s, status = %s WHERE nr_startowy = %s
+    """, (czas_przejazdu_s, status, nr_startowy))
+    
+    return jsonify({"message": f"Wynik o nr_startowym {nr_startowy} został zaktualizowany"}), 200
 
 if __name__ == "__main__":
     # Konfiguracja dla produkcji (Railway, Heroku)

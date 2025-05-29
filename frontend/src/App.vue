@@ -319,6 +319,7 @@
               :key="zawodnik.nr_startowy"
               :zawodnik="zawodnik"
               :isAdmin="isAdmin"
+              @edit="openEditModal"
             />
           </div>
           
@@ -374,13 +375,12 @@
                   </td>
                   <td v-if="isAdmin" class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div class="flex flex-col space-y-2">
-                      <button class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 hover:bg-indigo-200 dark:hover:bg-indigo-800 transition-colors duration-200">
+                      <button 
+                        @click="openEditModal(zawodnik)"
+                        class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 hover:bg-indigo-200 dark:hover:bg-indigo-800 transition-colors duration-200"
+                      >
                         <PencilIcon class="h-3 w-3 mr-1" />
                         Edytuj
-                      </button>
-                      <button class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 hover:bg-red-200 dark:hover:bg-red-800 transition-colors duration-200">
-                        <TrashIcon class="h-3 w-3 mr-1" />
-                        Usuń
                       </button>
                     </div>
                   </td>
@@ -401,6 +401,15 @@
         <Rankingi />
       </div>
     </main>
+
+    <!-- Edit Modal -->
+    <EditZawodnikModal 
+      :show="showEditModal"
+      :zawodnik="selectedZawodnik"
+      @close="closeEditModal"
+      @updated="handleZawodnikUpdated"
+      @deleted="handleZawodnikDeleted"
+    />
   </div>
 </template>
 
@@ -426,6 +435,7 @@ import StatsCard from './components/StatsCard.vue'
 import StatusBadge from './components/StatusBadge.vue'
 import ZawodnikCard from './components/ZawodnikCard.vue'
 import DrabinkaPucharowa from './components/DrabinkaPucharowa.vue'
+import EditZawodnikModal from './components/EditZawodnikModal.vue'
 import Rankingi from './components/Rankingi.vue'
 
 // Types
@@ -448,19 +458,15 @@ interface Stats {
   recordHolder: string
 }
 
-// Reactive data
+// Reactive variables
 const zawodnicy = ref<Zawodnik[]>([])
 const searchTerm = ref('')
-const loading = ref(true)
-const activeTab = ref('zawodnicy')
-const filters = ref({
-  kluby: [] as string[],
-  kategorie: [] as string[],
-  plcie: [] as string[],
-  statusy: [] as string[]
-})
 const isAdmin = ref(false)
 const isDarkMode = ref(false)
+const loading = ref(true)
+const error = ref<string | null>(null)
+const showEditModal = ref(false)
+const selectedZawodnik = ref<Zawodnik | null>(null)
 
 // Tabs configuration
 const tabs = [
@@ -610,6 +616,27 @@ const toggleDarkMode = () => {
   } else {
     document.documentElement.classList.remove('dark')
   }
+}
+
+// Modal functions
+const openEditModal = (zawodnik: Zawodnik) => {
+  selectedZawodnik.value = zawodnik
+  showEditModal.value = true
+}
+
+const closeEditModal = () => {
+  showEditModal.value = false
+  selectedZawodnik.value = null
+}
+
+const handleZawodnikUpdated = () => {
+  // Refresh data after update
+  fetchZawodnicy()
+}
+
+const handleZawodnikDeleted = () => {
+  // Refresh data after delete
+  fetchZawodnicy()
 }
 
 // Lifecycle

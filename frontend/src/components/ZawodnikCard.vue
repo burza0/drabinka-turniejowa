@@ -39,13 +39,12 @@
 
     <!-- Akcje admin (jeśli admin mode) -->
     <div v-if="isAdmin" class="flex space-x-2">
-      <button class="flex-1 inline-flex items-center justify-center px-3 py-2 text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 transition-colors duration-200">
+      <button 
+        @click="$emit('edit', zawodnik)"
+        class="flex-1 inline-flex items-center justify-center px-3 py-2 text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 transition-colors duration-200"
+      >
         <PencilIcon class="h-3 w-3 mr-1" />
         Edytuj
-      </button>
-      <button class="flex-1 inline-flex items-center justify-center px-3 py-2 text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 transition-colors duration-200">
-        <TrashIcon class="h-3 w-3 mr-1" />
-        Usuń
       </button>
     </div>
   </div>
@@ -72,6 +71,11 @@ interface Props {
 }
 
 defineProps<Props>()
+
+// Emits
+defineEmits<{
+  edit: [zawodnik: Zawodnik]
+}>()
 
 const formatTime = (seconds: number): string => {
   const mins = Math.floor(seconds / 60)
