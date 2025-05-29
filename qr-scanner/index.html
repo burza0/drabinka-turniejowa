@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SKATECROSS - QR Scanner</title>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 10px;
+        }
+        
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 0.9rem;
+        }
+        
+        .content {
+            padding: 20px;
+        }
+        
+        .tab-buttons {
+            display: flex;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .tab-btn {
+            flex: 1;
+            padding: 15px;
+            background: #f8f9fa;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .tab-btn.active {
+            background: #007bff;
+            color: white;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        #qr-reader {
+            width: 100%;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+        
+        .status-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .success-card {
+            background: #d4edda;
+            border-left-color: #28a745;
+            color: #155724;
+        }
+        
+        .error-card {
+            background: #f8d7da;
+            border-left-color: #dc3545;
+            color: #721c24;
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+        
+        .input-group input:focus, .input-group select:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 10px;
+        }
+        
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+        
+        .result-info {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .result-info h3 {
+            color: #007bff;
+            margin-bottom: 10px;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .info-row:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #007bff;
+        }
+        
+        .stat-label {
+            font-size: 0.8rem;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                margin: 5px;
+                border-radius: 10px;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .content {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏆 SKATECROSS</h1>
+            <p>QR Scanner - System zarządzania zawodami</p>
+        </div>
+        
+        <div class="content">
+            <!-- Tab Buttons -->
+            <div class="tab-buttons">
+                <button class="tab-btn active" onclick="switchTab('checkin')">Check-in</button>
+                <button class="tab-btn" onclick="switchTab('results')">Wyniki</button>
+                <button class="tab-btn" onclick="switchTab('verify')">Weryfikuj</button>
+                <button class="tab-btn" onclick="switchTab('stats')">Statystyki</button>
+            </div>
+            
+            <!-- Check-in Tab -->
+            <div id="checkin-tab" class="tab-content active">
+                <h3 style="margin-bottom: 15px; color: #007bff;">📋 Meldowanie zawodników</h3>
+                <div id="qr-reader"></div>
+                <button class="btn btn-primary" onclick="startScanner('checkin')">🔍 Rozpocznij skanowanie</button>
+                <button class="btn btn-warning hidden" onclick="stopScanner()">⏹️ Zatrzymaj skanowanie</button>
+                <div id="checkin-status"></div>
+            </div>
+            
+            <!-- Results Tab -->
+            <div id="results-tab" class="tab-content">
+                <h3 style="margin-bottom: 15px; color: #007bff;">⏱️ Zapisywanie wyników</h3>
+                <div id="qr-reader-results"></div>
+                <button class="btn btn-primary" onclick="startScanner('results')">🔍 Skanuj zawodnika</button>
+                <button class="btn btn-warning hidden" onclick="stopScanner()">⏹️ Zatrzymaj skanowanie</button>
+                
+                <div id="manual-result-form" class="hidden">
+                    <div class="input-group">
+                        <label>Czas przejazdu (MM:SS.ms lub sekundy)</label>
+                        <input type="text" id="czas-input" placeholder="np. 01:23.45 lub 83.45">
+                    </div>
+                    <div class="input-group">
+                        <label>Status</label>
+                        <select id="status-select">
+                            <option value="FINISHED">Ukończono</option>
+                            <option value="DNS">Nie wystartował</option>
+                            <option value="DNF">Nie ukończył</option>
+                            <option value="DSQ">Dyskwalifikacja</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-success" onclick="saveResult()">💾 Zapisz wynik</button>
+                </div>
+                
+                <div id="results-status"></div>
+            </div>
+            
+            <!-- Verify Tab -->
+            <div id="verify-tab" class="tab-content">
+                <h3 style="margin-bottom: 15px; color: #007bff;">🔍 Weryfikacja wyników</h3>
+                <div id="qr-reader-verify"></div>
+                <button class="btn btn-primary" onclick="startScanner('verify')">🔍 Skanuj do weryfikacji</button>
+                <button class="btn btn-warning hidden" onclick="stopScanner()">⏹️ Zatrzymaj skanowanie</button>
+                <div id="verify-status"></div>
+            </div>
+            
+            <!-- Stats Tab -->
+            <div id="stats-tab" class="tab-content">
+                <h3 style="margin-bottom: 15px; color: #007bff;">📊 Statystyki</h3>
+                <div id="stats-container">
+                    <div class="loading">Ładowanie statystyk...</div>
+                </div>
+                <button class="btn btn-primary" onclick="loadStats()">🔄 Odśwież statystyki</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let html5QrCode = null;
+        let currentMode = '';
+        let currentScannedCode = '';
+        
+        const API_BASE = 'http://localhost:5000/api';
+        
+        // Switch between tabs
+        function switchTab(tab) {
+            // Stop any running scanner
+            stopScanner();
+            
+            // Update tab buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(tab + '-tab').classList.add('active');
+            
+            // Load stats if stats tab
+            if (tab === 'stats') {
+                loadStats();
+            }
+        }
+        
+        // Start QR scanner
+        function startScanner(mode) {
+            currentMode = mode;
+            const readerId = mode === 'checkin' ? 'qr-reader' : 
+                           mode === 'results' ? 'qr-reader-results' : 'qr-reader-verify';
+            
+            if (html5QrCode) {
+                stopScanner();
+            }
+            
+            html5QrCode = new Html5Qrcode(readerId);
+            
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+            
+            html5QrCode.start(
+                { facingMode: "environment" },
+                config,
+                onScanSuccess,
+                onScanFailure
+            ).catch(err => {
+                console.error('Scanner start error:', err);
+                showStatus(mode, 'Błąd uruchamiania skanera: ' + err, 'error');
+            });
+            
+            // Update buttons
+            document.querySelector('.btn-primary').classList.add('hidden');
+            document.querySelector('.btn-warning').classList.remove('hidden');
+        }
+        
+        // Stop QR scanner
+        function stopScanner() {
+            if (html5QrCode) {
+                html5QrCode.stop().then(() => {
+                    html5QrCode.clear();
+                    html5QrCode = null;
+                }).catch(err => console.error('Scanner stop error:', err));
+            }
+            
+            // Update buttons
+            document.querySelectorAll('.btn-primary').forEach(btn => btn.classList.remove('hidden'));
+            document.querySelectorAll('.btn-warning').forEach(btn => btn.classList.add('hidden'));
+        }
+        
+        // Handle successful scan
+        function onScanSuccess(decodedText, decodedResult) {
+            console.log('Scanned:', decodedText);
+            currentScannedCode = decodedText;
+            
+            if (currentMode === 'checkin') {
+                handleCheckIn(decodedText);
+            } else if (currentMode === 'results') {
+                handleResultScan(decodedText);
+            } else if (currentMode === 'verify') {
+                handleVerify(decodedText);
+            }
+            
+            // Stop scanner after successful scan
+            stopScanner();
+        }
+        
+        // Handle scan failure
+        function onScanFailure(error) {
+            // Ignore scan failures (too frequent)
+        }
+        
+        // Handle check-in
+        async function handleCheckIn(qrCode) {
+            try {
+                const response = await fetch(`${API_BASE}/qr/check-in`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        qr_code: qrCode,
+                        device_id: 'mobile_scanner'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showZawodnikInfo('checkin', data.zawodnik, data.message, 'success');
+                } else {
+                    showStatus('checkin', data.message || 'Błąd meldowania', 'error');
+                }
+            } catch (error) {
+                showStatus('checkin', 'Błąd połączenia: ' + error.message, 'error');
+            }
+        }
+        
+        // Handle result scan
+        async function handleResultScan(qrCode) {
+            try {
+                const response = await fetch(`${API_BASE}/qr/verify-result`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ qr_code: qrCode })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showZawodnikInfo('results', data.zawodnik, 'Zawodnik zeskanowany. Wprowadź wynik:', 'success');
+                    document.getElementById('manual-result-form').classList.remove('hidden');
+                } else {
+                    showStatus('results', 'Nie znaleziono zawodnika', 'error');
+                }
+            } catch (error) {
+                showStatus('results', 'Błąd połączenia: ' + error.message, 'error');
+            }
+        }
+        
+        // Save result
+        async function saveResult() {
+            const czas = document.getElementById('czas-input').value;
+            const status = document.getElementById('status-select').value;
+            
+            if (!currentScannedCode) {
+                showStatus('results', 'Najpierw zeskanuj zawodnika', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/qr/scan-result`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        qr_code: currentScannedCode,
+                        czas: czas,
+                        status: status,
+                        device_id: 'mobile_scanner'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showStatus('results', data.message, 'success');
+                    document.getElementById('manual-result-form').classList.add('hidden');
+                    document.getElementById('czas-input').value = '';
+                    currentScannedCode = '';
+                } else {
+                    showStatus('results', data.error || 'Błąd zapisywania wyniku', 'error');
+                }
+            } catch (error) {
+                showStatus('results', 'Błąd połączenia: ' + error.message, 'error');
+            }
+        }
+        
+        // Handle verify
+        async function handleVerify(qrCode) {
+            try {
+                const response = await fetch(`${API_BASE}/qr/verify-result`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ qr_code: qrCode })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showDetailedResult('verify', data.zawodnik, data.wynik);
+                } else {
+                    showStatus('verify', 'Nie znaleziono zawodnika', 'error');
+                }
+            } catch (error) {
+                showStatus('verify', 'Błąd połączenia: ' + error.message, 'error');
+            }
+        }
+        
+        // Show zawodnik info
+        function showZawodnikInfo(mode, zawodnik, message, type) {
+            const html = `
+                <div class="status-card ${type}-card">
+                    <strong>${message}</strong>
+                </div>
+                <div class="result-info">
+                    <h3>${zawodnik.imie} ${zawodnik.nazwisko}</h3>
+                    <div class="info-row">
+                        <span>Nr startowy:</span>
+                        <strong>${zawodnik.nr_startowy}</strong>
+                    </div>
+                    <div class="info-row">
+                        <span>Kategoria:</span>
+                        <strong>${zawodnik.kategoria}</strong>
+                    </div>
+                    <div class="info-row">
+                        <span>Płeć:</span>
+                        <strong>${zawodnik.plec}</strong>
+                    </div>
+                    <div class="info-row">
+                        <span>Klub:</span>
+                        <strong>${zawodnik.klub}</strong>
+                    </div>
+                    ${zawodnik.checked_in ? '<div class="info-row"><span>Status:</span><strong style="color: #28a745;">✅ Zameldowany</strong></div>' : ''}
+                </div>
+            `;
+            document.getElementById(mode + '-status').innerHTML = html;
+        }
+        
+        // Show detailed result
+        function showDetailedResult(mode, zawodnik, wynik) {
+            const formatTime = (seconds) => {
+                if (!seconds) return 'Brak wyniku';
+                const mins = Math.floor(seconds / 60);
+                const secs = (seconds % 60).toFixed(2);
+                return `${mins}:${secs.padStart(5, '0')}`;
+            };
+            
+            const html = `
+                <div class="result-info">
+                    <h3>${zawodnik.imie} ${zawodnik.nazwisko}</h3>
+                    <div class="info-row">
+                        <span>Nr startowy:</span>
+                        <strong>${zawodnik.nr_startowy}</strong>
+                    </div>
+                    <div class="info-row">
+                        <span>Kategoria/Płeć:</span>
+                        <strong>${zawodnik.kategoria} ${zawodnik.plec}</strong>
+                    </div>
+                    <div class="info-row">
+                        <span>Klub:</span>
+                        <strong>${zawodnik.klub}</strong>
+                    </div>
+                    <div class="info-row">
+                        <span>Czas:</span>
+                        <strong>${formatTime(wynik.czas_przejazdu_s)}</strong>
+                    </div>
+                    <div class="info-row">
+                        <span>Status:</span>
+                        <strong>${wynik.status || 'Brak wyniku'}</strong>
+                    </div>
+                    ${wynik.pozycja_w_kategorii ? `<div class="info-row"><span>Pozycja w kategorii:</span><strong>${wynik.pozycja_w_kategorii}</strong></div>` : ''}
+                    <div class="info-row">
+                        <span>Awans do drabinki:</span>
+                        <strong style="color: ${wynik.awans_do_drabinki ? '#28a745' : '#dc3545'}">${wynik.awans_do_drabinki ? '✅ TAK' : '❌ NIE'}</strong>
+                    </div>
+                    ${zawodnik.checked_in ? '<div class="info-row"><span>Zameldowany:</span><strong style="color: #28a745;">✅ TAK</strong></div>' : '<div class="info-row"><span>Zameldowany:</span><strong style="color: #dc3545;">❌ NIE</strong></div>'}
+                </div>
+            `;
+            document.getElementById(mode + '-status').innerHTML = html;
+        }
+        
+        // Show status message
+        function showStatus(mode, message, type) {
+            const html = `<div class="status-card ${type}-card">${message}</div>`;
+            document.getElementById(mode + '-status').innerHTML = html;
+        }
+        
+        // Load stats
+        async function loadStats() {
+            try {
+                const response = await fetch(`${API_BASE}/qr/stats`);
+                const data = await response.json();
+                
+                const html = `
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value">${data.total_zawodnikow}</div>
+                            <div class="stat-label">Zawodników łącznie</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">${data.zameldowanych}</div>
+                            <div class="stat-label">Zameldowanych</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">${data.z_qr_kodami}</div>
+                            <div class="stat-label">Z QR kodami</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">${data.procent_zameldowanych}%</div>
+                            <div class="stat-label">% Zameldowanych</div>
+                        </div>
+                    </div>
+                    ${data.checkpoints.length > 0 ? `
+                        <div class="result-info">
+                            <h3>Ostatnie działania</h3>
+                            ${data.checkpoints.map(cp => `
+                                <div class="info-row">
+                                    <span>${cp.checkpoint_name}</span>
+                                    <strong>${cp.count}</strong>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                `;
+                
+                document.getElementById('stats-container').innerHTML = html;
+            } catch (error) {
+                document.getElementById('stats-container').innerHTML = `
+                    <div class="status-card error-card">
+                        Błąd ładowania statystyk: ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        // Load stats on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadStats();
+        });
+    </script>
+</body>
+</html> 

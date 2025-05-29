@@ -409,5 +409,297 @@ def drabinka():
         print(f"Błąd w endpoincie drabinki: {e}")
         return jsonify({"error": str(e)}), 500
 
+@app.route("/api/qr/check-in", methods=['POST'])
+def qr_check_in():
+    """Endpoint do zameldowania zawodnika poprzez QR kod"""
+    try:
+        data = request.json
+        qr_code = data.get('qr_code')
+        
+        if not qr_code:
+            return jsonify({"error": "Brak QR kodu"}), 400
+        
+        # Znajdź zawodnika po QR kodzie
+        zawodnik = get_all("""
+            SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub, checked_in
+            FROM zawodnicy 
+            WHERE qr_code = %s
+        """, (qr_code,))
+        
+        if not zawodnik:
+            return jsonify({"error": "Nie znaleziono zawodnika o tym QR kodzie"}), 404
+        
+        zawodnik = zawodnik[0]
+        
+        if zawodnik['checked_in']:
+            return jsonify({
+                "success": False, 
+                "message": "Zawodnik już zameldowany",
+                "zawodnik": zawodnik
+            }), 200
+        
+        # Zamelduj zawodnika
+        execute_query("""
+            UPDATE zawodnicy 
+            SET checked_in = TRUE, check_in_time = CURRENT_TIMESTAMP 
+            WHERE qr_code = %s
+        """, (qr_code,))
+        
+        # Zapisz checkpoint
+        execute_query("""
+            INSERT INTO checkpoints (nr_startowy, checkpoint_name, qr_code, device_id)
+            VALUES (%s, %s, %s, %s)
+        """, (zawodnik['nr_startowy'], 'check-in', qr_code, data.get('device_id', 'unknown')))
+        
+        zawodnik['checked_in'] = True
+        
+        return jsonify({
+            "success": True,
+            "message": f"Zawodnik {zawodnik['imie']} {zawodnik['nazwisko']} zameldowany pomyślnie",
+            "zawodnik": zawodnik
+        }), 200
+        
+    except Exception as e:
+        print(f"Błąd w check-in: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/qr/scan-result", methods=['POST'])
+def qr_scan_result():
+    """Endpoint do zapisania wyniku zawodnika poprzez QR kod"""
+    try:
+        data = request.json
+        qr_code = data.get('qr_code')
+        czas = data.get('czas')  # może być timestamp lub MM:SS.ms
+        status = data.get('status', 'FINISHED')
+        checkpoint = data.get('checkpoint', 'finish')
+        
+        if not qr_code:
+            return jsonify({"error": "Brak QR kodu"}), 400
+        
+        # Znajdź zawodnika po QR kodzie
+        zawodnik = get_all("""
+            SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub
+            FROM zawodnicy 
+            WHERE qr_code = %s
+        """, (qr_code,))
+        
+        if not zawodnik:
+            return jsonify({"error": "Nie znaleziono zawodnika o tym QR kodzie"}), 404
+        
+        zawodnik = zawodnik[0]
+        
+        # Przetwórz czas
+        if czas:
+            try:
+                # Jeśli to timestamp, konwertuj na sekundy
+                if isinstance(czas, (int, float)):
+                    # Assume timestamp in milliseconds
+                    czas_s = float(czas) / 1000 if czas > 1000000 else float(czas)
+                else:
+                    # Jeśli to string, użyj validate_time_format
+                    czas_s = validate_time_format(str(czas))
+            except Exception as e:
+                return jsonify({"error": f"Nieprawidłowy format czasu: {e}"}), 400
+        else:
+            czas_s = None
+        
+        # Zapisz wynik
+        execute_query("""
+            UPDATE wyniki 
+            SET czas_przejazdu_s = %s, status = %s
+            WHERE nr_startowy = %s
+        """, (czas_s, status, zawodnik['nr_startowy']))
+        
+        # Zapisz checkpoint
+        execute_query("""
+            INSERT INTO checkpoints (nr_startowy, checkpoint_name, qr_code, device_id)
+            VALUES (%s, %s, %s, %s)
+        """, (zawodnik['nr_startowy'], checkpoint, qr_code, data.get('device_id', 'unknown')))
+        
+        return jsonify({
+            "success": True,
+            "message": f"Wynik dla {zawodnik['imie']} {zawodnik['nazwisko']} zapisany",
+            "zawodnik": zawodnik,
+            "czas": czas_s,
+            "status": status
+        }), 200
+        
+    except Exception as e:
+        print(f"Błąd w scan-result: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/qr/verify-result", methods=['POST'])
+def qr_verify_result():
+    """Endpoint do weryfikacji wyniku zawodnika poprzez QR kod"""
+    try:
+        data = request.json
+        qr_code = data.get('qr_code')
+        
+        if not qr_code:
+            return jsonify({"error": "Brak QR kodu"}), 400
+        
+        # Znajdź zawodnika z wynikiem
+        zawodnik_data = get_all("""
+            SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                   z.checked_in, z.check_in_time,
+                   w.czas_przejazdu_s, w.status
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE z.qr_code = %s
+        """, (qr_code,))
+        
+        if not zawodnik_data:
+            return jsonify({"error": "Nie znaleziono zawodnika o tym QR kodzie"}), 404
+        
+        zawodnik = zawodnik_data[0]
+        
+        # Sprawdź pozycję w kategorii
+        if zawodnik['czas_przejazdu_s'] and zawodnik['status'] == 'FINISHED':
+            pozycja_data = get_all("""
+                SELECT COUNT(*) + 1 as pozycja
+                FROM zawodnicy z
+                JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+                WHERE z.kategoria = %s AND z.plec = %s 
+                AND w.status = 'FINISHED' 
+                AND w.czas_przejazdu_s < %s
+            """, (zawodnik['kategoria'], zawodnik['plec'], zawodnik['czas_przejazdu_s']))
+            
+            pozycja = pozycja_data[0]['pozycja'] if pozycja_data else None
+        else:
+            pozycja = None
+        
+        # Sprawdź awans do drabinki (top 16 w kategorii/płci)
+        awans_data = get_all("""
+            SELECT COUNT(*) as lepszych
+            FROM zawodnicy z
+            JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE z.kategoria = %s AND z.plec = %s 
+            AND w.status = 'FINISHED' 
+            AND w.czas_przejazdu_s < %s
+        """, (zawodnik['kategoria'], zawodnik['plec'], zawodnik['czas_przejazdu_s'])) if zawodnik['czas_przejazdu_s'] else []
+        
+        awans_do_drabinki = (awans_data[0]['lepszych'] < 16) if awans_data and zawodnik['czas_przejazdu_s'] else False
+        
+        return jsonify({
+            "success": True,
+            "zawodnik": {
+                "nr_startowy": zawodnik['nr_startowy'],
+                "imie": zawodnik['imie'],
+                "nazwisko": zawodnik['nazwisko'],
+                "kategoria": zawodnik['kategoria'],
+                "plec": zawodnik['plec'],
+                "klub": zawodnik['klub'],
+                "checked_in": zawodnik['checked_in'],
+                "check_in_time": zawodnik['check_in_time'].isoformat() if zawodnik['check_in_time'] else None
+            },
+            "wynik": {
+                "czas_przejazdu_s": zawodnik['czas_przejazdu_s'],
+                "status": zawodnik['status'],
+                "pozycja_w_kategorii": pozycja,
+                "awans_do_drabinki": awans_do_drabinki
+            }
+        }), 200
+        
+    except Exception as e:
+        print(f"Błąd w verify-result: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/qr/generate/<int:nr_startowy>", methods=['POST'])
+def qr_generate_for_zawodnik(nr_startowy):
+    """Endpoint do generowania QR kodu dla konkretnego zawodnika"""
+    try:
+        import qrcode
+        import uuid
+        import base64
+        from io import BytesIO
+        
+        # Znajdź zawodnika
+        zawodnik_data = get_all("""
+            SELECT nr_startowy, imie, nazwisko, qr_code
+            FROM zawodnicy 
+            WHERE nr_startowy = %s
+        """, (nr_startowy,))
+        
+        if not zawodnik_data:
+            return jsonify({"error": "Nie znaleziono zawodnika"}), 404
+        
+        zawodnik = zawodnik_data[0]
+        
+        # Jeśli już ma QR kod, zwróć istniejący
+        if zawodnik['qr_code']:
+            qr_data = zawodnik['qr_code']
+        else:
+            # Wygeneruj nowy QR kod
+            unique_hash = uuid.uuid4().hex[:8].upper()
+            qr_data = f"SKATECROSS_{nr_startowy}_{unique_hash}"
+            
+            # Zapisz do bazy
+            execute_query("""
+                UPDATE zawodnicy SET qr_code = %s WHERE nr_startowy = %s
+            """, (qr_data, nr_startowy))
+        
+        # Wygeneruj obraz QR kodu
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(qr_data)
+        qr.make(fit=True)
+        
+        img = qr.make_image(fill_color="black", back_color="white")
+        
+        # Konwertuj do base64
+        buffer = BytesIO()
+        img.save(buffer, format='PNG')
+        img_base64 = base64.b64encode(buffer.getvalue()).decode()
+        
+        return jsonify({
+            "success": True,
+            "zawodnik": zawodnik,
+            "qr_code": qr_data,
+            "qr_image": f"data:image/png;base64,{img_base64}"
+        }), 200
+        
+    except Exception as e:
+        print(f"Błąd w generate QR: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/qr/stats")
+def qr_stats():
+    """Endpoint zwracający statystyki QR kodów"""
+    try:
+        # Podstawowe statystyki
+        total_data = get_all("SELECT COUNT(*) as total FROM zawodnicy")
+        total = total_data[0]['total'] if total_data else 0
+        
+        with_qr_data = get_all("SELECT COUNT(*) as with_qr FROM zawodnicy WHERE qr_code IS NOT NULL")
+        with_qr = with_qr_data[0]['with_qr'] if with_qr_data else 0
+        
+        checked_in_data = get_all("SELECT COUNT(*) as checked_in FROM zawodnicy WHERE checked_in = TRUE")
+        checked_in = checked_in_data[0]['checked_in'] if checked_in_data else 0
+        
+        # Statystyki checkpointów
+        checkpoint_stats = get_all("""
+            SELECT checkpoint_name, COUNT(*) as count
+            FROM checkpoints
+            GROUP BY checkpoint_name
+            ORDER BY count DESC
+        """)
+        
+        return jsonify({
+            "total_zawodnikow": total,
+            "z_qr_kodami": with_qr,
+            "zameldowanych": checked_in,
+            "bez_qr_kodow": total - with_qr,
+            "procent_zameldowanych": round((checked_in / total * 100), 1) if total > 0 else 0,
+            "checkpoints": checkpoint_stats
+        }), 200
+        
+    except Exception as e:
+        print(f"Błąd w QR stats: {e}")
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == '__main__':
     app.run(debug=True) 
