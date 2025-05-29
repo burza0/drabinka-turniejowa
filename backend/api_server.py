@@ -98,6 +98,31 @@ def statystyki():
         'total': {'M': total_m, 'K': total_k, 'razem': total_m + total_k}
     })
 
+@app.route("/api/kluby")
+def kluby():
+    """Endpoint zwracający listę klubów z liczbą zawodników"""
+    # Pobierz kluby z liczbą zawodników
+    rows = get_all("""
+        SELECT k.id, k.nazwa, k.miasto, k.utworzony_date,
+               COUNT(z.nr_startowy) as liczba_zawodnikow,
+               SUM(CASE WHEN z.plec = 'M' THEN 1 ELSE 0 END) as mezczyzni,
+               SUM(CASE WHEN z.plec = 'K' THEN 1 ELSE 0 END) as kobiety
+        FROM kluby k
+        LEFT JOIN zawodnicy z ON k.nazwa = z.klub
+        GROUP BY k.id, k.nazwa, k.miasto, k.utworzony_date
+        ORDER BY liczba_zawodnikow DESC, k.nazwa
+    """)
+    
+    # Dodaj też podstawową listę nazw klubów
+    kluby_nazwy = get_all("SELECT DISTINCT nazwa FROM kluby ORDER BY nazwa")
+    nazwy_list = [row["nazwa"] for row in kluby_nazwy]
+    
+    return jsonify({
+        'kluby_szczegoly': rows,
+        'nazwy_klubow': nazwy_list,
+        'total_klubow': len(rows)
+    })
+
 def create_tournament_bracket(zawodnicy_list):
     """
     Tworzy drabinkę turniejową z grupami 4-osobowymi
