@@ -1,154 +1,301 @@
-# 🏆 SKATECROSS Tournament Management System
+# 🏆 SKATECROSS - System zarządzania zawodami z QR kodami
 
-Nowoczesny system zarządzania turniejami SKATECROSS z zaawansowanym interfejsem Vue.js + TypeScript, trybem administratora, ciemnym motywem i responsywnym designem mobilnym.
+Profesjonalny system do zarządzania zawodami SKATECROSS z funkcjonalnością QR kodów dla szybkiego meldowania zawodników i zapisywania wyników.
 
-**🌐 Aplikacja LIVE**: https://drabinka-turniejowa-skatecross-17be0c216c6f.herokuapp.com/
+![System SKATECROSS](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)
+![Vue 3](https://img.shields.io/badge/Vue-3.5.13-4FC08D)
+![Flask](https://img.shields.io/badge/Flask-2.3.2-000000)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Supabase-336791)
+![Heroku](https://img.shields.io/badge/Deploy-Heroku-430098)
 
-## 🎯 Funkcjonalności
+## 🚀 URLs Produkcyjne
 
-### ✨ Główne cechy
-- **250 zawodników** z 7 klubów w 6 kategoriach wiekowych (Junior A-D, Masters, Senior)
-- **Zaawansowane filtry chipowe** - multi-select dla klubów, kategorii, płci i statusów
-- **Responsywne karty mobilne** - kompaktowy układ na najwęższych ekranach
-- **Tryb administratora** - możliwość edycji i usuwania zawodników
-- **Tryb ciemny** - pełne wsparcie dark mode z przełącznikiem
-- **Drabinka turniejowa** - grupy 4-osobowe z automatycznym awansem i filtrami
-- **Statystyki real-time** - karty z aktualnymi danymi turnieju
-- **Rekord toru** - śledzenie najlepszego czasu z nazwiskiem rekordzisty
-- **Pole wyszukiwania** - w jednej linii z tytułem na desktopie
+### 🏆 Panel Administratora (Vue 3)
+```
+https://drabinka-turniejowa-skatecross-17be0c216c6f.herokuapp.com
+```
+**Przeznaczenie:** Zarządzanie zawodnikami, wynikami i drabinką turniejową
 
-### 📱 Responsywny design
-- **Desktop**: Tabele z pełnymi informacjami + pole wyszukiwania w headerze
-- **Mobile**: Karty zawodników w kompaktowym układzie:
-  ```
-  ┌─────────────────────────────────────────┐
-  │ [33] Urszula Witkowski  🏢 Club 🏷️ Cat │
-  │      ⏰ 1:23.45           [STATUS]      │
-  │      [Edytuj] [Usuń]                    │
-  └─────────────────────────────────────────┘
-  ```
-- **Karty statystyk**: 2x2 na mobile, 4x1 na desktop
-- **Filtry mobilne**: Chipowe przyciski z kolorową identyfikacją
+### 📱 QR Scanner (Mobilny)
+```
+https://drabinka-turniejowa-skatecross-17be0c216c6f.herokuapp.com/qr-scanner
+```
+**Przeznaczenie:** Skanowanie QR kodów przez sędziów na urządzeniach mobilnych
 
-### 🎛️ System filtrowania
-- **Filtry chipowe**: Multi-select przyciski z kolorami
-- **Real-time liczniki**: Pokazują liczbę wybranych filtrów
-- **Domyślne ustawienia**: Wszystkie filtry początkowo odznaczone
-- **Logika filtrowania**: Puste filtry = wszystko widoczne, wypełnione = tylko wybrane
-- **Szybkie akcje**: Buttons dla typowych kombinacji filtrów
-- **Wyczyść wszystko**: Reset filtrów jednym kliknięciem
-- **Licznik wyników**: Dynamiczne wyświetlanie przefiltrowanych zawodników
+### 🔌 API Backend
+```
+https://drabinka-turniejowa-skatecross-17be0c216c6f.herokuapp.com/api
+```
+**Przeznaczenie:** RESTful API dla wszystkich operacji systemowych
 
-### 🏆 Drabinka Pucharowa
-- **Grupy turniejowe**: Ćwierćfinały, półfinały, finały
-- **Filtry kategorii i płci**: Domyślnie odznaczone, pokazują wszystko
-- **Statystyki uproszczone**: Tylko łączna liczba zawodników i w ćwierćfinałach
-- **Kolorowe wskaźniki**: Awansujący zawodnicy podświetleni
-- **Podział na płcie**: Oddzielne sekcje dla mężczyzn i kobiet
+## 📋 Funkcjonalności
 
-### 👨‍💼 Tryb administratora
-- **Toggle w headerze**: Przełącznik admin/user
-- **Wizualne wskaźniki**: Badge "🔧 ADMIN" i zmiana avatara
-- **Kolumna akcji**: Przyciski edycji i usuwania zawodników
-- **Notyfikacja**: Alert o trybie administratora
+### 🏅 Panel Administratora
+- ✅ **Zarządzanie zawodnikami** - dodawanie, edycja, usuwanie (251 zawodników)
+- ✅ **Zapisywanie wyników** - czasy przejazdu, statusy (FINISHED, DNF, DSQ)
+- ✅ **Drabinka turniejowa** - automatyczne generowanie ćwierćfinałów, półfinałów, finału
+- ✅ **Statystyki** - podsumowania według kategorii i płci
+- ✅ **Filtrowanie** - według klubów, kategorii, płci, statusów
+- ✅ **Responsive design** - działa na wszystkich urządzeniach
 
-### 🌙 Tryb ciemny
-- **Pełne wsparcie**: Wszystkie komponenty i kolory
-- **Przełącznik**: Słońce/księżyc w headerze
-- **Smooth transitions**: Płynne przejścia między motywami
-- **Persistent**: Zachowuje wybór użytkownika
+### 📱 QR Scanner (Mobilny)
+- ✅ **Check-in zawodników** - szybkie meldowanie przez skanowanie QR kodu
+- ✅ **Zapisywanie wyników** - wprowadzanie czasów bezpośrednio na trasie
+- ✅ **Weryfikacja statusu** - sprawdzanie pozycji i awansu do drabinki
+- ✅ **Statystyki na żywo** - monitoring postępu zawodów
+- ✅ **Offline support** - działa bez stałego połączenia internetowego
 
-## 🗄️ Struktura bazy danych
+### 🔐 System QR Kodów
+- ✅ **251 unikalnych kodów** wygenerowanych dla wszystkich zawodników
+- ✅ **Format:** `SKATECROSS_{nr_startowy}_{unique_hash}`
+- ✅ **Przykład:** `SKATECROSS_2_BEB529B1` (Anna Nowak, nr 2)
+- ✅ **Baza checkpointów** - logowanie wszystkich skanów
+- ✅ **Weryfikacja statusu** - pozycja w kategorii i awans do drabinki
 
-### Tabela `zawodnicy`
-```sql
-- nr_startowy (PRIMARY KEY)
-- imie (VARCHAR)
-- nazwisko (VARCHAR) 
-- kategoria (VARCHAR) - Junior A/B/C/D, Masters, Senior
-- plec (VARCHAR) - M/K
-- klub (VARCHAR) - 7 klubów sportowych
+## 🏗️ Architektura Systemu
+
+### Frontend (Vue 3 + TypeScript)
+```
+frontend/
+├── src/
+│   ├── App.vue              # Główna aplikacja
+│   ├── components/
+│   │   ├── EditZawodnikModal.vue
+│   │   └── ZawodnikCard.vue
+│   └── main.ts
+├── dist/                    # Zbudowana aplikacja
+└── package.json
 ```
 
-### Tabela `wyniki`
-```sql
-- nr_startowy (FOREIGN KEY)
-- czas_przejazdu_s (DECIMAL)
-- status (VARCHAR) - FINISHED/DNF/DSQ
+### Backend (Flask + Python)
+```
+backend/
+├── api_server.py           # Główny serwer API
+├── add_qr_columns.py       # Migracja bazy danych
+├── generate_qr_codes.py    # Generator QR kodów
+└── requirements.txt
 ```
 
-### Aktualne dane
-- **250 zawodników** z 7 klubów (35-36 zawodników/klub)
-- **195 ukończonych** (78%), **29 DNF** (11.6%), **26 DSQ** (10.4%)
-- **Rekord toru**: 35.008s (Irena Pietrzak)
+### QR Scanner (HTML5 + JavaScript)
+```
+qr-scanner/
+└── index.html             # Mobilna aplikacja do skanowania
+```
 
-## 🚀 Uruchamianie
+### Baza Danych (PostgreSQL - Supabase)
+```sql
+-- Główne tabele
+zawodnicy (nr_startowy, imie, nazwisko, kategoria, plec, klub, qr_code, checked_in, check_in_time)
+wyniki (nr_startowy, czas_przejazdu_s, status)
+kluby (id, nazwa, miasto, utworzony_date)
+checkpoints (id, nr_startowy, checkpoint_name, qr_code, scan_time, device_id)
+```
 
-### Wymagania
-- **Backend**: Python 3.8+, Flask, Flask-CORS
-- **Frontend**: Node.js 16+, Vue 3, TypeScript
-- **Baza**: PostgreSQL/Supabase
+## 🛠️ Technologie
 
-### Instalacja i uruchomienie
+### Frontend
+- **Vue 3.5.13** - Reaktywny framework UI
+- **TypeScript** - Statyczne typowanie
+- **Tailwind CSS** - Utility-first CSS framework
+- **Axios** - HTTP client
+- **Heroicons** - Ikony SVG
+- **Vite** - Build tool
 
-#### Backend (Flask API)
+### Backend
+- **Flask 2.3.2** - Web framework
+- **PostgreSQL** - Baza danych (Supabase)
+- **psycopg2** - PostgreSQL adapter
+- **Flask-CORS** - Cross-Origin Resource Sharing
+- **python-dotenv** - Environment variables
+- **qrcode[pil]** - Generowanie QR kodów
+
+### QR Scanner
+- **HTML5-QRCode** - Biblioteka do skanowania QR
+- **Responsive Web Design** - Optymalizacja mobilna
+- **Progressive Web App** - Możliwość instalacji jako aplikacja
+
+### Hosting & Deploy
+- **Heroku** - Platform as a Service
+- **Supabase** - Backend as a Service (PostgreSQL)
+- **Git** - Version control
+- **GitHub** - Repository hosting
+
+## 📊 Stan Systemu
+
+```json
+{
+  "total_zawodnikow": 251,
+  "z_qr_kodami": 251,
+  "zameldowanych": 2,
+  "bez_qr_kodow": 0,
+  "procent_zameldowanych": 0.8,
+  "checkpoints": [
+    {"checkpoint_name": "check-in", "count": 2},
+    {"checkpoint_name": "finish", "count": 1}
+  ]
+}
+```
+
+## 🎯 Użytkowanie
+
+### 👥 Dla Organizatorów
+1. Otwórz **Panel Administratora** na komputerze
+2. Zarządzaj zawodnikami i wynikami
+3. Śledź postęp w czasie rzeczywistym
+4. Generuj drabinkę turniejową
+
+### 📱 Dla Sędziów (Mobile)
+1. Otwórz **QR Scanner** na telefonie/tablecie
+2. Wybierz funkcję:
+   - **Check-in** - meldowanie zawodników
+   - **Wyniki** - zapisywanie czasów
+   - **Weryfikuj** - sprawdzanie statusu
+3. Skanuj QR kody zawodników
+4. System automatycznie zapisuje dane
+
+### 🏃‍♂️ Dla Zawodników
+- Każdy zawodnik ma **unikalny QR kod**
+- Kod może być wydrukowany na numerze startowym
+- Skanowanie umożliwia szybkie działania bez ręcznego wpisywania danych
+
+## 🔄 API Endpoints
+
+### Zawodnicy
+- `GET /api/zawodnicy` - Lista wszystkich zawodników
+- `POST /api/zawodnicy` - Dodaj nowego zawodnika
+- `PUT /api/zawodnicy/{nr}` - Edytuj zawodnika
+- `DELETE /api/zawodnicy/{nr}` - Usuń zawodnika
+
+### Wyniki
+- `GET /api/wyniki` - Lista wszystkich wyników
+- `PUT /api/wyniki` - Aktualizuj wynik
+
+### Drabinka
+- `GET /api/drabinka` - Drabinka turniejowa (ćwierćfinały, półfinały, finał)
+
+### QR Kody
+- `POST /api/qr/check-in` - Zamelduj zawodnika
+- `POST /api/qr/scan-result` - Zapisz wynik przez QR
+- `POST /api/qr/verify-result` - Weryfikuj status zawodnika
+- `POST /api/qr/generate/{nr}` - Wygeneruj QR kod
+- `GET /api/qr/stats` - Statystyki QR kodów
+
+### Statystyki
+- `GET /api/statystyki` - Statystyki według kategorii/płci
+- `GET /api/kategorie` - Lista kategorii
+- `GET /api/kluby` - Lista klubów
+
+## 🚀 Deploy
+
+### Heroku (Produkcja)
+```bash
+# Clone repository
+git clone https://github.com/burza0/drabinka-turniejowa.git
+cd drabinka-turniejowa
+
+# Deploy to Heroku
+git push heroku master
+```
+
+### Lokalne uruchomienie
+
+#### Backend
 ```bash
 cd backend
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-# Lub ręcznie:
-# pip install flask flask-cors psycopg2-binary python-dotenv
-# Skonfiguruj .env z DATABASE_URL
-python3 api_server.py
-# Serwer: http://localhost:5000
+export DATABASE_URL="postgresql://..."
+python api_server.py
 ```
 
-#### Frontend (Vue.js + TypeScript)
+#### Frontend
 ```bash
 cd frontend
 npm install
-npm run dev
-# Aplikacja: http://localhost:5173 (lub 5174/5175)
+npm run build  # Produkcja
+npm run dev    # Development
 ```
 
-## 🔄 Workflow developmentu
-
-### Git workflow
+#### QR Scanner
 ```bash
-git add .
-git commit -m "feat: opis zmian"
-git push origin master        # Backup na GitHub
-git push heroku master       # Deployment na produkcję
+cd qr-scanner
+python3 -m http.server 8080
+# Lub serwowane przez backend na /qr-scanner
 ```
 
-### Development
+## 🔧 Konfiguracja
+
+### Zmienne środowiskowe (.env)
 ```bash
-# Backend (terminal 1)
-cd backend && source venv/bin/activate && python api_server.py
-
-# Frontend (terminal 2)  
-cd frontend && npm run dev
-
-# Otwórz: http://localhost:5173
+DATABASE_URL=postgresql://user:pass@host:port/database
+PORT=5000
+HOST=0.0.0.0
+FLASK_ENV=production
+FLASK_DEBUG=False
 ```
 
-## 🚀 Deployment
+### Baza danych (Supabase)
+- Automatyczne migracje przez `add_qr_columns.py`
+- Backup i restore wspierane
+- SSL połączenia
 
-System gotowy do wdrożenia na:
-- **Frontend**: Vercel, Netlify, GitHub Pages
-- **Backend**: Heroku, Railway, Render
-- **Database**: Supabase, PostgreSQL on cloud
+## 📱 QR Kody - Szczegóły
 
-### Produkcja - Heroku
-- **URL**: https://drabinka-turniejowa-skatecross-17be0c216c6f.herokuapp.com/
-- **Wersja**: v18 (najnowsza)
-- **Backend + Frontend**: Zintegrowane na jednej dyno
-- **Baza danych**: PostgreSQL na Heroku
+### Format
+```
+SKATECROSS_{nr_startowy}_{8_char_hash}
+```
+
+### Przykłady
+```
+SKATECROSS_1_A1B2C3D4    # Zawodnik nr 1
+SKATECROSS_2_BEB529B1    # Zawodnik nr 2 (Anna Nowak)
+SKATECROSS_150_F7E8D9C2  # Zawodnik nr 150
+```
+
+### Generowanie
+- Automatyczne przez `generate_qr_codes.py`
+- Unikalne hashe UUID4
+- Sprawdzanie duplikatów
+- Możliwość regeneracji
+
+### Workflow Skanowania
+1. **Skanowanie** → Rozpoznanie tekstu `SKATECROSS_X_HASH`
+2. **API Call** → `POST /api/qr/check-in` z kodem
+3. **Baza danych** → `SELECT * FROM zawodnicy WHERE qr_code = ?`
+4. **Odpowiedź** → Dane zawodnika + status operacji
+5. **UI Update** → Wyświetlenie rezultatu
+
+## 📈 Monitorowanie
+
+### Logi Heroku
+```bash
+heroku logs --tail --app drabinka-turniejowa-skatecross
+```
+
+### Metryki
+- Liczba skanów QR kodów
+- Czas odpowiedzi API
+- Użycie bazy danych
+- Błędy i wyjątki
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit changes (`git commit -m 'Add AmazingFeature'`)
+4. Push to branch (`git push origin feature/AmazingFeature`)
+5. Open Pull Request
+
+## 📜 Licencja
+
+Ten projekt jest licencjonowany na licencji MIT - szczegóły w pliku [LICENSE](LICENSE)
+
+## 👨‍💻 Autor
+
+**Mariusz Burzyński** - System SKATECROSS z QR kodami
 
 ---
 
-**Autor**: System zaprojektowany dla profesjonalnych turniejów SKATECROSS  
-**Tech Lead**: Vue.js 3 + TypeScript + Tailwind CSS + Flask  
-**Wersja**: 2024 v18 - Responsive Mobile-First Design  
-**Deployment**: Heroku Production Ready
+**🏆 System gotowy do zawodów SKATECROSS! Skanuj, zarządzaj, wygrywaj! 🚀**
