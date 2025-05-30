@@ -24,18 +24,22 @@ def generate_qr_image(qr_data):
     """Generuje obraz QR kodu jako base64"""
     qr = qrcode.QRCode(
         version=1,
-        error_correction=qrcode.constants.ERROR_CORRECT_L,
-        box_size=10,
-        border=4,
+        error_correction=qrcode.constants.ERROR_CORRECT_H,  # Zwiększona korekcja błędów
+        box_size=15,  # Większy rozmiar
+        border=8,     # Większa ramka
     )
     qr.add_data(qr_data)
     qr.make(fit=True)
     
+    # Generuj obraz z lepszym kontrastem
     img = qr.make_image(fill_color="black", back_color="white")
+    
+    # Zwiększ rozmiar obrazu dla lepszej czytelności
+    img = img.resize((400, 400), resample=0)
     
     # Konwertuj do base64
     buffer = BytesIO()
-    img.save(buffer, format='PNG')
+    img.save(buffer, format='PNG', quality=100)
     img_str = base64.b64encode(buffer.getvalue()).decode()
     
     return img_str
@@ -134,9 +138,74 @@ def show_qr_stats():
     except Exception as e:
         print(f"❌ Błąd podczas pobierania statystyk: {e}")
 
+def test_qr_code(qr_data):
+    """Testuje wygenerowany kod QR"""
+    try:
+        # Generuj obraz QR
+        img_str = generate_qr_image(qr_data)
+        
+        # Zapisz do pliku testowego
+        test_dir = "test_qr"
+        if not os.path.exists(test_dir):
+            os.makedirs(test_dir)
+            
+        # Zapisz jako HTML z podglądem
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Test QR Code</title>
+            <style>
+                body {{ font-family: Arial; text-align: center; padding: 20px; }}
+                .qr-container {{ 
+                    max-width: 400px; 
+                    margin: 0 auto; 
+                    padding: 20px;
+                    border: 1px solid #ccc;
+                    border-radius: 10px;
+                }}
+                .qr-code {{ margin: 20px 0; }}
+                .qr-text {{ 
+                    background: #f0f0f0;
+                    padding: 10px;
+                    border-radius: 5px;
+                    font-family: monospace;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="qr-container">
+                <h2>Test QR Code</h2>
+                <div class="qr-code">
+                    <img src="data:image/png;base64,{img_str}" width="300" height="300">
+                </div>
+                <div class="qr-text">
+                    {qr_data}
+                </div>
+                <p>Skopiuj ten kod i przetestuj w skanerze</p>
+            </div>
+        </body>
+        </html>
+        """
+        
+        with open(f"{test_dir}/test_{qr_data}.html", "w") as f:
+            f.write(html_content)
+            
+        print(f"✅ Wygenerowano testowy QR kod: {test_dir}/test_{qr_data}.html")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Błąd podczas testowania QR kodu: {e}")
+        return False
+
 if __name__ == "__main__":
     print("🏆 Generator QR kodów SKATECROSS")
     print("=" * 40)
+    
+    # Test wygenerowanego kodu
+    test_qr = "SKATECROSS_1_TEST123"
+    print("\n🧪 Testowanie generowania QR kodu...")
+    test_qr_code(test_qr)
     
     # Pokaż aktualne statystyki
     show_qr_stats()
