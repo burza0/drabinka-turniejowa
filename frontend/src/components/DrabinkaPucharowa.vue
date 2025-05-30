@@ -1,9 +1,12 @@
 <template>
   <div>
     <!-- Header -->
-    <div class="mb-6">
-      <h2 class="text-2xl font-bold text-gray-900">Drabinka Pucharowa SKATECROSS</h2>
-      <p class="mt-1 text-sm text-gray-600">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-4 sm:space-y-0">
+      <div class="flex items-center space-x-3">
+        <TrophyIcon class="h-8 w-8 text-yellow-600" />
+        <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Drabinka Pucharowa SKATECROSS</h2>
+      </div>
+      <p class="text-sm text-gray-600 dark:text-gray-400">
         System turniejowy z grupami 4-osobowymi - do ćwierćfinałów awansuje maksymalnie 16 najlepszych zawodników
       </p>
     </div>

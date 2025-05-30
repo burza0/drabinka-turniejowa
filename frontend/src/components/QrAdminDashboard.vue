@@ -3,10 +3,10 @@
     <!-- Header -->
     <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
       <div class="flex justify-between items-center mb-4">
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
-          <QrCodeIcon class="h-8 w-8 mr-3 text-indigo-600" />
-          QR Admin Dashboard
-        </h1>
+        <div class="flex items-center space-x-3">
+          <QrCodeIcon class="h-8 w-8 text-indigo-600" />
+          <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">QR Admin Dashboard</h2>
+        </div>
         <div class="flex space-x-2">
           <button
             @click="refreshData"

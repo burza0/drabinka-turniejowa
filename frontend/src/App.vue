@@ -115,6 +115,14 @@
     <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
       <!-- Lista Zawodników -->
       <div v-if="activeTab === 'zawodnicy'">
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-4 sm:space-y-0">
+          <div class="flex items-center space-x-3">
+            <ListBulletIcon class="h-8 w-8 text-blue-600" />
+            <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Lista zawodników</h2>
+          </div>
+        </div>
+        
         <!-- Stats Cards -->
         <div class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-6">
           <StatsCard 
@@ -147,10 +155,6 @@
         <!-- Table -->
         <div class="bg-white dark:bg-gray-800 shadow rounded-lg transition-colors duration-200">
           <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-            <div class="flex justify-between items-center mb-4">
-              <h3 class="text-lg font-medium text-gray-900 dark:text-white">Lista zawodników</h3>
-            </div>
-            
             <!-- Filtry -->
             <div class="space-y-4">
               <!-- Filtr Kluby -->
