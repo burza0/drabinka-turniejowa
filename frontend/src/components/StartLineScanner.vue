@@ -178,19 +178,44 @@
             <div>
               <p class="font-medium text-gray-900 dark:text-white">
                 #{{ zawodnik.nr_startowy }} {{ zawodnik.imie }} {{ zawodnik.nazwisko }}
+                <!-- Badge for source type -->
+                <span v-if="zawodnik.source_type === 'AKTYWNA_GRUPA'"
+                      class="ml-2 px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                  Aktywna grupa
+                </span>
+                <span v-else-if="zawodnik.source_type === 'SKANOWANY'"
+                      class="ml-2 px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                  Skanowany
+                </span>
+                <span v-else-if="zawodnik.source_type === 'AKTYWNA_GRUPA_I_SKANOWANY'"
+                      class="ml-2 px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                  Grupa + Skan
+                </span>
               </p>
-              <p class="text-sm text-gray-600 dark:text-gray-400">
-                {{ zawodnik.kategoria }} {{ zawodnik.plec === 'M' ? 'M' : 'K' }} • {{ zawodnik.klub || 'Brak klubu' }}
+              <p class="text-sm text-gray-500 dark:text-gray-400">{{ zawodnik.kategoria }} {{ zawodnik.plec }} - {{ zawodnik.klub }}</p>
+              <p v-if="zawodnik.ostatni_skan" class="text-xs text-gray-400 dark:text-gray-500">
+                Skan: {{ formatDate(zawodnik.ostatni_skan) }}
               </p>
             </div>
           </div>
-          <div class="text-right">
-            <p class="text-sm text-gray-500 dark:text-gray-400">
-              {{ formatTime(zawodnik.ostatni_skan) }}
-            </p>
-            <div v-if="zawodnik.czas_przejazdu_s" class="text-xs text-green-600 dark:text-green-400">
-              ✅ Ma wynik
-            </div>
+          
+          <div class="flex items-center space-x-2">
+            <!-- Status badge -->
+            <span v-if="zawodnik.czas_przejazdu_s" 
+                  class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+              {{ zawodnik.czas_przejazdu_s }}s
+            </span>
+            
+            <!-- Remove button - dla wszystkich zawodników w kolejce -->
+            <button
+              @click="removeFromQueue(zawodnik.nr_startowy, zawodnik.imie, zawodnik.nazwisko, zawodnik.source_type)"
+              :class="getRemoveButtonClass(zawodnik.source_type)"
+              :title="getRemoveButtonTitle(zawodnik.source_type)"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+              </svg>
+            </button>
           </div>
         </div>
       </div>
@@ -219,6 +244,7 @@ interface Zawodnik {
   checked_in: boolean
   ma_wynik: boolean
   status: string
+  source_type: string
 }
 
 interface VerificationResult {
@@ -239,6 +265,7 @@ interface QueueItem {
   ostatni_skan: string
   czas_przejazdu_s: number | null
   status: string
+  source_type: string
 }
 
 // State
@@ -376,6 +403,77 @@ const getIconComponent = (action: string) => {
     case 'OSTRZEZENIE': return ExclamationTriangleIcon
     case 'ODRZUC': return XCircleIcon
     default: return QrCodeIcon
+  }
+}
+
+const removeFromQueue = async (nr_startowy: number, imie: string, nazwisko: string, source_type: string) => {
+  // Różne komunikaty w zależności od typu zawodnika
+  let confirmMessage = ''
+  let warningMessage = ''
+  
+  if (source_type === 'AKTYWNA_GRUPA') {
+    confirmMessage = `Zawodnik #${nr_startowy} ${imie} ${nazwisko} jest z aktywnej grupy.\nUsunięcie go może być tymczasowe - pojawi się ponownie przy odświeżeniu.\nCzy kontynuować?`
+    warningMessage = 'Uwaga: Zawodnik z aktywnej grupy'
+  } else if (source_type === 'AKTYWNA_GRUPA_I_SKANOWANY') {
+    confirmMessage = `Czy na pewno chcesz usunąć zawodnika #${nr_startowy} ${imie} ${nazwisko} z kolejki?\nZostanie usunięty checkpoint skanu, ale zawodnik pozostanie w aktywnej grupie.`
+    warningMessage = 'Usunięcie checkpointu skanowania'
+  } else {
+    confirmMessage = `Czy na pewno chcesz usunąć zawodnika #${nr_startowy} ${imie} ${nazwisko} z kolejki startowej?`
+    warningMessage = 'Usunięcie z kolejki'
+  }
+  
+  // Potwierdzenie
+  if (!confirm(confirmMessage)) {
+    return
+  }
+  
+  try {
+    const response = await fetch(`/api/start-queue/remove/${nr_startowy}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    })
+    
+    if (response.ok) {
+      const data = await response.json()
+      
+      // Pokaż komunikat sukcesu
+      console.log(`✅ ${data.message}`)
+      // Tu można dodać toast notification
+      
+      // Odśwież kolejkę
+      await loadStartQueue()
+    } else {
+      const error = await response.json()
+      console.error('❌ Błąd podczas usuwania zawodnika:', error.message)
+      alert(`Błąd: ${error.message}`)
+    }
+  } catch (error) {
+    console.error('❌ Błąd sieci:', error)
+    alert('Błąd połączenia z serwerem')
+  }
+}
+
+const getRemoveButtonClass = (source_type: string) => {
+  const baseClass = 'p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors'
+  
+  if (source_type === 'AKTYWNA_GRUPA') {
+    return `${baseClass} text-orange-600 hover:text-orange-800 dark:text-orange-400 dark:hover:text-orange-200`
+  } else if (source_type === 'AKTYWNA_GRUPA_I_SKANOWANY') {
+    return `${baseClass} text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-200`
+  } else {
+    return `${baseClass} text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200`
+  }
+}
+
+const getRemoveButtonTitle = (source_type: string) => {
+  if (source_type === 'AKTYWNA_GRUPA') {
+    return 'Ukryj zawodnika z aktywnej grupy (można przywrócić)'
+  } else if (source_type === 'AKTYWNA_GRUPA_I_SKANOWANY') {
+    return 'Usuń checkpoint skanowania (zostanie w aktywnej grupie)'
+  } else {
+    return 'Usuń zawodnika z kolejki startowej'
   }
 }
 

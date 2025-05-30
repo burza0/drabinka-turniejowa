@@ -12,6 +12,14 @@ CORS(app)
 
 DB_URL = os.getenv("DATABASE_URL")
 
+# Cache aktywnej grupy
+aktywna_grupa_cache = {
+    "numer_grupy": None,
+    "kategoria": None,
+    "plec": None,
+    "nazwa": None
+}
+
 def get_all(query, params=None):
     conn = psycopg2.connect(DB_URL)
     cur = conn.cursor()
@@ -1207,145 +1215,160 @@ def grupy_startowe():
         print(f"Błąd w grupy-startowe: {e}")
         return jsonify({"error": str(e)}), 500
 
+@app.route("/api/grupa-aktywna", methods=['GET'])
+def get_grupa_aktywna():
+    """Pobierz aktywną grupę"""
+    try:
+        if aktywna_grupa_cache["numer_grupy"] is None:
+            return jsonify({"success": False, "message": "Brak aktywnej grupy"}), 404
+            
+        return jsonify({
+            "success": True,
+            "aktywna_grupa": aktywna_grupa_cache
+        }), 200
+        
+    except Exception as e:
+        print(f"Błąd w get-grupa-aktywna: {e}")
+        return jsonify({"error": str(e)}), 500
+
 @app.route("/api/grupa-aktywna", methods=['POST'])
 def set_grupa_aktywna():
     """Ustawienie aktywnej grupy startowej"""
     try:
         data = request.json
+        
+        # Sprawdź czy to żądanie czyszczenia
+        if data.get('clear'):
+            global aktywna_grupa_cache
+            aktywna_grupa_cache = {
+                "numer_grupy": None,
+                "kategoria": None,
+                "plec": None,
+                "nazwa": None
+            }
+            print("🧹 Wyczyszczono aktywną grupę")
+            return jsonify({
+                "success": True,
+                "message": "Wyczyszczono aktywną grupę"
+            }), 200
+        
         numer_grupy = data.get('numer_grupy')
         kategoria = data.get('kategoria')
         plec = data.get('plec')
+        nazwa = data.get('nazwa', f"Grupa {numer_grupy}: {kategoria} {plec}")
         
         if not all([numer_grupy, kategoria, plec]):
             return jsonify({"error": "Brak wymaganych danych"}), 400
         
-        # Tu można dodać logikę zapisywania aktywnej grupy do cache/bazy
-        # Na razie zwracamy potwierdzenie
+        # Zapisz do cache
+        aktywna_grupa_cache = {
+            "numer_grupy": numer_grupy,
+            "kategoria": kategoria,
+            "plec": plec,
+            "nazwa": nazwa
+        }
+        
+        # WAŻNE: Przy aktywacji grupy przywróć wszystkich zawodników z tej grupy
+        # Usuń checkpointy 'hidden-from-queue' dla zawodników z tej grupy
+        deleted_hidden = execute_query("""
+            DELETE FROM checkpoints 
+            WHERE checkpoint_name = 'hidden-from-queue'
+            AND nr_startowy IN (
+                SELECT nr_startowy FROM zawodnicy 
+                WHERE kategoria = %s AND plec = %s AND checked_in = TRUE
+            )
+        """, (kategoria, plec))
+        
+        if deleted_hidden > 0:
+            print(f"🔄 Przywrócono {deleted_hidden} ukrytych zawodników z grupy {nazwa}")
+        
+        print(f"✅ Ustawiono aktywną grupę: {nazwa}")
         
         return jsonify({
             "success": True,
             "message": f"Grupa {numer_grupy} ({kategoria} {plec}) ustawiona jako aktywna",
-            "aktywna_grupa": {
-                "numer": numer_grupy,
-                "kategoria": kategoria,
-                "plec": plec
-            }
+            "aktywna_grupa": aktywna_grupa_cache,
+            "przywrocono_ukrytych": deleted_hidden
         }), 200
         
     except Exception as e:
         print(f"Błąd w set-grupa-aktywna: {e}")
         return jsonify({"error": str(e)}), 500
 
-@app.route("/api/start-line-verify", methods=['POST'])
-def start_line_verify():
-    """Weryfikacja zawodnika na linii startu poprzez QR kod"""
-    try:
-        data = request.json
-        qr_code = data.get('qr_code')
-        expected_kategoria = data.get('kategoria')  # opcjonalne - aktywna grupa
-        expected_plec = data.get('plec')  # opcjonalne - aktywna grupa
-        
-        if not qr_code:
-            return jsonify({"error": "Brak QR kodu"}), 400
-        
-        # Znajdź zawodnika
-        zawodnik_data = get_all("""
-            SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
-                   z.checked_in, z.check_in_time,
-                   w.czas_przejazdu_s, w.status
-            FROM zawodnicy z
-            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
-            WHERE z.qr_code = %s
-        """, (qr_code,))
-        
-        if not zawodnik_data:
-            return jsonify({
-                "success": False,
-                "error": "Nie znaleziono zawodnika o tym QR kodzie",
-                "action": "ODRZUC"
-            }), 404
-        
-        zawodnik = zawodnik_data[0]
-        
-        # Sprawdzenia weryfikacyjne
-        issues = []
-        action = "AKCEPTUJ"
-        
-        # 1. Czy zameldowany?
-        if not zawodnik['checked_in']:
-            issues.append("❌ Zawodnik nie jest zameldowany")
-            action = "ODRZUC"
-        
-        # 2. Czy już ma wynik?
-        if zawodnik['czas_przejazdu_s'] is not None:
-            issues.append("⚠️ Zawodnik już ma zapisany wynik")
-            action = "OSTRZEZENIE"
-        
-        # 3. Czy pasuje do aktywnej grupy?
-        if expected_kategoria and zawodnik['kategoria'] != expected_kategoria:
-            issues.append(f"⚠️ Zawodnik z kategorii {zawodnik['kategoria']}, oczekiwano {expected_kategoria}")
-            action = "OSTRZEZENIE"
-            
-        if expected_plec and zawodnik['plec'] != expected_plec:
-            issues.append(f"⚠️ Zawodnik płci {zawodnik['plec']}, oczekiwano {expected_plec}")
-            action = "OSTRZEZENIE"
-        
-        # Zapisz checkpoint 'start-line' 
-        execute_query("""
-            INSERT INTO checkpoints (nr_startowy, checkpoint_name, qr_code, device_id)
-            VALUES (%s, %s, %s, %s)
-        """, (zawodnik['nr_startowy'], 'start-line-verify', qr_code, data.get('device_id', 'start-device')))
-        
-        return jsonify({
-            "success": True,
-            "action": action,  # AKCEPTUJ, OSTRZEZENIE, ODRZUC
-            "issues": issues,
-            "zawodnik": {
-                "nr_startowy": zawodnik['nr_startowy'],
-                "imie": zawodnik['imie'],
-                "nazwisko": zawodnik['nazwisko'],
-                "kategoria": zawodnik['kategoria'],
-                "plec": zawodnik['plec'],
-                "klub": zawodnik['klub'],
-                "checked_in": zawodnik['checked_in'],
-                "ma_wynik": zawodnik['czas_przejazdu_s'] is not None,
-                "status": zawodnik['status']
-            },
-            "komunikat": {
-                "AKCEPTUJ": f"✅ {zawodnik['imie']} {zawodnik['nazwisko']} - GOTOWY DO STARTU",
-                "OSTRZEZENIE": f"⚠️ {zawodnik['imie']} {zawodnik['nazwisko']} - SPRAWDŹ SZCZEGÓŁY",
-                "ODRZUC": f"❌ {zawodnik['imie']} {zawodnik['nazwisko']} - NIE MOŻE STARTOWAĆ"
-            }[action]
-        }), 200
-        
-    except Exception as e:
-        print(f"Błąd w start-line-verify: {e}")
-        return jsonify({"error": str(e)}), 500
-
 @app.route("/api/start-queue", methods=['GET'])
 def get_start_queue():
     """Pobierz kolejkę zawodników oczekujących na starcie"""
     try:
-        # Pobierz kolejkę startową (zawodnicy którzy byli skanowani na start line)
-        queue_data = get_all("""
+        queue_data = []
+        
+        # Pobierz zawodników skanowanych (start-line-verify) 
+        skanowani_zawodnicy = get_all("""
             SELECT DISTINCT
                 z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
                 c.timestamp as ostatni_skan,
                 w.czas_przejazdu_s,
-                w.status
+                w.status,
+                'SKANOWANY' as source_type
             FROM zawodnicy z
-            LEFT JOIN checkpoints c ON z.nr_startowy = c.nr_startowy 
+            JOIN checkpoints c ON z.nr_startowy = c.nr_startowy 
                 AND c.checkpoint_name = 'start-line-verify'
             LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
-            WHERE c.nr_startowy IS NOT NULL
-            ORDER BY c.timestamp DESC
-            LIMIT 20
+            ORDER BY c.timestamp ASC
         """)
+        
+        queue_data.extend(skanowani_zawodnicy)
+        
+        # Jeśli jest aktywna grupa, dodaj zawodników z tej grupy
+        if aktywna_grupa_cache["numer_grupy"] is not None:
+            grupa_zawodnicy = get_all("""
+                SELECT DISTINCT
+                    z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                    NULL as ostatni_skan,
+                    w.czas_przejazdu_s,
+                    w.status,
+                    'AKTYWNA_GRUPA' as source_type
+                FROM zawodnicy z
+                LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+                WHERE z.checked_in = TRUE 
+                AND z.kategoria = %s 
+                AND z.plec = %s
+                AND z.nr_startowy NOT IN (
+                    SELECT nr_startowy FROM checkpoints 
+                    WHERE checkpoint_name = 'start-line-verify'
+                )
+                AND z.nr_startowy NOT IN (
+                    SELECT nr_startowy FROM checkpoints 
+                    WHERE checkpoint_name = 'hidden-from-queue'
+                )
+                ORDER BY z.nr_startowy ASC
+            """, (aktywna_grupa_cache["kategoria"], aktywna_grupa_cache["plec"]))
+            
+            # Dodaj oznaczenie dla zawodników którzy są zarówno z aktywnej grupy jak i skanowani
+            for skanowany in skanowani_zawodnicy:
+                for grupa_zawodnik in grupa_zawodnicy[:]:  # Kopia listy do iteracji
+                    if skanowany['nr_startowy'] == grupa_zawodnik['nr_startowy']:
+                        skanowany['source_type'] = 'AKTYWNA_GRUPA_I_SKANOWANY'
+                        grupa_zawodnicy.remove(grupa_zawodnik)
+                        break
+            
+            queue_data.extend(grupa_zawodnicy)
+        
+        # Sortowanie: najpierw aktywna grupa, potem skanowani
+        def sort_key(item):
+            if item['source_type'] == 'AKTYWNA_GRUPA':
+                return (0, item['nr_startowy'])
+            elif item['source_type'] == 'AKTYWNA_GRUPA_I_SKANOWANY':
+                return (1, item['nr_startowy'])
+            else:  # SKANOWANY
+                return (2, item['ostatni_skan'] or '1970-01-01')
+        
+        queue_data.sort(key=sort_key)
         
         return jsonify({
             "success": True,
             "queue": queue_data,
-            "count": len(queue_data)
+            "count": len(queue_data),
+            "aktywna_grupa": aktywna_grupa_cache if aktywna_grupa_cache["numer_grupy"] is not None else None
         }), 200
         
     except Exception as e:
@@ -1398,6 +1421,137 @@ def get_manual_checkins():
             "success": False,
             "error": str(e)
         }), 500
+
+@app.route("/api/start-queue/clear", methods=['POST'])
+def clear_start_queue():
+    """Czyszczenie kolejki startowej - usuwa checkpointy start-line-verify"""
+    try:
+        data = request.json or {}
+        clear_type = data.get('type', 'all')  # 'all', 'scanned_only', 'outside_active_group'
+        
+        if clear_type == 'all':
+            # Usuń wszystkie checkpointy start-line-verify i hidden-from-queue
+            deleted_count1 = execute_query("""
+                DELETE FROM checkpoints 
+                WHERE checkpoint_name = 'start-line-verify'
+            """)
+            deleted_count2 = execute_query("""
+                DELETE FROM checkpoints 
+                WHERE checkpoint_name = 'hidden-from-queue'
+            """)
+            total_deleted = deleted_count1 + deleted_count2
+            message = f"Wyczyszczono całą kolejkę startową ({total_deleted} wpisów: {deleted_count1} skanów + {deleted_count2} ukrytych)"
+            
+        elif clear_type == 'scanned_only':
+            # Usuń tylko checkpointy start-line-verify (zostaw zawodników z aktywnej grupy)
+            deleted_count = execute_query("""
+                DELETE FROM checkpoints 
+                WHERE checkpoint_name = 'start-line-verify'
+            """)
+            message = f"Usunięto tylko zeskanowanych zawodników ({deleted_count} wpisów)"
+            
+        elif clear_type == 'outside_active_group':
+            # Usuń zawodników spoza aktywnej grupy
+            if not aktywna_grupa_cache or aktywna_grupa_cache["numer_grupy"] is None:
+                return jsonify({"success": False, "message": "Brak aktywnej grupy"}), 400
+                
+            # Usuń checkpointy start-line-verify dla zawodników spoza aktywnej grupy
+            deleted_count = execute_query("""
+                DELETE FROM checkpoints 
+                WHERE checkpoint_name = 'start-line-verify'
+                AND nr_startowy NOT IN (
+                    SELECT nr_startowy FROM zawodnicy 
+                    WHERE kategoria = %s AND plec = %s AND checked_in = TRUE
+                )
+            """, (aktywna_grupa_cache["kategoria"], aktywna_grupa_cache["plec"]))
+            message = f"Usunięto zawodników spoza aktywnej grupy ({deleted_count} wpisów)"
+        else:
+            return jsonify({"success": False, "message": "Nieprawidłowy typ czyszczenia"}), 400
+        
+        return jsonify({
+            "success": True,
+            "message": message,
+            "deleted_count": total_deleted if clear_type == 'all' else deleted_count,
+            "clear_type": clear_type
+        }), 200
+        
+    except Exception as e:
+        print(f"Błąd w clear-start-queue: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route("/api/start-queue/remove/<int:nr_startowy>", methods=['DELETE'])
+def remove_from_start_queue(nr_startowy):
+    """Usuwa pojedynczego zawodnika z kolejki startowej"""
+    try:
+        # Sprawdź czy zawodnik ma checkpoint start-line-verify (skanowany)
+        existing_checkpoint = get_all("""
+            SELECT id FROM checkpoints 
+            WHERE checkpoint_name = 'start-line-verify' AND nr_startowy = %s
+        """, (nr_startowy,))
+        
+        if existing_checkpoint:
+            # Zawodnik skanowany - usuń checkpoint
+            deleted_count = execute_query("""
+                DELETE FROM checkpoints 
+                WHERE checkpoint_name = 'start-line-verify' AND nr_startowy = %s
+            """, (nr_startowy,))
+            
+            if deleted_count > 0:
+                # Pobierz dane zawodnika dla logów
+                zawodnik = get_one("""
+                    SELECT imie, nazwisko FROM zawodnicy WHERE nr_startowy = %s
+                """, (nr_startowy,))
+                
+                if zawodnik:
+                    print(f"✅ Usunięto checkpoint skanu: {zawodnik['imie']} {zawodnik['nazwisko']} (#{nr_startowy})")
+                    return jsonify({
+                        "success": True,
+                        "message": f"Usunięto checkpoint skanu zawodnika #{nr_startowy}",
+                        "type": "skanowany"
+                    }), 200
+                else:
+                    return jsonify({"success": False, "message": "Nie znaleziono zawodnika"}), 404
+            else:
+                return jsonify({"success": False, "message": "Checkpoint nie został usunięty"}), 404
+        else:
+            # Zawodnik z aktywnej grupy - dodaj checkpoint "hidden-from-queue"
+            # Sprawdź czy już nie jest ukryty
+            existing_hidden = get_all("""
+                SELECT id FROM checkpoints 
+                WHERE checkpoint_name = 'hidden-from-queue' AND nr_startowy = %s
+            """, (nr_startowy,))
+            
+            if existing_hidden:
+                return jsonify({
+                    "success": False, 
+                    "message": f"Zawodnik #{nr_startowy} jest już ukryty"
+                }), 400
+                
+            # Sprawdź czy zawodnik istnieje
+            zawodnik = get_one("""
+                SELECT imie, nazwisko FROM zawodnicy WHERE nr_startowy = %s
+            """, (nr_startowy,))
+            
+            if not zawodnik:
+                return jsonify({"success": False, "message": "Nie znaleziono zawodnika"}), 404
+            
+            # Dodaj checkpoint ukrycia
+            execute_query("""
+                INSERT INTO checkpoints (nr_startowy, checkpoint_name, timestamp) 
+                VALUES (%s, 'hidden-from-queue', NOW())
+            """, (nr_startowy,))
+            
+            print(f"✅ Ukryto zawodnika z aktywnej grupy: {zawodnik['imie']} {zawodnik['nazwisko']} (#{nr_startowy})")
+            
+            return jsonify({
+                "success": True,
+                "message": f"Ukryto zawodnika #{nr_startowy} z kolejki (można przywrócić poprzez aktywację grupy)",
+                "type": "ukryty"
+            }), 200
+            
+    except Exception as e:
+        print(f"Błąd w remove-from-start-queue: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
