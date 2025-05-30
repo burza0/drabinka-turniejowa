@@ -89,7 +89,7 @@ def wyniki():
 @app.route("/api/zawodnicy")
 def zawodnicy():
     rows = get_all("""
-        SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+        SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub, z.qr_code,
                w.czas_przejazdu_s, w.status
         FROM zawodnicy z
         LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
@@ -302,15 +302,15 @@ def drabinka():
                     # Za mało zawodników do drabinki
                     drabinka_data[kategoria][plec] = {
                         "info": f"Za mało zawodników z czasami ({len(zawodnicy_z_czasami)}/4) do utworzenia drabinki",
-            "statystyki": {
-                "łącznie_zawodników": len(zawodnicy_list),
+                        "statystyki": {
+                            "łącznie_zawodników": len(zawodnicy_list),
                             "z_czasami": len(zawodnicy_z_czasami),
                             "w_ćwierćfinałach": 0,
-                "grup_ćwierćfinały": 0,
+                            "grup_ćwierćfinały": 0,
                             "grup_półfinały": 0,
-                "grup_finał": 0
-            }
-        }
+                            "grup_finał": 0
+                        }
+                    }
                     continue
                 
                 # Weź maksymalnie 16 najlepszych (najszybszych)
@@ -350,8 +350,8 @@ def drabinka():
                             "grupa": f"P{len(grupy_półfinały) + 1}",
                             "awansują": min(2, len(grupa)),
                             "zawodnicy": grupa
-        })
-        
+                        })
+                
                 # Wygeneruj finał
                 finałowcy = []
                 for grupa in grupy_półfinały:
@@ -725,6 +725,343 @@ def frontend_static(filename):
     except FileNotFoundError:
         # Dla Vue Router - zwróć index.html dla nieznanych ścieżek
         return send_from_directory(frontend_path, 'index.html')
+
+@app.route("/api/qr/dashboard")
+def qr_dashboard():
+    """Endpoint dla QR Admin Dashboard - kompleksowe statystyki"""
+    try:
+        # Podstawowe statystyki
+        basic_stats = get_all("""
+            SELECT 
+                COUNT(*) as total_zawodnikow,
+                COUNT(CASE WHEN qr_code IS NOT NULL THEN 1 END) as z_qr_kodami,
+                COUNT(CASE WHEN checked_in = TRUE THEN 1 END) as zameldowanych,
+                COUNT(CASE WHEN qr_code IS NULL THEN 1 END) as bez_qr_kodow
+            FROM zawodnicy
+        """)[0]
+        
+        # Statystyki według kategorii
+        category_stats = get_all("""
+            SELECT 
+                kategoria,
+                COUNT(*) as total,
+                COUNT(CASE WHEN checked_in = TRUE THEN 1 END) as zameldowanych,
+                COUNT(CASE WHEN w.status = 'FINISHED' THEN 1 END) as z_wynikami
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            GROUP BY kategoria
+            ORDER BY kategoria
+        """)
+        
+        # Ostatnie checkpointy
+        recent_checkpoints = get_all("""
+            SELECT 
+                c.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                c.checkpoint_name,
+                c.timestamp,
+                c.device_id
+            FROM checkpoints c
+            JOIN zawodnicy z ON c.nr_startowy = z.nr_startowy
+            ORDER BY c.timestamp DESC
+            LIMIT 20
+        """)
+        
+        # Aktywność urządzeń (ostatnie 24h)
+        device_activity = get_all("""
+            SELECT 
+                device_id,
+                COUNT(*) as total_scans,
+                MAX(timestamp) as last_activity,
+                COUNT(CASE WHEN checkpoint_name = 'check-in' THEN 1 END) as check_ins,
+                COUNT(CASE WHEN checkpoint_name = 'finish' THEN 1 END) as results
+            FROM checkpoints
+            WHERE timestamp >= NOW() - INTERVAL '24 hours'
+            GROUP BY device_id
+            ORDER BY last_activity DESC
+        """)
+        
+        # Postęp zawodów według godzin (dzisiaj)
+        hourly_progress = get_all("""
+            SELECT 
+                DATE_TRUNC('hour', timestamp) as hour,
+                COUNT(*) as scans,
+                COUNT(CASE WHEN checkpoint_name = 'check-in' THEN 1 END) as check_ins,
+                COUNT(CASE WHEN checkpoint_name = 'finish' THEN 1 END) as results
+            FROM checkpoints
+            WHERE timestamp >= CURRENT_DATE
+            GROUP BY DATE_TRUNC('hour', timestamp)
+            ORDER BY hour
+        """)
+        
+        # Problematyczne sytuacje
+        issues = []
+        
+        # Zawodnicy zameldowani ale bez wyników (po 2h od check-in)
+        no_results = get_all("""
+            SELECT 
+                z.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                z.check_in_time
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE z.checked_in = TRUE 
+            AND w.status IS NULL
+            AND z.check_in_time < NOW() - INTERVAL '2 hours'
+            LIMIT 10
+        """)
+        
+        if no_results:
+            issues.append({
+                "type": "no_results",
+                "title": "Zawodnicy bez wyników (>2h od check-in)",
+                "count": len(no_results),
+                "details": no_results
+            })
+        
+        # Duplikaty QR kodów
+        duplicate_qr = get_all("""
+            SELECT qr_code, COUNT(*) as count
+            FROM zawodnicy
+            WHERE qr_code IS NOT NULL
+            GROUP BY qr_code
+            HAVING COUNT(*) > 1
+        """)
+        
+        if duplicate_qr:
+            issues.append({
+                "type": "duplicate_qr",
+                "title": "Duplikaty QR kodów",
+                "count": len(duplicate_qr),
+                "details": duplicate_qr
+            })
+        
+        return jsonify({
+            "success": True,
+            "basic_stats": basic_stats,
+            "category_stats": category_stats,
+            "recent_checkpoints": recent_checkpoints,
+            "device_activity": device_activity,
+            "hourly_progress": hourly_progress,
+            "issues": issues,
+            "timestamp": __import__('datetime').datetime.now().isoformat()
+        }), 200
+        
+    except Exception as e:
+        print(f"Błąd w QR dashboard: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/qr/live-feed")
+def qr_live_feed():
+    """Endpoint dla live feed ostatnich aktywności QR"""
+    try:
+        # Ostatnie 50 skanów
+        live_feed = get_all("""
+            SELECT 
+                c.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                z.plec,
+                c.checkpoint_name,
+                c.timestamp,
+                c.device_id,
+                w.czas_przejazdu_s,
+                w.status
+            FROM checkpoints c
+            JOIN zawodnicy z ON c.nr_startowy = z.nr_startowy
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            ORDER BY c.timestamp DESC
+            LIMIT 50
+        """)
+        
+        return jsonify({
+            "success": True,
+            "feed": live_feed,
+            "timestamp": __import__('datetime').datetime.now().isoformat()
+        }), 200
+        
+    except Exception as e:
+        print(f"Błąd w live feed: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/qr/devices")
+def qr_devices():
+    """Endpoint listujący aktywne urządzenia skanujące"""
+    try:
+        devices = get_all("""
+            SELECT 
+                device_id,
+                COUNT(*) as total_scans,
+                MIN(timestamp) as first_scan,
+                MAX(timestamp) as last_scan,
+                COUNT(DISTINCT nr_startowy) as unique_zawodnicy,
+                COUNT(CASE WHEN checkpoint_name = 'check-in' THEN 1 END) as check_ins,
+                COUNT(CASE WHEN checkpoint_name = 'finish' THEN 1 END) as results,
+                COUNT(CASE WHEN checkpoint_name = 'verify' THEN 1 END) as verifications
+            FROM checkpoints
+            GROUP BY device_id
+            ORDER BY last_scan DESC
+        """)
+        
+        return jsonify({
+            "success": True,
+            "devices": devices,
+            "timestamp": __import__('datetime').datetime.now().isoformat()
+        }), 200
+        
+    except Exception as e:
+        print(f"Błąd w devices: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/qr/export")
+def qr_export():
+    """Endpoint do eksportu danych QR do CSV"""
+    try:
+        import csv
+        import io
+        
+        # Eksport wszystkich checkpointów
+        checkpoints = get_all("""
+            SELECT 
+                c.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                z.plec,
+                z.klub,
+                c.checkpoint_name,
+                c.timestamp,
+                c.device_id,
+                c.qr_code
+            FROM checkpoints c
+            JOIN zawodnicy z ON c.nr_startowy = z.nr_startowy
+            ORDER BY c.timestamp DESC
+        """)
+        
+        # Tworzenie CSV
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Nagłówki
+        writer.writerow([
+            'Nr', 'Imię', 'Nazwisko', 'Kategoria', 'Płeć', 'Klub',
+            'Checkpoint', 'Czas skanu', 'Urządzenie', 'QR Kod'
+        ])
+        
+        # Dane
+        for checkpoint in checkpoints:
+            writer.writerow([
+                checkpoint['nr_startowy'],
+                checkpoint['imie'],
+                checkpoint['nazwisko'],
+                checkpoint['kategoria'],
+                checkpoint['plec'],
+                checkpoint['klub'] or '',
+                checkpoint['checkpoint_name'],
+                checkpoint['timestamp'].isoformat() if checkpoint['timestamp'] else '',
+                checkpoint['device_id'] or '',
+                checkpoint['qr_code'] or ''
+            ])
+        
+        # Zwróć jako plik CSV
+        output.seek(0)
+        
+        from flask import Response
+        return Response(
+            output.getvalue(),
+            mimetype='text/csv',
+            headers={
+                'Content-Disposition': f'attachment; filename=qr_checkpoints_{__import__("datetime").datetime.now().strftime("%Y%m%d_%H%M")}.csv'
+            }
+        )
+        
+    except Exception as e:
+        print(f"Błąd w export: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/qr/generate-bulk", methods=['POST'])
+def qr_generate_bulk():
+    """Endpoint do grupowego generowania QR kodów dla wybranych zawodników"""
+    try:
+        import qrcode
+        import uuid
+        import base64
+        from io import BytesIO
+        
+        data = request.json
+        zawodnicy_ids = data.get('zawodnicy_ids', [])
+        
+        if not zawodnicy_ids:
+            return jsonify({"error": "Brak wybranych zawodników"}), 400
+        
+        # Znajdź zawodników
+        placeholders = ','.join(['%s'] * len(zawodnicy_ids))
+        zawodnicy_data = get_all(f"""
+            SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub, qr_code
+            FROM zawodnicy 
+            WHERE nr_startowy IN ({placeholders})
+            ORDER BY nr_startowy
+        """, zawodnicy_ids)
+        
+        if not zawodnicy_data:
+            return jsonify({"error": "Nie znaleziono zawodników"}), 404
+        
+        results = []
+        
+        for zawodnik in zawodnicy_data:
+            nr_startowy = zawodnik['nr_startowy']
+            
+            # Sprawdź czy już ma QR kod
+            if zawodnik['qr_code']:
+                qr_data = zawodnik['qr_code']
+            else:
+                # Wygeneruj nowy QR kod
+                unique_hash = uuid.uuid4().hex[:8].upper()
+                qr_data = f"SKATECROSS_{nr_startowy}_{unique_hash}"
+                
+                # Zapisz do bazy
+                execute_query("""
+                    UPDATE zawodnicy SET qr_code = %s WHERE nr_startowy = %s
+                """, (qr_data, nr_startowy))
+                zawodnik['qr_code'] = qr_data
+            
+            # Wygeneruj obraz QR kodu
+            qr = qrcode.QRCode(
+                version=1,
+                error_correction=qrcode.constants.ERROR_CORRECT_L,
+                box_size=8,
+                border=2,
+            )
+            qr.add_data(qr_data)
+            qr.make(fit=True)
+            
+            img = qr.make_image(fill_color="black", back_color="white")
+            
+            # Konwertuj do base64
+            buffer = BytesIO()
+            img.save(buffer, format='PNG')
+            img_base64 = base64.b64encode(buffer.getvalue()).decode()
+            
+            results.append({
+                "zawodnik": zawodnik,
+                "qr_code": qr_data,
+                "qr_image": f"data:image/png;base64,{img_base64}"
+            })
+        
+        return jsonify({
+            "success": True,
+            "count": len(results),
+            "qr_codes": results
+        }), 200
+        
+    except Exception as e:
+        print(f"Błąd w bulk generate QR: {e}")
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

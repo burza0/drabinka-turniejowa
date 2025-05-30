@@ -94,7 +94,7 @@
       <div class="border-b border-gray-200 dark:border-gray-700">
         <nav class="-mb-px flex flex-wrap gap-x-4 gap-y-2 sm:space-x-8 sm:gap-y-0" aria-label="Tabs">
           <button
-            v-for="tab in tabs"
+            v-for="tab in filteredTabs"
             :key="tab.id"
             @click="activeTab = tab.id"
             :class="[
@@ -372,8 +372,18 @@
       </div>
 
       <!-- Rankingi -->
-      <div v-if="activeTab === 'rankingi'">
+      <div v-if="activeTab === 'ranking'">
         <Rankingi />
+      </div>
+
+      <!-- QR Admin Dashboard -->
+      <div v-if="activeTab === 'qr-dashboard'">
+        <QrAdminDashboard />
+      </div>
+
+      <!-- QR Print -->
+      <div v-if="activeTab === 'qr-print'">
+        <QrPrint />
       </div>
     </main>
 
@@ -405,7 +415,16 @@ import {
   ListBulletIcon,
   PencilIcon,
   TrashIcon,
-  PlusIcon
+  PlusIcon,
+  QrCodeIcon,
+  ArrowPathIcon,
+  ArrowDownTrayIcon,
+  DevicePhoneMobileIcon,
+  ExclamationTriangleIcon,
+  WrenchScrewdriverIcon,
+  DocumentTextIcon,
+  UserGroupIcon,
+  PrinterIcon
 } from '@heroicons/vue/24/outline'
 import StatsCard from './components/StatsCard.vue'
 import StatusBadge from './components/StatusBadge.vue'
@@ -413,6 +432,8 @@ import ZawodnikCard from './components/ZawodnikCard.vue'
 import DrabinkaPucharowa from './components/DrabinkaPucharowa.vue'
 import EditZawodnikModal from './components/EditZawodnikModal.vue'
 import Rankingi from './components/Rankingi.vue'
+import QrAdminDashboard from './components/QrAdminDashboard.vue'
+import QrPrint from './components/QrPrint.vue'
 
 // Types
 interface Zawodnik {
@@ -453,21 +474,11 @@ const filters = ref({
 
 // Tabs configuration
 const tabs = [
-  { 
-    id: 'zawodnicy', 
-    name: 'Lista zawodników', 
-    icon: ListBulletIcon 
-  },
-  { 
-    id: 'drabinka', 
-    name: 'Drabinka pucharowa', 
-    icon: TrophyIcon 
-  },
-  { 
-    id: 'rankingi', 
-    name: 'Rankingi', 
-    icon: ChartBarIcon 
-  }
+  { id: 'zawodnicy', name: 'Lista zawodników', icon: ListBulletIcon },
+  { id: 'drabinka', name: 'Drabinka pucharowa', icon: TrophyIcon },
+  { id: 'ranking', name: 'Rankingi', icon: ChartBarIcon },
+  { id: 'qr-print', name: 'Drukowanie QR', icon: PrinterIcon, adminOnly: true },
+  { id: 'qr-dashboard', name: 'QR Admin Dashboard', icon: QrCodeIcon, adminOnly: true }
 ]
 
 // Computed
@@ -536,6 +547,10 @@ const uniqueKluby = computed(() => {
 
 const uniqueKategorie = computed(() => {
   return [...new Set(zawodnicy.value.map(z => z.kategoria))]
+})
+
+const filteredTabs = computed(() => {
+  return tabs.filter(tab => !tab.adminOnly || isAdmin.value)
 })
 
 // Methods
