@@ -480,4 +480,7 @@ if __name__ == '__main__':
         print(f"📊 Connection pool: {connection_pool.minconn}-{connection_pool.maxconn} połączeń")
     else:
         print("⚠️  Connection pool: fallback mode")
-    app.run(debug=False, host='0.0.0.0', port=5000) 
+    
+    # Użyj zmiennej PORT dla Heroku
+    port = int(os.environ.get("PORT", 5000))
+    app.run(debug=False, host='0.0.0.0', port=port) 
