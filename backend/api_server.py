@@ -33,6 +33,24 @@ def get_all(query, params=None):
     conn.close()
     return [dict(zip(columns, row)) for row in rows]
 
+def get_one(query, params=None):
+    """Pobiera pojedynczy rekord z bazy danych"""
+    conn = psycopg2.connect(DB_URL)
+    cur = conn.cursor()
+    if params:
+        cur.execute(query, params)
+    else:
+        cur.execute(query)
+    row = cur.fetchone()
+    if row:
+        columns = [desc[0] for desc in cur.description]
+        result = dict(zip(columns, row))
+    else:
+        result = None
+    cur.close()
+    conn.close()
+    return result
+
 def execute_query(query, params=None):
     """Wykonuje zapytanie INSERT/UPDATE/DELETE i zwraca liczbę zmienionych wierszy"""
     conn = psycopg2.connect(DB_URL)
