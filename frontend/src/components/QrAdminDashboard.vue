@@ -314,11 +314,226 @@
         </button>
       </div>
     </div>
+
+    <!-- Ręczne zameldowanie -->
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+      <h2 class="text-lg font-medium text-gray-900 dark:text-white mb-4 flex items-center">
+        <HandRaisedIcon class="h-5 w-5 mr-2 text-orange-500" />
+        Ręczne zameldowanie
+        <span class="ml-2 text-xs bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 px-2 py-1 rounded-full">
+          BACKUP
+        </span>
+      </h2>
+      
+      <div class="bg-orange-50 dark:bg-orange-900/20 border-l-4 border-orange-400 p-4 mb-6">
+        <div class="flex">
+          <ExclamationTriangleIcon class="h-5 w-5 text-orange-400" />
+          <div class="ml-3">
+            <p class="text-sm text-orange-700 dark:text-orange-300">
+              <strong>Uwaga:</strong> Używaj tylko gdy skaner QR nie działa lub w sytuacjach awaryjnych. 
+              Każde ręczne zameldowanie jest rejestrowane z identyfikatorem urządzenia "manual-admin".
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Formularz zameldowania -->
+        <div class="space-y-4">
+          <h3 class="text-md font-medium text-gray-900 dark:text-white">Zamelduj zawodnika</h3>
+          
+          <div>
+            <label for="nr_startowy" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Numer startowy
+            </label>
+            <input
+              id="nr_startowy"
+              v-model="manualCheckInForm.nr_startowy"
+              type="number"
+              min="1"
+              :disabled="manualCheckInLoading"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+              placeholder="Wprowadź numer startowy..."
+            />
+          </div>
+
+          <div>
+            <label for="powod" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Powód ręcznego zameldowania
+            </label>
+            <select
+              id="powod"
+              v-model="manualCheckInForm.powod"
+              :disabled="manualCheckInLoading"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+            >
+              <option value="">Wybierz powód...</option>
+              <option value="awaria_skanera">Awaria skanera QR</option>
+              <option value="brak_kodu">Brak/uszkodzony kod QR</option>
+              <option value="problem_techniczny">Problem techniczny</option>
+              <option value="decyzja_organizatora">Decyzja organizatora</option>
+              <option value="inne">Inne</option>
+            </select>
+          </div>
+
+          <div v-if="manualCheckInForm.powod === 'inne'">
+            <label for="opis" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Opis szczegółowy
+            </label>
+            <textarea
+              id="opis"
+              v-model="manualCheckInForm.opis"
+              rows="2"
+              :disabled="manualCheckInLoading"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+              placeholder="Opisz powód ręcznego zameldowania..."
+            />
+          </div>
+
+          <button
+            @click="performManualCheckIn"
+            :disabled="!canPerformManualCheckIn || manualCheckInLoading"
+            class="w-full px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+          >
+            <CheckCircleIcon v-if="!manualCheckInLoading" class="h-4 w-4 mr-2" />
+            <ArrowPathIcon v-if="manualCheckInLoading" class="h-4 w-4 mr-2 animate-spin" />
+            {{ manualCheckInLoading ? 'Meldowanie...' : 'Zamelduj zawodnika' }}
+          </button>
+        </div>
+
+        <!-- Podgląd zawodnika -->
+        <div class="space-y-4">
+          <h3 class="text-md font-medium text-gray-900 dark:text-white">Podgląd zawodnika</h3>
+          
+          <div v-if="previewZawodnik" class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+            <div class="flex items-center space-x-4 mb-3">
+              <div class="w-12 h-12 bg-indigo-100 dark:bg-indigo-900 rounded-full flex items-center justify-center">
+                <span class="text-lg font-bold text-indigo-600 dark:text-indigo-400">
+                  {{ previewZawodnik.nr_startowy }}
+                </span>
+              </div>
+              <div>
+                <div class="text-lg font-medium text-gray-900 dark:text-white">
+                  {{ previewZawodnik.imie }} {{ previewZawodnik.nazwisko }}
+                </div>
+                <div class="text-sm text-gray-500 dark:text-gray-400">
+                  {{ previewZawodnik.kategoria }} • {{ previewZawodnik.plec === 'M' ? 'Mężczyzna' : 'Kobieta' }}
+                </div>
+              </div>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <span class="text-gray-500 dark:text-gray-400">Klub:</span>
+                <div class="font-medium text-gray-900 dark:text-white">{{ previewZawodnik.klub || 'Brak danych' }}</div>
+              </div>
+              <div>
+                <span class="text-gray-500 dark:text-gray-400">Status:</span>
+                <div class="flex items-center mt-1">
+                  <span v-if="previewZawodnik.checked_in" class="inline-flex items-center px-2 py-1 text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded-full">
+                    <CheckCircleIcon class="h-3 w-3 mr-1" />
+                    Zameldowany
+                  </span>
+                  <span v-else class="inline-flex items-center px-2 py-1 text-xs bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 rounded-full">
+                    <XCircleIcon class="h-3 w-3 mr-1" />
+                    Nie zameldowany
+                  </span>
+                </div>
+              </div>
+              <div>
+                <span class="text-gray-500 dark:text-gray-400">QR kod:</span>
+                <div class="font-medium text-gray-900 dark:text-white">
+                  {{ previewZawodnik.qr_code ? 'Dostępny' : 'Brak' }}
+                </div>
+              </div>
+              <div>
+                <span class="text-gray-500 dark:text-gray-400">Wynik:</span>
+                <div class="font-medium text-gray-900 dark:text-white">
+                  {{ previewZawodnik.ma_wynik ? 'Tak' : 'Nie' }}
+                </div>
+              </div>
+            </div>
+
+            <div v-if="previewZawodnik.checked_in && previewZawodnik.check_in_time" class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
+              <span class="text-xs text-gray-500 dark:text-gray-400">
+                Zameldowany: {{ formatTime(previewZawodnik.check_in_time) }}
+              </span>
+            </div>
+          </div>
+
+          <div v-else-if="manualCheckInForm.nr_startowy && !previewLoading" class="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
+            <div class="flex">
+              <XCircleIcon class="h-5 w-5 text-red-400" />
+              <div class="ml-3">
+                <h3 class="text-sm font-medium text-red-800 dark:text-red-200">
+                  Zawodnik nie znaleziony
+                </h3>
+                <p class="text-sm text-red-700 dark:text-red-300 mt-1">
+                  Nie znaleziono zawodnika z numerem startowym {{ manualCheckInForm.nr_startowy }}.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div v-else-if="previewLoading" class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+            <div class="animate-pulse">
+              <div class="flex items-center space-x-4">
+                <div class="w-12 h-12 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
+                <div class="space-y-2">
+                  <div class="h-4 bg-gray-300 dark:bg-gray-600 rounded w-32"></div>
+                  <div class="h-3 bg-gray-300 dark:bg-gray-600 rounded w-24"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div v-else class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg text-center">
+            <UserIcon class="h-12 w-12 mx-auto text-gray-400 mb-2" />
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+              Wprowadź numer startowy, aby zobaczyć podgląd zawodnika
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Historia ręcznych zameldowań -->
+      <div v-if="manualCheckIns.length > 0" class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+        <h3 class="text-md font-medium text-gray-900 dark:text-white mb-4">
+          Ostatnie ręczne zameldowania ({{ manualCheckIns.length }})
+        </h3>
+        <div class="space-y-2 max-h-40 overflow-y-auto">
+          <div
+            v-for="checkIn in manualCheckIns.slice(0, 5)"
+            :key="`manual-${checkIn.nr_startowy}-${checkIn.timestamp}`"
+            class="flex items-center justify-between p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg"
+          >
+            <div class="flex items-center space-x-3">
+              <div class="w-8 h-8 bg-orange-100 dark:bg-orange-900 rounded-full flex items-center justify-center">
+                <span class="text-sm font-medium text-orange-600 dark:text-orange-400">
+                  {{ checkIn.nr_startowy }}
+                </span>
+              </div>
+              <div>
+                <div class="text-sm font-medium text-gray-900 dark:text-white">
+                  {{ checkIn.imie }} {{ checkIn.nazwisko }}
+                </div>
+                <div class="text-xs text-gray-500 dark:text-gray-400">
+                  {{ formatCheckInReason(checkIn.powod) }}
+                </div>
+              </div>
+            </div>
+            <div class="text-xs text-gray-500 dark:text-gray-400">
+              {{ formatTime(checkIn.timestamp) }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import axios from 'axios'
 import {
   QrCodeIcon,
@@ -329,7 +544,11 @@ import {
   ChartBarIcon,
   ExclamationTriangleIcon,
   WrenchScrewdriverIcon,
-  DocumentTextIcon
+  DocumentTextIcon,
+  HandRaisedIcon,
+  XCircleIcon,
+  UserIcon,
+  CheckCircleIcon
 } from '@heroicons/vue/24/outline'
 
 // Types
@@ -381,6 +600,27 @@ interface Issue {
   details: any[]
 }
 
+interface ManualCheckInForm {
+  nr_startowy: number
+  powod: string
+  opis: string
+}
+
+interface ManualCheckIn {
+  nr_startowy: number
+  imie: string
+  nazwisko: string
+  kategoria: string
+  checked_in: boolean
+  check_in_time: string
+  qr_code: boolean
+  ma_wynik: boolean
+  klub: string
+  plec: string
+  powod?: string
+  timestamp?: string
+}
+
 // Reactive state
 const loading = ref(false)
 const basicStats = ref<BasicStats>({
@@ -395,14 +635,46 @@ const deviceActivity = ref<DeviceActivity[]>([])
 const categoryStats = ref<CategoryStats[]>([])
 const hourlyProgress = ref<HourlyProgress[]>([])
 const issues = ref<Issue[]>([])
+const manualCheckInForm = ref<ManualCheckInForm>({
+  nr_startowy: 0,
+  powod: '',
+  opis: ''
+})
+const manualCheckInLoading = ref(false)
+const previewZawodnik = ref<ManualCheckIn | null>(null)
+const previewLoading = ref(false)
+const manualCheckIns = ref<ManualCheckIn[]>([])
 
 // Auto refresh interval
 let refreshInterval: NodeJS.Timeout | null = null
+let previewTimeout: NodeJS.Timeout | null = null
 
 // Computed
 const maxHourlyActivity = computed(() => {
   if (hourlyProgress.value.length === 0) return 1
   return Math.max(...hourlyProgress.value.map(h => Math.max(h.check_ins, h.results)))
+})
+
+const canPerformManualCheckIn = computed(() => {
+  return manualCheckInForm.value.nr_startowy > 0 && 
+         manualCheckInForm.value.powod !== '' &&
+         previewZawodnik.value !== null &&
+         !previewZawodnik.value.checked_in
+})
+
+// Watchers
+watch(() => manualCheckInForm.value.nr_startowy, (newValue) => {
+  if (previewTimeout) {
+    clearTimeout(previewTimeout)
+  }
+  
+  if (newValue && newValue > 0) {
+    previewTimeout = setTimeout(() => {
+      fetchZawodnikPreview(newValue)
+    }, 500) // Debounce 500ms
+  } else {
+    previewZawodnik.value = null
+  }
 })
 
 // Methods
@@ -481,9 +753,114 @@ const formatCheckpointName = (name: string) => {
   return names[name] || name
 }
 
+const formatCheckInReason = (reason: string) => {
+  const reasons: Record<string, string> = {
+    'awaria_skanera': 'Awaria skanera QR',
+    'brak_kodu': 'Brak/uszkodzony kod QR',
+    'problem_techniczny': 'Problem techniczny',
+    'decyzja_organizatora': 'Decyzja organizatora',
+    'inne': 'Inne'
+  }
+  return reasons[reason] || reason
+}
+
+const fetchZawodnikPreview = async (nr_startowy: number) => {
+  if (!nr_startowy || nr_startowy <= 0) {
+    previewZawodnik.value = null
+    return
+  }
+
+  try {
+    previewLoading.value = true
+    const response = await axios.get(`/api/zawodnicy/${nr_startowy}`)
+    
+    if (response.data.success) {
+      previewZawodnik.value = response.data.zawodnik
+    } else {
+      previewZawodnik.value = null
+    }
+  } catch (error) {
+    console.error('Błąd podczas pobierania podglądu zawodnika:', error)
+    previewZawodnik.value = null
+  } finally {
+    previewLoading.value = false
+  }
+}
+
+const performManualCheckIn = async () => {
+  if (!canPerformManualCheckIn.value) {
+    return
+  }
+
+  try {
+    manualCheckInLoading.value = true
+    
+    const payload = {
+      nr_startowy: manualCheckInForm.value.nr_startowy,
+      device_id: 'manual-admin',
+      manual: true,
+      reason: manualCheckInForm.value.powod,
+      description: manualCheckInForm.value.opis || null
+    }
+
+    const response = await axios.post('/api/qr/check-in', payload)
+    
+    if (response.data.success) {
+      // Sukces - odśwież dane
+      await fetchDashboardData()
+      await fetchZawodnikPreview(manualCheckInForm.value.nr_startowy)
+      
+      // Dodaj do historii ręcznych zameldowań
+      manualCheckIns.value.unshift({
+        nr_startowy: manualCheckInForm.value.nr_startowy,
+        imie: previewZawodnik.value?.imie || '',
+        nazwisko: previewZawodnik.value?.nazwisko || '',
+        kategoria: previewZawodnik.value?.kategoria || '',
+        checked_in: true,
+        check_in_time: new Date().toISOString(),
+        qr_code: previewZawodnik.value?.qr_code || false,
+        ma_wynik: previewZawodnik.value?.ma_wynik || false,
+        klub: previewZawodnik.value?.klub || '',
+        plec: previewZawodnik.value?.plec || '',
+        powod: manualCheckInForm.value.powod,
+        timestamp: new Date().toISOString()
+      })
+      
+      // Reset formularza
+      manualCheckInForm.value = {
+        nr_startowy: 0,
+        powod: '',
+        opis: ''
+      }
+      
+      alert(`✅ Zawodnik ${previewZawodnik.value?.imie} ${previewZawodnik.value?.nazwisko} został pomyślnie zameldowany ręcznie.`)
+    } else {
+      alert(`❌ Błąd podczas zameldowania: ${response.data.message}`)
+    }
+  } catch (error: any) {
+    console.error('Błąd podczas ręcznego zameldowania:', error)
+    const errorMsg = error.response?.data?.message || 'Nieznany błąd serwera'
+    alert(`❌ Błąd podczas zameldowania: ${errorMsg}`)
+  } finally {
+    manualCheckInLoading.value = false
+  }
+}
+
+const fetchManualCheckIns = async () => {
+  try {
+    const response = await axios.get('/api/qr/manual-checkins')
+    if (response.data.success) {
+      manualCheckIns.value = response.data.manual_checkins
+    }
+  } catch (error) {
+    console.error('Błąd podczas pobierania ręcznych zameldowań:', error)
+  }
+}
+
 // Lifecycle
 onMounted(() => {
   fetchDashboardData()
+  fetchManualCheckIns()
   // Auto refresh every 10 seconds
   refreshInterval = setInterval(fetchDashboardData, 10000)
 })
@@ -491,6 +868,9 @@ onMounted(() => {
 onUnmounted(() => {
   if (refreshInterval) {
     clearInterval(refreshInterval)
+  }
+  if (previewTimeout) {
+    clearTimeout(previewTimeout)
   }
 })
 </script> 

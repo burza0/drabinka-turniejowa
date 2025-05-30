@@ -205,6 +205,49 @@ def delete_zawodnik(nr_startowy):
     execute_query(query, (nr_startowy,))
     return jsonify({"message": "Zawodnik usunięty"}), 200
 
+@app.route("/api/zawodnicy/<int:nr_startowy>", methods=['GET'])
+def get_zawodnik(nr_startowy):
+    """Endpoint do pobierania pojedynczego zawodnika dla podglądu"""
+    try:
+        rows = get_all("""
+            SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub, 
+                   z.qr_code, z.checked_in, z.check_in_time,
+                   CASE WHEN w.czas_przejazdu_s IS NOT NULL THEN true ELSE false END as ma_wynik
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE z.nr_startowy = %s
+        """, (nr_startowy,))
+        
+        if not rows:
+            return jsonify({
+                "success": False,
+                "message": f"Nie znaleziono zawodnika z numerem startowym {nr_startowy}"
+            }), 404
+        
+        zawodnik = rows[0]
+        
+        return jsonify({
+            "success": True,
+            "zawodnik": {
+                "nr_startowy": zawodnik["nr_startowy"],
+                "imie": zawodnik["imie"],
+                "nazwisko": zawodnik["nazwisko"],
+                "kategoria": zawodnik["kategoria"],
+                "plec": zawodnik["plec"],
+                "klub": zawodnik["klub"],
+                "qr_code": bool(zawodnik["qr_code"]),
+                "checked_in": bool(zawodnik["checked_in"]),
+                "check_in_time": zawodnik["check_in_time"],
+                "ma_wynik": zawodnik["ma_wynik"]
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": f"Błąd podczas pobierania zawodnika: {str(e)}"
+        }), 500
+
 @app.route("/api/zawodnicy/<int:nr_startowy>", methods=['PUT'])
 def update_zawodnik(nr_startowy):
     data = request.json
@@ -413,23 +456,41 @@ def drabinka():
 
 @app.route("/api/qr/check-in", methods=['POST'])
 def qr_check_in():
-    """Endpoint do zameldowania zawodnika poprzez QR kod"""
+    """Endpoint do zameldowania zawodnika poprzez QR kod lub ręcznie"""
     try:
         data = request.json
         qr_code = data.get('qr_code')
+        nr_startowy = data.get('nr_startowy')
+        manual = data.get('manual', False)
+        reason = data.get('reason')  # powód ręcznego zameldowania
+        description = data.get('description')  # opis szczegółowy
+        device_id = data.get('device_id', 'unknown')
         
-        if not qr_code:
-            return jsonify({"error": "Brak QR kodu"}), 400
+        if not qr_code and not nr_startowy:
+            return jsonify({"error": "Brak QR kodu lub numeru startowego"}), 400
         
-        # Znajdź zawodnika po QR kodzie
-        zawodnik = get_all("""
-            SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub, checked_in
-            FROM zawodnicy 
-            WHERE qr_code = %s
-        """, (qr_code,))
+        # Znajdź zawodnika po QR kodzie lub numerze startowym
+        if qr_code:
+            zawodnik = get_all("""
+                SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub, checked_in
+                FROM zawodnicy 
+                WHERE qr_code = %s
+            """, (qr_code,))
+        else:
+            zawodnik = get_all("""
+                SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub, checked_in
+                FROM zawodnicy 
+                WHERE nr_startowy = %s
+            """, (nr_startowy,))
         
         if not zawodnik:
-            return jsonify({"error": "Nie znaleziono zawodnika o tym QR kodzie"}), 404
+            if qr_code:
+                return jsonify({"error": "Nie znaleziono zawodnika o tym QR kodzie"}), 404
+            else:
+                return jsonify({
+                    "success": False,
+                    "message": f"Nie znaleziono zawodnika z numerem startowym {nr_startowy}"
+                }), 404
         
         zawodnik = zawodnik[0]
         
@@ -444,21 +505,51 @@ def qr_check_in():
         execute_query("""
             UPDATE zawodnicy 
             SET checked_in = TRUE, check_in_time = CURRENT_TIMESTAMP 
-            WHERE qr_code = %s
-        """, (qr_code,))
+            WHERE nr_startowy = %s
+        """, (zawodnik['nr_startowy'],))
         
-        # Zapisz checkpoint
+        # Przygotuj checkpoint_name z dodatkowym oznaczeniem ręcznego zameldowania
+        checkpoint_name = 'check-in'
+        if manual:
+            checkpoint_name = 'manual-check-in'
+        
+        # Zapisz checkpoint z dodatkowymi danymi dla ręcznego zameldowania
+        checkpoint_qr = qr_code if qr_code else f"MANUAL_{zawodnik['nr_startowy']}"
+        
         execute_query("""
             INSERT INTO checkpoints (nr_startowy, checkpoint_name, qr_code, device_id)
             VALUES (%s, %s, %s, %s)
-        """, (zawodnik['nr_startowy'], 'check-in', qr_code, data.get('device_id', 'unknown')))
+        """, (zawodnik['nr_startowy'], checkpoint_name, checkpoint_qr, device_id))
+        
+        # Jeśli to ręczne zameldowanie, zapisz dodatkowe informacje w logach
+        if manual and reason:
+            try:
+                log_entry = f"MANUAL CHECK-IN: {zawodnik['imie']} {zawodnik['nazwisko']} (#{zawodnik['nr_startowy']}) - Reason: {reason}"
+                if description:
+                    log_entry += f" - Description: {description}"
+                print(f"[MANUAL CHECK-IN] {log_entry}")
+                
+                # Możesz dodać zapis do osobnej tabeli logów jeśli masz
+                # execute_query("""
+                #     INSERT INTO manual_logs (nr_startowy, action, reason, description, timestamp)
+                #     VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
+                # """, (zawodnik['nr_startowy'], 'manual-check-in', reason, description))
+                
+            except Exception as log_error:
+                print(f"Warning: Could not log manual check-in: {log_error}")
         
         zawodnik['checked_in'] = True
         
+        message = f"Zawodnik {zawodnik['imie']} {zawodnik['nazwisko']} zameldowany pomyślnie"
+        if manual:
+            message += " (ręcznie)"
+        
         return jsonify({
             "success": True,
-            "message": f"Zawodnik {zawodnik['imie']} {zawodnik['nazwisko']} zameldowany pomyślnie",
-            "zawodnik": zawodnik
+            "message": message,
+            "zawodnik": zawodnik,
+            "manual": manual,
+            "reason": reason if manual else None
         }), 200
         
     except Exception as e:
@@ -1062,6 +1153,251 @@ def qr_generate_bulk():
     except Exception as e:
         print(f"Błąd w bulk generate QR: {e}")
         return jsonify({"error": str(e)}), 500
+
+@app.route("/api/grupy-startowe")
+def grupy_startowe():
+    """Endpoint zwracający grupy startowe na podstawie zameldowanych zawodników"""
+    try:
+        # Pobierz zameldowanych zawodników pogrupowanych
+        grupy_data = get_all("""
+            SELECT 
+                kategoria,
+                plec,
+                COUNT(*) as liczba_zameldowanych,
+                STRING_AGG(
+                    CONCAT(nr_startowy, ': ', imie, ' ', nazwisko, ' (', klub, ')'), 
+                    E'\n' ORDER BY nr_startowy
+                ) as lista_zawodnikow,
+                STRING_AGG(nr_startowy::text, ',' ORDER BY nr_startowy) as numery_startowe
+            FROM zawodnicy 
+            WHERE checked_in = TRUE AND kategoria IS NOT NULL
+            GROUP BY kategoria, plec 
+            ORDER BY kategoria, plec
+        """)
+        
+        # Organizuj w grupy startowe
+        grupy_startowe = []
+        numer_grupy = 1
+        
+        for grupa in grupy_data:
+            nazwa_grupy = f"Grupa {numer_grupy}: {grupa['kategoria']} {'Mężczyźni' if grupa['plec'] == 'M' else 'Kobiety'}"
+            
+            grupy_startowe.append({
+                "numer_grupy": numer_grupy,
+                "nazwa": nazwa_grupy,
+                "kategoria": grupa['kategoria'],
+                "plec": grupa['plec'],
+                "liczba_zawodnikow": grupa['liczba_zameldowanych'],
+                "lista_zawodnikow": grupa['lista_zawodnikow'],
+                "numery_startowe": grupa['numery_startowe'],
+                "estimated_time": grupa['liczba_zameldowanych'] * 20, # sekundy (20s na zawodnika)
+                "status": "OCZEKUJE" # OCZEKUJE, AKTYWNA, UKONCZONA
+            })
+            numer_grupy += 1
+        
+        return jsonify({
+            "success": True,
+            "total_grup": len(grupy_startowe),
+            "total_zawodnikow": sum(g['liczba_zawodnikow'] for g in grupy_startowe),
+            "grupy": grupy_startowe,
+            "estimated_total_time_min": sum(g['estimated_time'] for g in grupy_startowe) / 60
+        }), 200
+        
+    except Exception as e:
+        print(f"Błąd w grupy-startowe: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/grupa-aktywna", methods=['POST'])
+def set_grupa_aktywna():
+    """Ustawienie aktywnej grupy startowej"""
+    try:
+        data = request.json
+        numer_grupy = data.get('numer_grupy')
+        kategoria = data.get('kategoria')
+        plec = data.get('plec')
+        
+        if not all([numer_grupy, kategoria, plec]):
+            return jsonify({"error": "Brak wymaganych danych"}), 400
+        
+        # Tu można dodać logikę zapisywania aktywnej grupy do cache/bazy
+        # Na razie zwracamy potwierdzenie
+        
+        return jsonify({
+            "success": True,
+            "message": f"Grupa {numer_grupy} ({kategoria} {plec}) ustawiona jako aktywna",
+            "aktywna_grupa": {
+                "numer": numer_grupy,
+                "kategoria": kategoria,
+                "plec": plec
+            }
+        }), 200
+        
+    except Exception as e:
+        print(f"Błąd w set-grupa-aktywna: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/start-line-verify", methods=['POST'])
+def start_line_verify():
+    """Weryfikacja zawodnika na linii startu poprzez QR kod"""
+    try:
+        data = request.json
+        qr_code = data.get('qr_code')
+        expected_kategoria = data.get('kategoria')  # opcjonalne - aktywna grupa
+        expected_plec = data.get('plec')  # opcjonalne - aktywna grupa
+        
+        if not qr_code:
+            return jsonify({"error": "Brak QR kodu"}), 400
+        
+        # Znajdź zawodnika
+        zawodnik_data = get_all("""
+            SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                   z.checked_in, z.check_in_time,
+                   w.czas_przejazdu_s, w.status
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE z.qr_code = %s
+        """, (qr_code,))
+        
+        if not zawodnik_data:
+            return jsonify({
+                "success": False,
+                "error": "Nie znaleziono zawodnika o tym QR kodzie",
+                "action": "ODRZUC"
+            }), 404
+        
+        zawodnik = zawodnik_data[0]
+        
+        # Sprawdzenia weryfikacyjne
+        issues = []
+        action = "AKCEPTUJ"
+        
+        # 1. Czy zameldowany?
+        if not zawodnik['checked_in']:
+            issues.append("❌ Zawodnik nie jest zameldowany")
+            action = "ODRZUC"
+        
+        # 2. Czy już ma wynik?
+        if zawodnik['czas_przejazdu_s'] is not None:
+            issues.append("⚠️ Zawodnik już ma zapisany wynik")
+            action = "OSTRZEZENIE"
+        
+        # 3. Czy pasuje do aktywnej grupy?
+        if expected_kategoria and zawodnik['kategoria'] != expected_kategoria:
+            issues.append(f"⚠️ Zawodnik z kategorii {zawodnik['kategoria']}, oczekiwano {expected_kategoria}")
+            action = "OSTRZEZENIE"
+            
+        if expected_plec and zawodnik['plec'] != expected_plec:
+            issues.append(f"⚠️ Zawodnik płci {zawodnik['plec']}, oczekiwano {expected_plec}")
+            action = "OSTRZEZENIE"
+        
+        # Zapisz checkpoint 'start-line' 
+        execute_query("""
+            INSERT INTO checkpoints (nr_startowy, checkpoint_name, qr_code, device_id)
+            VALUES (%s, %s, %s, %s)
+        """, (zawodnik['nr_startowy'], 'start-line-verify', qr_code, data.get('device_id', 'start-device')))
+        
+        return jsonify({
+            "success": True,
+            "action": action,  # AKCEPTUJ, OSTRZEZENIE, ODRZUC
+            "issues": issues,
+            "zawodnik": {
+                "nr_startowy": zawodnik['nr_startowy'],
+                "imie": zawodnik['imie'],
+                "nazwisko": zawodnik['nazwisko'],
+                "kategoria": zawodnik['kategoria'],
+                "plec": zawodnik['plec'],
+                "klub": zawodnik['klub'],
+                "checked_in": zawodnik['checked_in'],
+                "ma_wynik": zawodnik['czas_przejazdu_s'] is not None,
+                "status": zawodnik['status']
+            },
+            "komunikat": {
+                "AKCEPTUJ": f"✅ {zawodnik['imie']} {zawodnik['nazwisko']} - GOTOWY DO STARTU",
+                "OSTRZEZENIE": f"⚠️ {zawodnik['imie']} {zawodnik['nazwisko']} - SPRAWDŹ SZCZEGÓŁY",
+                "ODRZUC": f"❌ {zawodnik['imie']} {zawodnik['nazwisko']} - NIE MOŻE STARTOWAĆ"
+            }[action]
+        }), 200
+        
+    except Exception as e:
+        print(f"Błąd w start-line-verify: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/start-queue", methods=['GET'])
+def get_start_queue():
+    """Pobierz kolejkę zawodników oczekujących na starcie"""
+    try:
+        # Pobierz kolejkę startową (zawodnicy którzy byli skanowani na start line)
+        queue_data = get_all("""
+            SELECT DISTINCT
+                z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                c.timestamp as ostatni_skan,
+                w.czas_przejazdu_s,
+                w.status
+            FROM zawodnicy z
+            LEFT JOIN checkpoints c ON z.nr_startowy = c.nr_startowy 
+                AND c.checkpoint_name = 'start-line-verify'
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE c.nr_startowy IS NOT NULL
+            ORDER BY c.timestamp DESC
+            LIMIT 20
+        """)
+        
+        return jsonify({
+            "success": True,
+            "queue": queue_data,
+            "count": len(queue_data)
+        }), 200
+        
+    except Exception as e:
+        print(f"Błąd w start-queue: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/qr/manual-checkins", methods=['GET'])
+def get_manual_checkins():
+    """Endpoint do pobierania historii ręcznych zameldowań"""
+    try:
+        # Pobierz ręczne zameldowania z checkpoints
+        manual_checkins = get_all("""
+            SELECT c.nr_startowy, c.timestamp, c.device_id,
+                   z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                   z.checked_in, z.check_in_time
+            FROM checkpoints c
+            JOIN zawodnicy z ON c.nr_startowy = z.nr_startowy
+            WHERE c.checkpoint_name = 'manual-check-in'
+            ORDER BY c.timestamp DESC
+            LIMIT 50
+        """)
+        
+        # Formatuj dane dla frontend
+        formatted_checkins = []
+        for checkin in manual_checkins:
+            formatted_checkins.append({
+                "nr_startowy": checkin["nr_startowy"],
+                "imie": checkin["imie"],
+                "nazwisko": checkin["nazwisko"],
+                "kategoria": checkin["kategoria"],
+                "plec": checkin["plec"],
+                "klub": checkin["klub"],
+                "checked_in": checkin["checked_in"],
+                "check_in_time": checkin["check_in_time"].isoformat() if checkin["check_in_time"] else None,
+                "timestamp": checkin["timestamp"].isoformat() if checkin["timestamp"] else None,
+                "device_id": checkin["device_id"],
+                "powod": "manual",  # Podstawowy powód - można rozszerzyć jeśli będzie tabela logów
+                "ma_wynik": False  # Można dodać sprawdzenie wyników jeśli potrzebne
+            })
+        
+        return jsonify({
+            "success": True,
+            "manual_checkins": formatted_checkins,
+            "total": len(formatted_checkins)
+        }), 200
+        
+    except Exception as e:
+        print(f"Błąd w manual-checkins: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

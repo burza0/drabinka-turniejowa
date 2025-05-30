@@ -372,8 +372,18 @@
       </div>
 
       <!-- Rankingi -->
-      <div v-if="activeTab === 'ranking'">
+      <div v-if="activeTab === 'rankingi'">
         <Rankingi />
+      </div>
+
+      <!-- Grupy Startowe -->
+      <div v-if="activeTab === 'grupy-startowe'">
+        <GrupyStartowe />
+      </div>
+
+      <!-- Start Line Scanner -->
+      <div v-if="activeTab === 'start-line'">
+        <StartLineScanner />
       </div>
 
       <!-- QR Admin Dashboard -->
@@ -434,6 +444,8 @@ import EditZawodnikModal from './components/EditZawodnikModal.vue'
 import Rankingi from './components/Rankingi.vue'
 import QrAdminDashboard from './components/QrAdminDashboard.vue'
 import QrPrint from './components/QrPrint.vue'
+import GrupyStartowe from './components/GrupyStartowe.vue'
+import StartLineScanner from './components/StartLineScanner.vue'
 
 // Types
 interface Zawodnik {
@@ -474,11 +486,13 @@ const filters = ref({
 
 // Tabs configuration
 const tabs = [
-  { id: 'zawodnicy', name: 'Lista zawodników', icon: ListBulletIcon },
-  { id: 'drabinka', name: 'Drabinka pucharowa', icon: TrophyIcon },
-  { id: 'ranking', name: 'Rankingi', icon: ChartBarIcon },
+  { id: 'zawodnicy', name: 'Zawodnicy', icon: UsersIcon, adminOnly: false },
+  { id: 'drabinka', name: 'Drabinka', icon: TrophyIcon, adminOnly: false },
+  { id: 'rankingi', name: 'Rankingi', icon: ListBulletIcon, adminOnly: false },
+  { id: 'grupy-startowe', name: 'Grupy Startowe', icon: UsersIcon, adminOnly: true },
+  { id: 'start-line', name: 'Linia Startu', icon: QrCodeIcon, adminOnly: true },
   { id: 'qr-print', name: 'Drukowanie QR', icon: PrinterIcon, adminOnly: true },
-  { id: 'qr-dashboard', name: 'QR Admin Dashboard', icon: QrCodeIcon, adminOnly: true }
+  { id: 'qr-dashboard', name: 'QR Dashboard', icon: QrCodeIcon, adminOnly: true }
 ]
 
 // Computed
