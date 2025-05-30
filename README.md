@@ -288,9 +288,9 @@ heroku logs --tail --app drabinka-turniejowa-skatecross
 4. Push to branch (`git push origin feature/AmazingFeature`)
 5. Open Pull Request
 
-## 📜 Licencja
+## 📜 Copyright
 
-Ten projekt jest licencjonowany na licencji MIT - szczegóły w pliku [LICENSE](LICENSE)
+**Copyright © 2025 Mariusz Burzyński. Wszelkie prawa zastrzeżone.**
 
 ## 👨‍💻 Autor
 
