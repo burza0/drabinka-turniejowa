@@ -1,32 +1,33 @@
 <template>
   <div class="space-y-6">
     <!-- Header -->
-    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-      <div class="flex justify-between items-center mb-4">
-        <div class="flex items-center space-x-3">
-          <QrCodeIcon class="h-8 w-8 text-indigo-600" />
-          <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">QR Admin Dashboard</h2>
-        </div>
-        <div class="flex space-x-2">
-          <button
-            @click="refreshData"
-            :disabled="loading"
-            class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 flex items-center"
-          >
-            <ArrowPathIcon class="h-4 w-4 mr-2" :class="{ 'animate-spin': loading }" />
-            Odśwież
-          </button>
-          <button
-            @click="exportData"
-            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center"
-          >
-            <ArrowDownTrayIcon class="h-4 w-4 mr-2" />
-            Eksport CSV
-          </button>
-        </div>
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-4 sm:space-y-0">
+      <div class="flex items-center space-x-3">
+        <QrCodeIcon class="h-8 w-8 text-indigo-600" />
+        <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">QR Admin Dashboard</h2>
       </div>
       
-      <!-- Quick Status -->
+      <div class="flex space-x-2">
+        <button
+          @click="refreshData"
+          :disabled="loading"
+          class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 flex items-center"
+        >
+          <ArrowPathIcon class="h-4 w-4 mr-2" :class="{ 'animate-spin': loading }" />
+          Odśwież
+        </button>
+        <button
+          @click="exportData"
+          class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center"
+        >
+          <ArrowDownTrayIcon class="h-4 w-4 mr-2" />
+          Eksport CSV
+        </button>
+      </div>
+    </div>
+
+    <!-- Quick Status -->
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
           <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">
