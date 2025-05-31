@@ -3,6 +3,7 @@ from flask_cors import CORS
 from flask_compress import Compress
 from flask_caching import Cache
 import psycopg2
+from psycopg2 import pool
 import os
 from dotenv import load_dotenv
 import math
@@ -23,6 +24,19 @@ cache = Cache(app, config={
 
 DB_URL = os.getenv("DATABASE_URL")
 
+# OPTYMALIZACJA 4/4: Connection Pooling
+# Utwórz pool połączeń do bazy danych
+try:
+    connection_pool = psycopg2.pool.SimpleConnectionPool(
+        minconn=1,      # Minimum połączeń w poolu
+        maxconn=10,     # Maksimum połączeń w poolu  
+        dsn=DB_URL
+    )
+    print("✅ Connection pool utworzony pomyślnie")
+except Exception as e:
+    print(f"❌ Błąd tworzenia connection pool: {e}")
+    connection_pool = None
+
 # Cache aktywnej grupy
 aktywna_grupa_cache = {
     "numer_grupy": None,
@@ -31,40 +45,67 @@ aktywna_grupa_cache = {
     "nazwa": None
 }
 
-def get_all(query, params=None):
-    conn = psycopg2.connect(DB_URL)
-    cur = conn.cursor()
-    if params:
-        cur.execute(query, params)
+def get_connection():
+    """Pobiera połączenie z poola lub tworzy nowe jeśli pool niedostępny"""
+    if connection_pool:
+        return connection_pool.getconn()
     else:
-        cur.execute(query)
-    rows = cur.fetchall()
-    columns = [desc[0] for desc in cur.description]
-    cur.close()
-    conn.close()
-    return [dict(zip(columns, row)) for row in rows]
+        # Fallback - zwykłe połączenie jeśli pool nie działa
+        return psycopg2.connect(DB_URL)
+
+def return_connection(conn):
+    """Zwraca połączenie do poola lub zamyka je jeśli pool niedostępny"""
+    if connection_pool:
+        connection_pool.putconn(conn)
+    else:
+        conn.close()
+
+def get_all(query, params=None):
+    """ZOPTYMALIZOWANE: Używa connection pool"""
+    conn = get_connection()
+    cur = conn.cursor()
+    try:
+        if params:
+            cur.execute(query, params)
+        else:
+            cur.execute(query)
+        rows = cur.fetchall()
+        columns = [desc[0] for desc in cur.description]
+        result = [dict(zip(columns, row)) for row in rows]
+        cur.close()
+        return_connection(conn)
+        return result
+    except Exception as e:
+        cur.close()
+        return_connection(conn)
+        raise e
 
 def get_one(query, params=None):
-    """Pobiera pojedynczy rekord z bazy danych"""
-    conn = psycopg2.connect(DB_URL)
+    """ZOPTYMALIZOWANE: Pobiera pojedynczy rekord z bazy danych używając connection pool"""
+    conn = get_connection()
     cur = conn.cursor()
-    if params:
-        cur.execute(query, params)
-    else:
-        cur.execute(query)
-    row = cur.fetchone()
-    if row:
-        columns = [desc[0] for desc in cur.description]
-        result = dict(zip(columns, row))
-    else:
-        result = None
-    cur.close()
-    conn.close()
-    return result
+    try:
+        if params:
+            cur.execute(query, params)
+        else:
+            cur.execute(query)
+        row = cur.fetchone()
+        if row:
+            columns = [desc[0] for desc in cur.description]
+            result = dict(zip(columns, row))
+        else:
+            result = None
+        cur.close()
+        return_connection(conn)
+        return result
+    except Exception as e:
+        cur.close()
+        return_connection(conn)
+        raise e
 
 def execute_query(query, params=None):
-    """Wykonuje zapytanie INSERT/UPDATE/DELETE i zwraca liczbę zmienionych wierszy"""
-    conn = psycopg2.connect(DB_URL)
+    """ZOPTYMALIZOWANE: Wykonuje zapytanie INSERT/UPDATE/DELETE używając connection pool"""
+    conn = get_connection()
     cur = conn.cursor()
     try:
         if params:
@@ -74,12 +115,12 @@ def execute_query(query, params=None):
         conn.commit()
         rowcount = cur.rowcount
         cur.close()
-        conn.close()
+        return_connection(conn)
         return rowcount
     except Exception as e:
         conn.rollback()
         cur.close()
-        conn.close()
+        return_connection(conn)
         raise e
 
 def validate_time_format(time_str):
