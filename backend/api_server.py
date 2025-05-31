@@ -804,19 +804,22 @@ def qr_generate_for_zawodnik(nr_startowy):
 @app.route("/api/qr/stats")
 @cache.cached(timeout=60)  # Cache na 1 minutę (może się zmieniać częściej)
 def qr_stats():
-    """Endpoint zwracający statystyki QR kodów"""
+    """Endpoint zwracający statystyki QR kodów - ZOPTYMALIZOWANY"""
     try:
-        # Podstawowe statystyki
-        total_data = get_all("SELECT COUNT(*) as total FROM zawodnicy")
-        total = total_data[0]['total'] if total_data else 0
+        # OPTYMALIZACJA: Jedno zapytanie zamiast trzech oddzielnych
+        basic_stats = get_one("""
+            SELECT 
+                COUNT(*) as total,
+                COUNT(CASE WHEN qr_code IS NOT NULL THEN 1 END) as with_qr,
+                COUNT(CASE WHEN checked_in = TRUE THEN 1 END) as checked_in
+            FROM zawodnicy
+        """)
         
-        with_qr_data = get_all("SELECT COUNT(*) as with_qr FROM zawodnicy WHERE qr_code IS NOT NULL")
-        with_qr = with_qr_data[0]['with_qr'] if with_qr_data else 0
+        total = basic_stats['total'] if basic_stats else 0
+        with_qr = basic_stats['with_qr'] if basic_stats else 0
+        checked_in = basic_stats['checked_in'] if basic_stats else 0
         
-        checked_in_data = get_all("SELECT COUNT(*) as checked_in FROM zawodnicy WHERE checked_in = TRUE")
-        checked_in = checked_in_data[0]['checked_in'] if checked_in_data else 0
-        
-        # Statystyki checkpointów
+        # Statystyki checkpointów - pozostaje bez zmian (już optymalne)
         checkpoint_stats = get_all("""
             SELECT checkpoint_name, COUNT(*) as count
             FROM checkpoints
@@ -861,6 +864,7 @@ def frontend_static(filename):
         return send_from_directory(frontend_path, 'index.html')
 
 @app.route("/api/qr/dashboard")
+@cache.cached(timeout=120)  # Cache na 2 minuty
 def qr_dashboard():
     """Endpoint dla QR Admin Dashboard - kompleksowe statystyki"""
     try:
@@ -1198,6 +1202,7 @@ def qr_generate_bulk():
         return jsonify({"error": str(e)}), 500
 
 @app.route("/api/grupy-startowe")
+@cache.cached(timeout=60)  # Cache na 1 minutę
 def grupy_startowe():
     """Endpoint zwracający grupy startowe na podstawie zameldowanych zawodników"""
     try:
