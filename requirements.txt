@@ -6,3 +6,4 @@ gunicorn==21.2.0
 qrcode[pil]
 uuid
 flask-compress==1.13
+Flask-Caching==2.1.0

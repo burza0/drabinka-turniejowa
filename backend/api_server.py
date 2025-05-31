@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from flask_compress import Compress
+from flask_caching import Cache
 import psycopg2
 import os
 from dotenv import load_dotenv
@@ -13,6 +14,12 @@ CORS(app)
 
 # Włączenie kompresji Gzip dla wszystkich odpowiedzi
 Compress(app)
+
+# Konfiguracja cache in-memory
+cache = Cache(app, config={
+    'CACHE_TYPE': 'simple',  # Prosty cache w pamięci
+    'CACHE_DEFAULT_TIMEOUT': 300  # Domyślny timeout 5 minut
+})
 
 DB_URL = os.getenv("DATABASE_URL")
 
@@ -117,6 +124,7 @@ def wyniki():
     return jsonify(rows)
 
 @app.route("/api/zawodnicy")
+@cache.cached(timeout=180)  # Cache na 3 minuty
 def zawodnicy():
     rows = get_all("""
         SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub, z.qr_code,
@@ -128,6 +136,7 @@ def zawodnicy():
     return jsonify(rows)
 
 @app.route("/api/kategorie")
+@cache.cached(timeout=300)  # Cache na 5 minut
 def kategorie():
     # Pobierz kategorie
     kategorie_rows = get_all("SELECT DISTINCT kategoria FROM zawodnicy WHERE kategoria IS NOT NULL ORDER BY kategoria")
@@ -143,6 +152,7 @@ def kategorie():
     })
 
 @app.route("/api/statystyki")
+@cache.cached(timeout=180)  # Cache na 3 minuty
 def statystyki():
     """Endpoint zwracający statystyki zawodników według kategorii i płci"""
     rows = get_all("""
@@ -179,6 +189,7 @@ def statystyki():
     })
 
 @app.route("/api/kluby")
+@cache.cached(timeout=300)  # Cache na 5 minut
 def kluby():
     """Endpoint zwracający listę klubów z liczbą zawodników"""
     # Pobierz kluby z liczbą zawodników
@@ -317,6 +328,7 @@ def update_wynik():
     return jsonify({"message": "Wynik zaktualizowany"}), 200
 
 @app.route("/api/drabinka")
+@cache.cached(timeout=120)  # Cache na 2 minuty (zmienia się z wynikami)
 def drabinka():
     """Endpoint zwracający drabinkę turniejową"""
     try:
@@ -790,6 +802,7 @@ def qr_generate_for_zawodnik(nr_startowy):
         return jsonify({"error": str(e)}), 500
 
 @app.route("/api/qr/stats")
+@cache.cached(timeout=60)  # Cache na 1 minutę (może się zmieniać częściej)
 def qr_stats():
     """Endpoint zwracający statystyki QR kodów"""
     try:
