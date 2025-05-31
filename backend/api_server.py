@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
+from flask_compress import Compress
 import psycopg2
 import os
 from dotenv import load_dotenv
@@ -9,6 +10,9 @@ import re
 load_dotenv()
 app = Flask(__name__)
 CORS(app)
+
+# Włączenie kompresji Gzip dla wszystkich odpowiedzi
+Compress(app)
 
 DB_URL = os.getenv("DATABASE_URL")
 

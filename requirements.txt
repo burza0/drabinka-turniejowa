@@ -5,3 +5,4 @@ flask-cors==4.0.0
 gunicorn==21.2.0
 qrcode[pil]
 uuid
+flask-compress==1.13
