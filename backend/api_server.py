@@ -5,12 +5,142 @@ import os
 from dotenv import load_dotenv
 import math
 import re
+from psycopg2 import pool
+from cache import app_cache
 
 load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
 DB_URL = os.getenv("DATABASE_URL")
+
+# Connection pool dla lepszej wydajności
+connection_pool = None
+
+def init_db_pool():
+    """Inicjalizuje pulę połączeń"""
+    global connection_pool
+    if connection_pool is None:
+        connection_pool = psycopg2.pool.SimpleConnectionPool(
+            1, 20,  # min 1, max 20 połączeń
+            DB_URL
+        )
+
+def get_db_connection():
+    """Pobiera połączenie z puli"""
+    global connection_pool
+    if connection_pool is None:
+        init_db_pool()
+    return connection_pool.getconn()
+
+def return_db_connection(conn):
+    """Zwraca połączenie do puli"""
+    global connection_pool
+    if connection_pool is not None and conn is not None:
+        try:
+            connection_pool.putconn(conn)
+        except psycopg2.pool.PoolError:
+            # Jeśli wystąpi błąd, spróbuj zainicjować pulę ponownie
+            init_db_pool()
+
+def get_all(query, params=None):
+    """Pobiera wszystkie rekordy z bazy danych używając connection pooling"""
+    conn = None
+    try:
+        conn = get_db_connection()
+        if conn is None:
+            print("❌ Błąd: Nie udało się uzyskać połączenia z bazą danych")
+            return []
+            
+        cur = conn.cursor()
+        try:
+            if params:
+                print(f"🔍 Wykonuję zapytanie: {query} z parametrami: {params}")
+                cur.execute(query, params)
+            else:
+                print(f"🔍 Wykonuję zapytanie: {query}")
+                cur.execute(query)
+                
+            rows = cur.fetchall()
+            if not rows:
+                print("ℹ️ Zapytanie nie zwróciło żadnych wyników")
+                return []
+                
+            columns = [desc[0] for desc in cur.description]
+            result = [dict(zip(columns, row)) for row in rows]
+            print(f"✅ Znaleziono {len(result)} wyników")
+            return result
+            
+        except Exception as e:
+            print(f"❌ Błąd podczas wykonywania zapytania: {str(e)}")
+            return []
+        finally:
+            cur.close()
+    except Exception as e:
+        print(f"❌ Błąd w get_all: {str(e)}")
+        return []
+    finally:
+        if conn:
+            return_db_connection(conn)
+
+def get_one(query, params=None):
+    """Pobiera pojedynczy rekord używając connection pooling"""
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        if params:
+            cur.execute(query, params)
+        else:
+            cur.execute(query)
+        row = cur.fetchone()
+        if row:
+            columns = [desc[0] for desc in cur.description]
+            result = dict(zip(columns, row))
+        else:
+            result = None
+        cur.close()
+        return result
+    finally:
+        if conn:
+            return_db_connection(conn)
+
+def execute_query(query, params=None):
+    """Wykonuje zapytanie używając connection pooling"""
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        if params:
+            cur.execute(query, params)
+        else:
+            cur.execute(query)
+        conn.commit()
+        rowcount = cur.rowcount
+        cur.close()
+        return rowcount
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise e
+    finally:
+        if conn:
+            return_db_connection(conn)
+
+# Zamykanie puli tylko przy faktycznym wyłączaniu aplikacji
+@app.teardown_appcontext
+def close_db_pool(error):
+    """Zamyka pulę połączeń tylko przy wyłączaniu aplikacji"""
+    global connection_pool
+    if connection_pool is not None:
+        try:
+            connection_pool.closeall()
+        except psycopg2.pool.PoolError:
+            pass  # Ignoruj błąd jeśli pula jest już zamknięta
+        connection_pool = None
+
+# Inicjalizacja puli przy starcie aplikacji
+init_db_pool()
 
 # Cache aktywnej grupy
 aktywna_grupa_cache = {
@@ -19,57 +149,6 @@ aktywna_grupa_cache = {
     "plec": None,
     "nazwa": None
 }
-
-def get_all(query, params=None):
-    conn = psycopg2.connect(DB_URL)
-    cur = conn.cursor()
-    if params:
-        cur.execute(query, params)
-    else:
-        cur.execute(query)
-    rows = cur.fetchall()
-    columns = [desc[0] for desc in cur.description]
-    cur.close()
-    conn.close()
-    return [dict(zip(columns, row)) for row in rows]
-
-def get_one(query, params=None):
-    """Pobiera pojedynczy rekord z bazy danych"""
-    conn = psycopg2.connect(DB_URL)
-    cur = conn.cursor()
-    if params:
-        cur.execute(query, params)
-    else:
-        cur.execute(query)
-    row = cur.fetchone()
-    if row:
-        columns = [desc[0] for desc in cur.description]
-        result = dict(zip(columns, row))
-    else:
-        result = None
-    cur.close()
-    conn.close()
-    return result
-
-def execute_query(query, params=None):
-    """Wykonuje zapytanie INSERT/UPDATE/DELETE i zwraca liczbę zmienionych wierszy"""
-    conn = psycopg2.connect(DB_URL)
-    cur = conn.cursor()
-    try:
-        if params:
-            cur.execute(query, params)
-        else:
-            cur.execute(query)
-        conn.commit()
-        rowcount = cur.rowcount
-        cur.close()
-        conn.close()
-        return rowcount
-    except Exception as e:
-        conn.rollback()
-        cur.close()
-        conn.close()
-        raise e
 
 def validate_time_format(time_str):
     """Waliduje format czasu MM:SS.ms lub SS.ms"""
@@ -142,11 +221,8 @@ def kategorie():
 def statystyki():
     """Endpoint zwracający statystyki zawodników według kategorii i płci"""
     rows = get_all("""
-        SELECT kategoria, plec, COUNT(*) as liczba
-        FROM zawodnicy 
-        WHERE kategoria IS NOT NULL AND plec IS NOT NULL
-        GROUP BY kategoria, plec 
-        ORDER BY kategoria, plec
+        SELECT kategoria, plec, liczba
+        FROM mv_statystyki_kategorie_plec
     """)
     
     # Przekształć dane na bardziej czytelny format
@@ -847,30 +923,32 @@ def frontend_static(filename):
 def qr_dashboard():
     """Endpoint dla QR Admin Dashboard - kompleksowe statystyki"""
     try:
-        # Podstawowe statystyki
+        # Podstawowe statystyki z materialized view
         basic_stats = get_all("""
             SELECT 
-                COUNT(*) as total_zawodnikow,
-                COUNT(CASE WHEN qr_code IS NOT NULL THEN 1 END) as z_qr_kodami,
-                COUNT(CASE WHEN checked_in = TRUE THEN 1 END) as zameldowanych,
-                COUNT(CASE WHEN qr_code IS NULL THEN 1 END) as bez_qr_kodow
-            FROM zawodnicy
+                SUM(total_zawodnikow) as total_zawodnikow,
+                SUM(z_qr_kodami) as z_qr_kodami,
+                SUM(zameldowanych) as zameldowanych,
+                SUM(bez_qr_kodow) as bez_qr_kodow
+            FROM mv_statystyki_qr
         """)[0]
         
-        # Statystyki według kategorii
+        # Statystyki według kategorii z materialized view
         category_stats = get_all("""
             SELECT 
                 kategoria,
-                COUNT(*) as total,
-                COUNT(CASE WHEN checked_in = TRUE THEN 1 END) as zameldowanych,
-                COUNT(CASE WHEN w.status = 'FINISHED' THEN 1 END) as z_wynikami
-            FROM zawodnicy z
-            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+                SUM(total_zawodnikow) as total,
+                SUM(zameldowanych) as zameldowanych,
+                (SELECT COUNT(*) 
+                 FROM mv_statystyki_wyniki w 
+                 WHERE w.kategoria = q.kategoria 
+                 AND w.status = 'FINISHED') as z_wynikami
+            FROM mv_statystyki_qr q
             GROUP BY kategoria
             ORDER BY kategoria
         """)
         
-        # Ostatnie checkpointy
+        # Ostatnie checkpointy - te zostawiamy bez zmian, bo potrzebujemy aktualnych danych
         recent_checkpoints = get_all("""
             SELECT 
                 c.nr_startowy,
@@ -886,91 +964,15 @@ def qr_dashboard():
             LIMIT 20
         """)
         
-        # Aktywność urządzeń (ostatnie 24h)
-        device_activity = get_all("""
-            SELECT 
-                device_id,
-                COUNT(*) as total_scans,
-                MAX(timestamp) as last_activity,
-                COUNT(CASE WHEN checkpoint_name = 'check-in' THEN 1 END) as check_ins,
-                COUNT(CASE WHEN checkpoint_name = 'finish' THEN 1 END) as results
-            FROM checkpoints
-            WHERE timestamp >= NOW() - INTERVAL '24 hours'
-            GROUP BY device_id
-            ORDER BY last_activity DESC
-        """)
-        
-        # Postęp zawodów według godzin (dzisiaj)
-        hourly_progress = get_all("""
-            SELECT 
-                DATE_TRUNC('hour', timestamp) as hour,
-                COUNT(*) as scans,
-                COUNT(CASE WHEN checkpoint_name = 'check-in' THEN 1 END) as check_ins,
-                COUNT(CASE WHEN checkpoint_name = 'finish' THEN 1 END) as results
-            FROM checkpoints
-            WHERE timestamp >= CURRENT_DATE
-            GROUP BY DATE_TRUNC('hour', timestamp)
-            ORDER BY hour
-        """)
-        
-        # Problematyczne sytuacje
-        issues = []
-        
-        # Zawodnicy zameldowani ale bez wyników (po 2h od check-in)
-        no_results = get_all("""
-            SELECT 
-                z.nr_startowy,
-                z.imie,
-                z.nazwisko,
-                z.kategoria,
-                z.check_in_time
-            FROM zawodnicy z
-            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
-            WHERE z.checked_in = TRUE 
-            AND w.status IS NULL
-            AND z.check_in_time < NOW() - INTERVAL '2 hours'
-            LIMIT 10
-        """)
-        
-        if no_results:
-            issues.append({
-                "type": "no_results",
-                "title": "Zawodnicy bez wyników (>2h od check-in)",
-                "count": len(no_results),
-                "details": no_results
-            })
-        
-        # Duplikaty QR kodów
-        duplicate_qr = get_all("""
-            SELECT qr_code, COUNT(*) as count
-            FROM zawodnicy
-            WHERE qr_code IS NOT NULL
-            GROUP BY qr_code
-            HAVING COUNT(*) > 1
-        """)
-        
-        if duplicate_qr:
-            issues.append({
-                "type": "duplicate_qr",
-                "title": "Duplikaty QR kodów",
-                "count": len(duplicate_qr),
-                "details": duplicate_qr
-            })
-        
         return jsonify({
-            "success": True,
-            "basic_stats": basic_stats,
-            "category_stats": category_stats,
-            "recent_checkpoints": recent_checkpoints,
-            "device_activity": device_activity,
-            "hourly_progress": hourly_progress,
-            "issues": issues,
-            "timestamp": __import__('datetime').datetime.now().isoformat()
-        }), 200
+            'basic_stats': basic_stats,
+            'category_stats': category_stats,
+            'recent_checkpoints': recent_checkpoints
+        })
         
     except Exception as e:
-        print(f"Błąd w QR dashboard: {e}")
-        return jsonify({"error": str(e)}), 500
+        print(f"Błąd w QR dashboard: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route("/api/qr/live-feed")
 def qr_live_feed():
@@ -1570,6 +1572,83 @@ def remove_from_start_queue(nr_startowy):
     except Exception as e:
         print(f"Błąd w remove-from-start-queue: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route("/api/version")
+def get_version():
+    """Zwraca aktualną wersję API"""
+    try:
+        with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'VERSION'), 'r') as f:
+            version = f.readline().strip()
+        return jsonify({
+            "version": version,
+            "name": "Drabinka Turniejowa API",
+            "environment": "production" if os.getenv("PRODUCTION") else "development"
+        })
+    except Exception as e:
+        print(f"Błąd przy odczycie wersji: {e}")
+        return jsonify({"version": "unknown", "error": str(e)}), 500
+
+def get_statystyki_turnieju():
+    """Pobiera statystyki turnieju z cache lub bazy danych"""
+    cache_key = 'statystyki_turnieju'
+    cached_data = app_cache.get(cache_key)
+    if cached_data:
+        return cached_data
+
+    # Jeśli nie ma w cache, pobierz z bazy
+    stats = {
+        'liczba_zawodnikow': get_one("SELECT COUNT(*) as count FROM zawodnicy")['count'],
+        'liczba_kategorii': get_one("SELECT COUNT(DISTINCT kategoria) as count FROM zawodnicy")['count'],
+        'liczba_klubow': get_one("SELECT COUNT(DISTINCT klub) as count FROM zawodnicy")['count'],
+        'liczba_walk': get_one("SELECT COUNT(*) as count FROM walki")['count']
+    }
+    
+    # Zapisz w cache na 5 minut
+    app_cache.set(cache_key, stats, ttl=300)
+    return stats
+
+def get_lista_kategorii():
+    """Pobiera listę kategorii z cache lub bazy danych"""
+    cache_key = 'lista_kategorii'
+    cached_data = app_cache.get(cache_key)
+    if cached_data:
+        return cached_data
+
+    kategorie = get_all("SELECT DISTINCT kategoria, plec FROM zawodnicy ORDER BY kategoria, plec")
+    app_cache.set(cache_key, kategorie, ttl=600)  # cache na 10 minut
+    return kategorie
+
+# Invalidacja cache przy zmianach
+def invalidate_cache_after_change():
+    """Funkcja do invalidacji cache po zmianach w danych"""
+    app_cache.delete('statystyki_turnieju')
+    app_cache.delete('lista_kategorii')
+
+# Dodajemy nowy endpoint do odświeżania materialized views
+@app.route("/api/admin/refresh-stats", methods=['POST'])
+def refresh_materialized_views():
+    """Odświeża wszystkie materialized views"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # Odśwież każdy materialized view osobno
+        cur.execute("""
+            REFRESH MATERIALIZED VIEW mv_statystyki_kategorie_plec;
+            REFRESH MATERIALIZED VIEW mv_statystyki_wyniki;
+        """)
+        
+        conn.commit()
+        cur.close()
+        
+        # Invalidate cache
+        invalidate_cache_after_change()
+        
+        return jsonify({"status": "success", "message": "Statystyki odświeżone pomyślnie"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+    finally:
+        return_db_connection(conn)
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
