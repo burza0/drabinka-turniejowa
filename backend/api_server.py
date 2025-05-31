@@ -1,90 +1,94 @@
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
-from flask_compress import Compress
-from flask_caching import Cache
 import psycopg2
-from psycopg2 import pool
 import os
 from dotenv import load_dotenv
 import math
 import re
+from psycopg2 import pool
+from cache import app_cache
 
 load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
-# Włączenie kompresji Gzip dla wszystkich odpowiedzi
-Compress(app)
-
-# Konfiguracja cache in-memory
-cache = Cache(app, config={
-    'CACHE_TYPE': 'simple',  # Prosty cache w pamięci
-    'CACHE_DEFAULT_TIMEOUT': 300  # Domyślny timeout 5 minut
-})
-
 DB_URL = os.getenv("DATABASE_URL")
 
-# OPTYMALIZACJA 4/4: Connection Pooling
-# Utwórz pool połączeń do bazy danych
-try:
-    connection_pool = psycopg2.pool.SimpleConnectionPool(
-        minconn=1,      # Minimum połączeń w poolu
-        maxconn=10,     # Maksimum połączeń w poolu  
-        dsn=DB_URL
-    )
-    print("✅ Connection pool utworzony pomyślnie")
-except Exception as e:
-    print(f"❌ Błąd tworzenia connection pool: {e}")
-    connection_pool = None
+# Connection pool dla lepszej wydajności
+connection_pool = None
 
-# Cache aktywnej grupy
-aktywna_grupa_cache = {
-    "numer_grupy": None,
-    "kategoria": None,
-    "plec": None,
-    "nazwa": None
-}
+def init_db_pool():
+    """Inicjalizuje pulę połączeń"""
+    global connection_pool
+    if connection_pool is None:
+        connection_pool = psycopg2.pool.SimpleConnectionPool(
+            1, 20,  # min 1, max 20 połączeń
+            DB_URL
+        )
 
-def get_connection():
-    """Pobiera połączenie z poola lub tworzy nowe jeśli pool niedostępny"""
-    if connection_pool:
-        return connection_pool.getconn()
-    else:
-        # Fallback - zwykłe połączenie jeśli pool nie działa
-        return psycopg2.connect(DB_URL)
+def get_db_connection():
+    """Pobiera połączenie z puli"""
+    global connection_pool
+    if connection_pool is None:
+        init_db_pool()
+    return connection_pool.getconn()
 
-def return_connection(conn):
-    """Zwraca połączenie do poola lub zamyka je jeśli pool niedostępny"""
-    if connection_pool:
-        connection_pool.putconn(conn)
-    else:
-        conn.close()
+def return_db_connection(conn):
+    """Zwraca połączenie do puli"""
+    global connection_pool
+    if connection_pool is not None and conn is not None:
+        try:
+            connection_pool.putconn(conn)
+        except psycopg2.pool.PoolError:
+            # Jeśli wystąpi błąd, spróbuj zainicjować pulę ponownie
+            init_db_pool()
 
 def get_all(query, params=None):
-    """ZOPTYMALIZOWANE: Używa connection pool"""
-    conn = get_connection()
-    cur = conn.cursor()
+    """Pobiera wszystkie rekordy z bazy danych używając connection pooling"""
+    conn = None
     try:
-        if params:
-            cur.execute(query, params)
-        else:
-            cur.execute(query)
-        rows = cur.fetchall()
-        columns = [desc[0] for desc in cur.description]
-        result = [dict(zip(columns, row)) for row in rows]
-        cur.close()
-        return_connection(conn)
-        return result
+        conn = get_db_connection()
+        if conn is None:
+            print("❌ Błąd: Nie udało się uzyskać połączenia z bazą danych")
+            return []
+            
+        cur = conn.cursor()
+        try:
+            if params:
+                print(f"🔍 Wykonuję zapytanie: {query} z parametrami: {params}")
+                cur.execute(query, params)
+            else:
+                print(f"🔍 Wykonuję zapytanie: {query}")
+                cur.execute(query)
+                
+            rows = cur.fetchall()
+            if not rows:
+                print("ℹ️ Zapytanie nie zwróciło żadnych wyników")
+                return []
+                
+            columns = [desc[0] for desc in cur.description]
+            result = [dict(zip(columns, row)) for row in rows]
+            print(f"✅ Znaleziono {len(result)} wyników")
+            return result
+            
+        except Exception as e:
+            print(f"❌ Błąd podczas wykonywania zapytania: {str(e)}")
+            return []
+        finally:
+            cur.close()
     except Exception as e:
-        cur.close()
-        return_connection(conn)
-        raise e
+        print(f"❌ Błąd w get_all: {str(e)}")
+        return []
+    finally:
+        if conn:
+            return_db_connection(conn)
 
 def get_one(query, params=None):
-    """ZOPTYMALIZOWANE: Pobiera pojedynczy rekord z bazy danych używając connection pool"""
-    conn = get_connection()
-    cur = conn.cursor()
+    """Pobiera pojedynczy rekord używając connection pooling"""
+    conn = None
     try:
+        conn = get_db_connection()
+        cur = conn.cursor()
         if params:
             cur.execute(query, params)
         else:
@@ -96,18 +100,17 @@ def get_one(query, params=None):
         else:
             result = None
         cur.close()
-        return_connection(conn)
         return result
-    except Exception as e:
-        cur.close()
-        return_connection(conn)
-        raise e
+    finally:
+        if conn:
+            return_db_connection(conn)
 
 def execute_query(query, params=None):
-    """ZOPTYMALIZOWANE: Wykonuje zapytanie INSERT/UPDATE/DELETE używając connection pool"""
-    conn = get_connection()
-    cur = conn.cursor()
+    """Wykonuje zapytanie używając connection pooling"""
+    conn = None
     try:
+        conn = get_db_connection()
+        cur = conn.cursor()
         if params:
             cur.execute(query, params)
         else:
@@ -115,13 +118,37 @@ def execute_query(query, params=None):
         conn.commit()
         rowcount = cur.rowcount
         cur.close()
-        return_connection(conn)
         return rowcount
     except Exception as e:
-        conn.rollback()
-        cur.close()
-        return_connection(conn)
+        if conn:
+            conn.rollback()
         raise e
+    finally:
+        if conn:
+            return_db_connection(conn)
+
+# Zamykanie puli tylko przy faktycznym wyłączaniu aplikacji
+@app.teardown_appcontext
+def close_db_pool(error):
+    """Zamyka pulę połączeń tylko przy wyłączaniu aplikacji"""
+    global connection_pool
+    if connection_pool is not None:
+        try:
+            connection_pool.closeall()
+        except psycopg2.pool.PoolError:
+            pass  # Ignoruj błąd jeśli pula jest już zamknięta
+        connection_pool = None
+
+# Inicjalizacja puli przy starcie aplikacji
+init_db_pool()
+
+# Cache aktywnej grupy
+aktywna_grupa_cache = {
+    "numer_grupy": None,
+    "kategoria": None,
+    "plec": None,
+    "nazwa": None
+}
 
 def validate_time_format(time_str):
     """Waliduje format czasu MM:SS.ms lub SS.ms"""
@@ -165,7 +192,6 @@ def wyniki():
     return jsonify(rows)
 
 @app.route("/api/zawodnicy")
-@cache.cached(timeout=180)  # Cache na 3 minuty
 def zawodnicy():
     rows = get_all("""
         SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub, z.qr_code,
@@ -177,7 +203,6 @@ def zawodnicy():
     return jsonify(rows)
 
 @app.route("/api/kategorie")
-@cache.cached(timeout=300)  # Cache na 5 minut
 def kategorie():
     # Pobierz kategorie
     kategorie_rows = get_all("SELECT DISTINCT kategoria FROM zawodnicy WHERE kategoria IS NOT NULL ORDER BY kategoria")
@@ -193,15 +218,11 @@ def kategorie():
     })
 
 @app.route("/api/statystyki")
-@cache.cached(timeout=180)  # Cache na 3 minuty
 def statystyki():
     """Endpoint zwracający statystyki zawodników według kategorii i płci"""
     rows = get_all("""
-        SELECT kategoria, plec, COUNT(*) as liczba
-        FROM zawodnicy 
-        WHERE kategoria IS NOT NULL AND plec IS NOT NULL
-        GROUP BY kategoria, plec 
-        ORDER BY kategoria, plec
+        SELECT kategoria, plec, liczba
+        FROM mv_statystyki_kategorie_plec
     """)
     
     # Przekształć dane na bardziej czytelny format
@@ -230,7 +251,6 @@ def statystyki():
     })
 
 @app.route("/api/kluby")
-@cache.cached(timeout=300)  # Cache na 5 minut
 def kluby():
     """Endpoint zwracający listę klubów z liczbą zawodników"""
     # Pobierz kluby z liczbą zawodników
@@ -369,7 +389,6 @@ def update_wynik():
     return jsonify({"message": "Wynik zaktualizowany"}), 200
 
 @app.route("/api/drabinka")
-@cache.cached(timeout=120)  # Cache na 2 minuty (zmienia się z wynikami)
 def drabinka():
     """Endpoint zwracający drabinkę turniejową"""
     try:
@@ -843,24 +862,20 @@ def qr_generate_for_zawodnik(nr_startowy):
         return jsonify({"error": str(e)}), 500
 
 @app.route("/api/qr/stats")
-@cache.cached(timeout=60)  # Cache na 1 minutę (może się zmieniać częściej)
 def qr_stats():
-    """Endpoint zwracający statystyki QR kodów - ZOPTYMALIZOWANY"""
+    """Endpoint zwracający statystyki QR kodów"""
     try:
-        # OPTYMALIZACJA: Jedno zapytanie zamiast trzech oddzielnych
-        basic_stats = get_one("""
-            SELECT 
-                COUNT(*) as total,
-                COUNT(CASE WHEN qr_code IS NOT NULL THEN 1 END) as with_qr,
-                COUNT(CASE WHEN checked_in = TRUE THEN 1 END) as checked_in
-            FROM zawodnicy
-        """)
+        # Podstawowe statystyki
+        total_data = get_all("SELECT COUNT(*) as total FROM zawodnicy")
+        total = total_data[0]['total'] if total_data else 0
         
-        total = basic_stats['total'] if basic_stats else 0
-        with_qr = basic_stats['with_qr'] if basic_stats else 0
-        checked_in = basic_stats['checked_in'] if basic_stats else 0
+        with_qr_data = get_all("SELECT COUNT(*) as with_qr FROM zawodnicy WHERE qr_code IS NOT NULL")
+        with_qr = with_qr_data[0]['with_qr'] if with_qr_data else 0
         
-        # Statystyki checkpointów - pozostaje bez zmian (już optymalne)
+        checked_in_data = get_all("SELECT COUNT(*) as checked_in FROM zawodnicy WHERE checked_in = TRUE")
+        checked_in = checked_in_data[0]['checked_in'] if checked_in_data else 0
+        
+        # Statystyki checkpointów
         checkpoint_stats = get_all("""
             SELECT checkpoint_name, COUNT(*) as count
             FROM checkpoints
@@ -905,34 +920,35 @@ def frontend_static(filename):
         return send_from_directory(frontend_path, 'index.html')
 
 @app.route("/api/qr/dashboard")
-@cache.cached(timeout=120)  # Cache na 2 minuty
 def qr_dashboard():
     """Endpoint dla QR Admin Dashboard - kompleksowe statystyki"""
     try:
-        # Podstawowe statystyki
+        # Podstawowe statystyki z materialized view
         basic_stats = get_all("""
             SELECT 
-                COUNT(*) as total_zawodnikow,
-                COUNT(CASE WHEN qr_code IS NOT NULL THEN 1 END) as z_qr_kodami,
-                COUNT(CASE WHEN checked_in = TRUE THEN 1 END) as zameldowanych,
-                COUNT(CASE WHEN qr_code IS NULL THEN 1 END) as bez_qr_kodow
-            FROM zawodnicy
+                SUM(total_zawodnikow) as total_zawodnikow,
+                SUM(z_qr_kodami) as z_qr_kodami,
+                SUM(zameldowanych) as zameldowanych,
+                SUM(bez_qr_kodow) as bez_qr_kodow
+            FROM mv_statystyki_qr
         """)[0]
         
-        # Statystyki według kategorii
+        # Statystyki według kategorii z materialized view
         category_stats = get_all("""
             SELECT 
                 kategoria,
-                COUNT(*) as total,
-                COUNT(CASE WHEN checked_in = TRUE THEN 1 END) as zameldowanych,
-                COUNT(CASE WHEN w.status = 'FINISHED' THEN 1 END) as z_wynikami
-            FROM zawodnicy z
-            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+                SUM(total_zawodnikow) as total,
+                SUM(zameldowanych) as zameldowanych,
+                (SELECT COUNT(*) 
+                 FROM mv_statystyki_wyniki w 
+                 WHERE w.kategoria = q.kategoria 
+                 AND w.status = 'FINISHED') as z_wynikami
+            FROM mv_statystyki_qr q
             GROUP BY kategoria
             ORDER BY kategoria
         """)
         
-        # Ostatnie checkpointy
+        # Ostatnie checkpointy - te zostawiamy bez zmian, bo potrzebujemy aktualnych danych
         recent_checkpoints = get_all("""
             SELECT 
                 c.nr_startowy,
@@ -948,91 +964,15 @@ def qr_dashboard():
             LIMIT 20
         """)
         
-        # Aktywność urządzeń (ostatnie 24h)
-        device_activity = get_all("""
-            SELECT 
-                device_id,
-                COUNT(*) as total_scans,
-                MAX(timestamp) as last_activity,
-                COUNT(CASE WHEN checkpoint_name = 'check-in' THEN 1 END) as check_ins,
-                COUNT(CASE WHEN checkpoint_name = 'finish' THEN 1 END) as results
-            FROM checkpoints
-            WHERE timestamp >= NOW() - INTERVAL '24 hours'
-            GROUP BY device_id
-            ORDER BY last_activity DESC
-        """)
-        
-        # Postęp zawodów według godzin (dzisiaj)
-        hourly_progress = get_all("""
-            SELECT 
-                DATE_TRUNC('hour', timestamp) as hour,
-                COUNT(*) as scans,
-                COUNT(CASE WHEN checkpoint_name = 'check-in' THEN 1 END) as check_ins,
-                COUNT(CASE WHEN checkpoint_name = 'finish' THEN 1 END) as results
-            FROM checkpoints
-            WHERE timestamp >= CURRENT_DATE
-            GROUP BY DATE_TRUNC('hour', timestamp)
-            ORDER BY hour
-        """)
-        
-        # Problematyczne sytuacje
-        issues = []
-        
-        # Zawodnicy zameldowani ale bez wyników (po 2h od check-in)
-        no_results = get_all("""
-            SELECT 
-                z.nr_startowy,
-                z.imie,
-                z.nazwisko,
-                z.kategoria,
-                z.check_in_time
-            FROM zawodnicy z
-            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
-            WHERE z.checked_in = TRUE 
-            AND w.status IS NULL
-            AND z.check_in_time < NOW() - INTERVAL '2 hours'
-            LIMIT 10
-        """)
-        
-        if no_results:
-            issues.append({
-                "type": "no_results",
-                "title": "Zawodnicy bez wyników (>2h od check-in)",
-                "count": len(no_results),
-                "details": no_results
-            })
-        
-        # Duplikaty QR kodów
-        duplicate_qr = get_all("""
-            SELECT qr_code, COUNT(*) as count
-            FROM zawodnicy
-            WHERE qr_code IS NOT NULL
-            GROUP BY qr_code
-            HAVING COUNT(*) > 1
-        """)
-        
-        if duplicate_qr:
-            issues.append({
-                "type": "duplicate_qr",
-                "title": "Duplikaty QR kodów",
-                "count": len(duplicate_qr),
-                "details": duplicate_qr
-            })
-        
         return jsonify({
-            "success": True,
-            "basic_stats": basic_stats,
-            "category_stats": category_stats,
-            "recent_checkpoints": recent_checkpoints,
-            "device_activity": device_activity,
-            "hourly_progress": hourly_progress,
-            "issues": issues,
-            "timestamp": __import__('datetime').datetime.now().isoformat()
-        }), 200
+            'basic_stats': basic_stats,
+            'category_stats': category_stats,
+            'recent_checkpoints': recent_checkpoints
+        })
         
     except Exception as e:
-        print(f"Błąd w QR dashboard: {e}")
-        return jsonify({"error": str(e)}), 500
+        print(f"Błąd w QR dashboard: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route("/api/qr/live-feed")
 def qr_live_feed():
@@ -1243,7 +1183,6 @@ def qr_generate_bulk():
         return jsonify({"error": str(e)}), 500
 
 @app.route("/api/grupy-startowe")
-@cache.cached(timeout=60)  # Cache na 1 minutę
 def grupy_startowe():
     """Endpoint zwracający grupy startowe na podstawie zameldowanych zawodników"""
     try:
@@ -1562,24 +1501,42 @@ def clear_start_queue():
 
 @app.route("/api/start-queue/remove/<int:nr_startowy>", methods=['DELETE'])
 def remove_from_start_queue(nr_startowy):
-    """NAPRAWIONE: Usuwa pojedynczego zawodnika z kolejki startowej"""
+    """Usuwa pojedynczego zawodnika z kolejki startowej"""
     try:
         # Sprawdź czy zawodnik ma checkpoint start-line-verify (skanowany)
-        deleted_checkpoint = execute_query("""
-            DELETE FROM checkpoints 
+        existing_checkpoint = get_all("""
+            SELECT id FROM checkpoints 
             WHERE checkpoint_name = 'start-line-verify' AND nr_startowy = %s
         """, (nr_startowy,))
         
-        if deleted_checkpoint > 0:
-            # Zawodnik skanowany - został usunięty checkpoint
-            return jsonify({
-                "success": True,
-                "message": f"Usunięto zawodnika #{nr_startowy} z kolejki skanowanych",
-                "type": "skanowany"
-            }), 200
+        if existing_checkpoint:
+            # Zawodnik skanowany - usuń checkpoint
+            deleted_count = execute_query("""
+                DELETE FROM checkpoints 
+                WHERE checkpoint_name = 'start-line-verify' AND nr_startowy = %s
+            """, (nr_startowy,))
+            
+            if deleted_count > 0:
+                # Pobierz dane zawodnika dla logów
+                zawodnik = get_one("""
+                    SELECT imie, nazwisko FROM zawodnicy WHERE nr_startowy = %s
+                """, (nr_startowy,))
+                
+                if zawodnik:
+                    print(f"✅ Usunięto checkpoint skanu: {zawodnik['imie']} {zawodnik['nazwisko']} (#{nr_startowy})")
+                    return jsonify({
+                        "success": True,
+                        "message": f"Usunięto checkpoint skanu zawodnika #{nr_startowy}",
+                        "type": "skanowany"
+                    }), 200
+                else:
+                    return jsonify({"success": False, "message": "Nie znaleziono zawodnika"}), 404
+            else:
+                return jsonify({"success": False, "message": "Checkpoint nie został usunięty"}), 404
         else:
-            # Zawodnik z aktywnej grupy - sprawdź czy już nie jest ukryty
-            existing_hidden = get_one("""
+            # Zawodnik z aktywnej grupy - dodaj checkpoint "hidden-from-queue"
+            # Sprawdź czy już nie jest ukryty
+            existing_hidden = get_all("""
                 SELECT id FROM checkpoints 
                 WHERE checkpoint_name = 'hidden-from-queue' AND nr_startowy = %s
             """, (nr_startowy,))
@@ -1589,7 +1546,7 @@ def remove_from_start_queue(nr_startowy):
                     "success": False, 
                     "message": f"Zawodnik #{nr_startowy} jest już ukryty"
                 }), 400
-            
+                
             # Sprawdź czy zawodnik istnieje
             zawodnik = get_one("""
                 SELECT imie, nazwisko FROM zawodnicy WHERE nr_startowy = %s
@@ -1604,15 +1561,94 @@ def remove_from_start_queue(nr_startowy):
                 VALUES (%s, 'hidden-from-queue', NOW())
             """, (nr_startowy,))
             
+            print(f"✅ Ukryto zawodnika z aktywnej grupy: {zawodnik['imie']} {zawodnik['nazwisko']} (#{nr_startowy})")
+            
             return jsonify({
                 "success": True,
-                "message": f"Ukryto zawodnika #{nr_startowy} z kolejki",
+                "message": f"Ukryto zawodnika #{nr_startowy} z kolejki (można przywrócić poprzez aktywację grupy)",
                 "type": "ukryty"
             }), 200
             
     except Exception as e:
         print(f"Błąd w remove-from-start-queue: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route("/api/version")
+def get_version():
+    """Zwraca aktualną wersję API"""
+    try:
+        with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'VERSION'), 'r') as f:
+            version = f.readline().strip()
+        return jsonify({
+            "version": version,
+            "name": "Drabinka Turniejowa API",
+            "environment": "production" if os.getenv("PRODUCTION") else "development"
+        })
+    except Exception as e:
+        print(f"Błąd przy odczycie wersji: {e}")
+        return jsonify({"version": "unknown", "error": str(e)}), 500
+
+def get_statystyki_turnieju():
+    """Pobiera statystyki turnieju z cache lub bazy danych"""
+    cache_key = 'statystyki_turnieju'
+    cached_data = app_cache.get(cache_key)
+    if cached_data:
+        return cached_data
+
+    # Jeśli nie ma w cache, pobierz z bazy
+    stats = {
+        'liczba_zawodnikow': get_one("SELECT COUNT(*) as count FROM zawodnicy")['count'],
+        'liczba_kategorii': get_one("SELECT COUNT(DISTINCT kategoria) as count FROM zawodnicy")['count'],
+        'liczba_klubow': get_one("SELECT COUNT(DISTINCT klub) as count FROM zawodnicy")['count'],
+        'liczba_walk': get_one("SELECT COUNT(*) as count FROM walki")['count']
+    }
+    
+    # Zapisz w cache na 5 minut
+    app_cache.set(cache_key, stats, ttl=300)
+    return stats
+
+def get_lista_kategorii():
+    """Pobiera listę kategorii z cache lub bazy danych"""
+    cache_key = 'lista_kategorii'
+    cached_data = app_cache.get(cache_key)
+    if cached_data:
+        return cached_data
+
+    kategorie = get_all("SELECT DISTINCT kategoria, plec FROM zawodnicy ORDER BY kategoria, plec")
+    app_cache.set(cache_key, kategorie, ttl=600)  # cache na 10 minut
+    return kategorie
+
+# Invalidacja cache przy zmianach
+def invalidate_cache_after_change():
+    """Funkcja do invalidacji cache po zmianach w danych"""
+    app_cache.delete('statystyki_turnieju')
+    app_cache.delete('lista_kategorii')
+
+# Dodajemy nowy endpoint do odświeżania materialized views
+@app.route("/api/admin/refresh-stats", methods=['POST'])
+def refresh_materialized_views():
+    """Odświeża wszystkie materialized views"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # Odśwież każdy materialized view osobno
+        cur.execute("""
+            REFRESH MATERIALIZED VIEW mv_statystyki_kategorie_plec;
+            REFRESH MATERIALIZED VIEW mv_statystyki_wyniki;
+        """)
+        
+        conn.commit()
+        cur.close()
+        
+        # Invalidate cache
+        invalidate_cache_after_change()
+        
+        return jsonify({"status": "success", "message": "Statystyki odświeżone pomyślnie"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+    finally:
+        return_db_connection(conn)
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
