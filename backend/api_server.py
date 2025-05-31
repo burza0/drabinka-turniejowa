@@ -1377,7 +1377,6 @@ def set_grupa_aktywna():
         return jsonify({"error": str(e)}), 500
 
 @app.route("/api/start-queue", methods=['GET'])
-@cache.cached(timeout=30)  # Cache na 30 sekund (częste zmiany w kolejce)
 def get_start_queue():
     """Pobierz kolejkę zawodników oczekujących na starcie"""
     try:
@@ -1563,56 +1562,41 @@ def clear_start_queue():
 
 @app.route("/api/start-queue/remove/<int:nr_startowy>", methods=['DELETE'])
 def remove_from_start_queue(nr_startowy):
-    """ZOPTYMALIZOWANE: Usuwa pojedynczego zawodnika z kolejki startowej"""
+    """NAPRAWIONE: Usuwa pojedynczego zawodnika z kolejki startowej"""
     try:
-        # OPTYMALIZACJA: Jednoczesne sprawdzenie i usuwanie checkpoint w jednym zapytaniu
+        # Sprawdź czy zawodnik ma checkpoint start-line-verify (skanowany)
         deleted_checkpoint = execute_query("""
             DELETE FROM checkpoints 
             WHERE checkpoint_name = 'start-line-verify' AND nr_startowy = %s
         """, (nr_startowy,))
         
         if deleted_checkpoint > 0:
-            # Zawodnik miał checkpoint skanu - został usunięty
-            # Pobierz dane zawodnika tylko do logów (opcjonalne)
-            zawodnik = get_one("""
-                SELECT imie, nazwisko FROM zawodnicy WHERE nr_startowy = %s
-            """, (nr_startowy,))
-            
-            if zawodnik:
-                print(f"✅ Usunięto checkpoint skanu: {zawodnik['imie']} {zawodnik['nazwisko']} (#{nr_startowy})")
-            
-            # OPTYMALIZACJA: Usuń cache dla endpointu start-queue
-            cache.delete_memoized(get_start_queue)
-            
+            # Zawodnik skanowany - został usunięty checkpoint
             return jsonify({
                 "success": True,
-                "message": f"Usunięto checkpoint skanu zawodnika #{nr_startowy}",
+                "message": f"Usunięto zawodnika #{nr_startowy} z kolejki skanowanych",
                 "type": "skanowany"
             }), 200
         else:
-            # Zawodnik nie miał checkpoint skanu - znaczy że jest z aktywnej grupy
-            # OPTYMALIZACJA: Sprawdź czy już nie jest ukryty i dodaj w jednym zapytaniu
-            
-            # Sprawdź czy zawodnik istnieje i czy już nie jest ukryty
-            zawodnik_info = get_one("""
-                SELECT 
-                    z.imie, 
-                    z.nazwisko,
-                    CASE WHEN c.id IS NOT NULL THEN true ELSE false END as already_hidden
-                FROM zawodnicy z
-                LEFT JOIN checkpoints c ON z.nr_startowy = c.nr_startowy 
-                    AND c.checkpoint_name = 'hidden-from-queue'
-                WHERE z.nr_startowy = %s
+            # Zawodnik z aktywnej grupy - sprawdź czy już nie jest ukryty
+            existing_hidden = get_one("""
+                SELECT id FROM checkpoints 
+                WHERE checkpoint_name = 'hidden-from-queue' AND nr_startowy = %s
             """, (nr_startowy,))
             
-            if not zawodnik_info:
-                return jsonify({"success": False, "message": "Nie znaleziono zawodnika"}), 404
-            
-            if zawodnik_info['already_hidden']:
+            if existing_hidden:
                 return jsonify({
                     "success": False, 
                     "message": f"Zawodnik #{nr_startowy} jest już ukryty"
                 }), 400
+            
+            # Sprawdź czy zawodnik istnieje
+            zawodnik = get_one("""
+                SELECT imie, nazwisko FROM zawodnicy WHERE nr_startowy = %s
+            """, (nr_startowy,))
+            
+            if not zawodnik:
+                return jsonify({"success": False, "message": "Nie znaleziono zawodnika"}), 404
             
             # Dodaj checkpoint ukrycia
             execute_query("""
@@ -1620,14 +1604,9 @@ def remove_from_start_queue(nr_startowy):
                 VALUES (%s, 'hidden-from-queue', NOW())
             """, (nr_startowy,))
             
-            print(f"✅ Ukryto zawodnika z aktywnej grupy: {zawodnik_info['imie']} {zawodnik_info['nazwisko']} (#{nr_startowy})")
-            
-            # OPTYMALIZACJA: Usuń cache dla endpointu start-queue
-            cache.delete_memoized(get_start_queue)
-            
             return jsonify({
                 "success": True,
-                "message": f"Ukryto zawodnika #{nr_startowy} z kolejki (można przywrócić poprzez aktywację grupy)",
+                "message": f"Ukryto zawodnika #{nr_startowy} z kolejki",
                 "type": "ukryty"
             }), 200
             
