@@ -1,0 +1,28 @@
+# Frontend development files (nie potrzebne na Heroku, bo backend serwuje statykę)
+frontend/node_modules/
+frontend/src/
+frontend/public/
+frontend/*.json
+frontend/*.js
+frontend/*.ts
+frontend/*.md
+
+# Development files
+*.log
+*.pyc
+__pycache__/
+.git/
+.gitignore
+.env.example
+check_production_readiness.py
+OPTYMALIZACJE_V30.3.md
+DEPLOYMENT_V30.2.md
+RAPORT_OPTYMALIZACJI.md
+
+# Documentation
+*.md
+!README.md
+
+# IDE
+.vscode/
+.idea/ 
