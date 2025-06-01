@@ -494,7 +494,7 @@ const tabs = [
   { id: 'drabinka', name: 'Drabinka', icon: TrophyIcon, adminOnly: false },
   { id: 'rankingi', name: 'Rankingi', icon: ListBulletIcon, adminOnly: false },
   { id: 'grupy-startowe', name: 'Grupy Startowe', icon: UsersIcon, adminOnly: true },
-  { id: 'start-line', name: 'Linia Startu', icon: QrCodeIcon, adminOnly: true },
+  { id: 'start-line', name: 'Centrum Startu', icon: QrCodeIcon, adminOnly: true },
   { id: 'qr-print', name: 'Drukowanie QR', icon: PrinterIcon, adminOnly: true },
   { id: 'qr-dashboard', name: 'QR Dashboard', icon: QrCodeIcon, adminOnly: true }
 ]

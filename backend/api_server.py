@@ -1593,18 +1593,20 @@ def remove_from_start_queue(nr_startowy):
 
 @app.route("/api/version")
 def get_version():
-    """Zwraca aktualną wersję API"""
-    try:
-        with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'VERSION'), 'r') as f:
-            version = f.readline().strip()
-        return jsonify({
-            "version": version,
-            "name": "Drabinka Turniejowa API",
-            "environment": "production" if os.getenv("PRODUCTION") else "development"
-        })
-    except Exception as e:
-        print(f"Błąd przy odczycie wersji: {e}")
-        return jsonify({"version": "unknown", "error": str(e)}), 500
+    """Zwraca informacje o wersji API"""
+    return jsonify({
+        "name": "Drabinka Turniejowa API",
+        "version": "30.3",
+        "environment": os.getenv("ENVIRONMENT", "development"),
+        "features": [
+            "StartLineScanner v30.3 - Skonsolidowane centrum startu",
+            "Zarządzanie grupami startowymi",
+            "QR Scanner z weryfikacją",
+            "Auto-refresh optimized (8s intervals)",
+            "Dwukolumnowy layout",
+            "Ulepszone statystyki"
+        ]
+    }), 200
 
 def get_statystyki_turnieju():
     """Pobiera statystyki turnieju z cache lub bazy danych"""
