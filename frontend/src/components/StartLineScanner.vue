@@ -358,6 +358,9 @@ const cameraActive = ref(true)
 const refreshInterval = ref(8000) // 8 sekund
 let refreshTimer: number | null = null
 
+// Debounced queue loading to prevent race conditions
+let loadKolejkaTimeout: number | null = null
+
 // Computed
 const totalZawodnikow = computed(() => {
   return grupy.value.reduce((sum, g) => sum + g.liczba_zawodnikow, 0)
@@ -381,7 +384,14 @@ const loadKolejka = async () => {
     const response = await fetch('/api/start-queue')
     if (response.ok) {
       const data = await response.json()
-      kolejka_zawodnikow.value = data.queue || []
+      // Sprawdź czy dane się rzeczywiście zmieniły przed aktualizacją
+      const newCount = data.queue?.length || 0
+      const currentCount = kolejka_zawodnikow.value.length
+      
+      // Aktualizuj tylko jeśli dane się zmieniły lub lista jest pusta
+      if (newCount !== currentCount || kolejka_zawodnikow.value.length === 0) {
+        kolejka_zawodnikow.value = data.queue || []
+      }
     }
   } catch (error) {
     console.error('Błąd ładowania kolejki:', error)
@@ -438,7 +448,7 @@ const setAktywnaGrupa = async (grupa: Grupa) => {
     
     if (response.ok) {
       aktualna_grupa.value = grupa
-      await loadKolejka() // Odśwież kolejkę
+      debouncedLoadKolejka()
       showSuccess(`Ustawiono aktywną grupę: ${grupa.nazwa}`)
     }
   } catch (error) {
@@ -458,7 +468,7 @@ const clearAktywnaGrupa = async () => {
     
     if (response.ok) {
       aktualna_grupa.value = null
-      await loadKolejka()
+      debouncedLoadKolejka()
       showSuccess('Wyczyszczono aktywną grupę')
     }
   } catch (error) {
@@ -486,7 +496,7 @@ const handleQRCode = async () => {
       const data = await response.json()
       lastVerification.value = data
       manualQrCode.value = ''
-      await loadKolejka()
+      debouncedLoadKolejka()
     } else {
       const error = await response.json()
       lastVerification.value = {
@@ -523,7 +533,7 @@ const removeFromQueue = async (zawodnik: Zawodnik) => {
     })
     
     if (response.ok) {
-      await loadKolejka()
+      debouncedLoadKolejka()
       showSuccess(`Usunięto zawodnika #${zawodnik.nr_startowy} z kolejki`)
     } else {
       const error = await response.json()
@@ -550,7 +560,7 @@ const clearQueue = async (type: 'all' | 'scanned') => {
     })
     
     if (response.ok) {
-      await loadKolejka()
+      debouncedLoadKolejka()
       showSuccess(`Wyczyszczono kolejkę: ${type}`)
     }
   } catch (error) {
@@ -621,8 +631,11 @@ const startAutoRefresh = () => {
   if (refreshTimer) clearInterval(refreshTimer)
   
   refreshTimer = setInterval(() => {
-    if (!cameraActive.value || loading.value) return
-    loadKolejka() // Odświeżaj tylko kolejkę, nie wszystko
+    // Nie odświeżaj jeśli trwa ładowanie lub przetwarzanie
+    if (loading.value || processing.value) return
+    
+    // Odświeżaj tylko kolejkę w auto-refresh, nie wszystko
+    loadKolejka()
   }, refreshInterval.value)
 }
 
@@ -631,6 +644,15 @@ const stopAutoRefresh = () => {
     clearInterval(refreshTimer)
     refreshTimer = null
   }
+}
+
+// Debounced queue loading to prevent race conditions
+const debouncedLoadKolejka = () => {
+  if (loadKolejkaTimeout) clearTimeout(loadKolejkaTimeout)
+  
+  loadKolejkaTimeout = setTimeout(() => {
+    loadKolejka()
+  }, 300) // 300ms debounce
 }
 
 // Lifecycle
