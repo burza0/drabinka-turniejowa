@@ -1,0 +1,1590 @@
+ * Serving Flask app 'api_server'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.0.187:5000
+[33mPress CTRL+C to quit[0m
+127.0.0.1 - - [01/Jun/2025 23:34:00] "GET /api/zawodnicy HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:34:09] "GET /api/kluby HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:34:15] "GET /api/drabinka HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:34:22] "GET /api/drabinka HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:34:52] "GET /api/drabinka HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:35:04] "GET /api/drabinka HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:35:13] "GET /api/zawodnicy HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:35:13] "GET /api/kluby HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:35:15] "GET /api/drabinka HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:35:28] "GET /api/grupy-startowe HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:35:30] "POST /api/grupa-aktywna HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:35:32] "GET /api/start-queue HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:35:35] "DELETE /api/start-queue/remove/38 HTTP/1.1" 200 -
+🔍 Wykonuję zapytanie: 
+        SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub, z.qr_code,
+               w.czas_przejazdu_s, w.status
+        FROM zawodnicy z
+        LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+        ORDER BY z.nr_startowy
+    
+✅ Znaleziono 251 wyników
+🔍 Wykonuję zapytanie: 
+        SELECT k.id, k.nazwa, k.miasto, k.utworzony_date,
+               COUNT(z.nr_startowy) as liczba_zawodnikow,
+               SUM(CASE WHEN z.plec = 'M' THEN 1 ELSE 0 END) as mezczyzni,
+               SUM(CASE WHEN z.plec = 'K' THEN 1 ELSE 0 END) as kobiety
+        FROM kluby k
+        LEFT JOIN zawodnicy z ON k.nazwa = z.klub
+        GROUP BY k.id, k.nazwa, k.miasto, k.utworzony_date
+        ORDER BY liczba_zawodnikow DESC, k.nazwa
+    
+✅ Znaleziono 13 wyników
+🔍 Wykonuję zapytanie: SELECT DISTINCT nazwa FROM kluby ORDER BY nazwa
+✅ Znaleziono 13 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                   w.czas_przejazdu_s, w.status
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE z.kategoria IS NOT NULL AND z.plec IS NOT NULL
+            ORDER BY z.kategoria, z.plec, w.czas_przejazdu_s ASC NULLS LAST
+        
+✅ Znaleziono 251 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                   w.czas_przejazdu_s, w.status
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE z.kategoria IS NOT NULL AND z.plec IS NOT NULL
+            ORDER BY z.kategoria, z.plec, w.czas_przejazdu_s ASC NULLS LAST
+        
+✅ Znaleziono 251 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                   w.czas_przejazdu_s, w.status
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE z.kategoria IS NOT NULL AND z.plec IS NOT NULL
+            ORDER BY z.kategoria, z.plec, w.czas_przejazdu_s ASC NULLS LAST
+        
+✅ Znaleziono 251 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                   w.czas_przejazdu_s, w.status
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE z.kategoria IS NOT NULL AND z.plec IS NOT NULL
+            ORDER BY z.kategoria, z.plec, w.czas_przejazdu_s ASC NULLS LAST
+        
+✅ Znaleziono 251 wyników
+🔍 Wykonuję zapytanie: 
+        SELECT k.id, k.nazwa, k.miasto, k.utworzony_date,
+               COUNT(z.nr_startowy) as liczba_zawodnikow,
+               SUM(CASE WHEN z.plec = 'M' THEN 1 ELSE 0 END) as mezczyzni,
+               SUM(CASE WHEN z.plec = 'K' THEN 1 ELSE 0 END) as kobiety
+        FROM kluby k
+        LEFT JOIN zawodnicy z ON k.nazwa = z.klub
+        GROUP BY k.id, k.nazwa, k.miasto, k.utworzony_date
+        ORDER BY liczba_zawodnikow DESC, k.nazwa
+    
+🔍 Wykonuję zapytanie: 
+        SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub, z.qr_code,
+               w.czas_przejazdu_s, w.status
+        FROM zawodnicy z
+        LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+        ORDER BY z.nr_startowy
+    
+✅ Znaleziono 13 wyników
+✅ Znaleziono 251 wyników
+🔍 Wykonuję zapytanie: SELECT DISTINCT nazwa FROM kluby ORDER BY nazwa
+✅ Znaleziono 13 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                   w.czas_przejazdu_s, w.status
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE z.kategoria IS NOT NULL AND z.plec IS NOT NULL
+            ORDER BY z.kategoria, z.plec, w.czas_przejazdu_s ASC NULLS LAST
+        
+✅ Znaleziono 251 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                kategoria,
+                plec,
+                COUNT(*) as liczba_zameldowanych,
+                STRING_AGG(
+                    CONCAT(nr_startowy, ': ', imie, ' ', nazwisko, ' (', klub, ')'), 
+                    E'
+' ORDER BY nr_startowy
+                ) as lista_zawodnikow,
+                STRING_AGG(nr_startowy::text, ',' ORDER BY nr_startowy) as numery_startowe
+            FROM zawodnicy 
+            WHERE checked_in = TRUE AND kategoria IS NOT NULL
+            GROUP BY kategoria, plec 
+            ORDER BY kategoria, plec
+        
+✅ Znaleziono 12 wyników
+🔄 Przywrócono 1 ukrytych zawodników z grupy Grupa 1: Junior A K
+✅ Ustawiono aktywną grupę: Grupa 1: Junior A K
+🔍 Wykonuję zapytanie: 
+            SELECT DISTINCT
+                z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                c.timestamp as ostatni_skan,
+                w.czas_przejazdu_s,
+                w.status,
+                'SKANOWANY' as source_type
+            FROM zawodnicy z
+            JOIN checkpoints c ON z.nr_startowy = c.nr_startowy 
+                AND c.checkpoint_name = 'start-line-verify'
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            ORDER BY c.timestamp ASC
+        
+ℹ️ Zapytanie nie zwróciło żadnych wyników
+🔍 Wykonuję zapytanie: 
+                SELECT DISTINCT
+                    z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                    NULL as ostatni_skan,
+                    w.czas_przejazdu_s,
+                    w.status,
+                    'AKTYWNA_GRUPA' as source_type
+                FROM zawodnicy z
+                LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+                WHERE z.checked_in = TRUE 
+                AND z.kategoria = %s 
+                AND z.plec = %s
+                AND z.nr_startowy NOT IN (
+                    SELECT nr_startowy FROM checkpoints 
+                    WHERE checkpoint_name = 'start-line-verify'
+                )
+                AND z.nr_startowy NOT IN (
+                    SELECT nr_startowy FROM checkpoints 
+                    WHERE checkpoint_name = 'hidden-from-queue'
+                )
+                ORDER BY z.nr_startowy ASC
+             z parametrami: ('Junior A', 'K')
+✅ Znaleziono 1 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT id FROM checkpoints 
+            WHERE checkpoint_name = 'start-line-verify' AND nr_startowy = %s
+         z parametrami: (38,)
+ℹ️ Zapytanie nie zwróciło żadnych wyników
+🔍 Wykonuję zapytanie: 
+                SELECT id FROM checkpoints 
+                WHERE checkpoint_name = 'hidden-from-queue' AND nr_startowy = %s
+             z parametrami: (38,)
+ℹ️ Zapytanie nie zwróciło żadnych wyników
+✅ Ukryto zawodnika z aktywnej grupy: Urszula Szewczyk (#38)
+🔍 Wykonuję zapytanie: 
+            SELECT DISTINCT
+                z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                c.timestamp as ostatni_skan,
+                w.czas_przejazdu_s,
+                w.status,
+                'SKANOWANY' as source_type
+            FROM zawodnicy z
+            JOIN checkpoints c ON z.nr_startowy = c.nr_startowy 
+                AND c.checkpoint_name = 'start-line-verify'
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            ORDER BY c.timestamp ASC
+        
+ℹ️ Zapytanie nie zwróciło żadnych wyników
+127.0.0.1 - - [01/Jun/2025 23:35:36] "GET /api/start-queue HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:35:37] "GET /api/start-queue HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:35:37] "GET /api/grupy-startowe HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:35:39] "POST /api/grupa-aktywna HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:35:42] "GET /api/start-queue HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:35:46] "DELETE /api/start-queue/remove/5 HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:35:47] "GET /api/start-queue HTTP/1.1" 200 -
+🔍 Wykonuję zapytanie: 
+                SELECT DISTINCT
+                    z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                    NULL as ostatni_skan,
+                    w.czas_przejazdu_s,
+                    w.status,
+                    'AKTYWNA_GRUPA' as source_type
+                FROM zawodnicy z
+                LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+                WHERE z.checked_in = TRUE 
+                AND z.kategoria = %s 
+                AND z.plec = %s
+                AND z.nr_startowy NOT IN (
+                    SELECT nr_startowy FROM checkpoints 
+                    WHERE checkpoint_name = 'start-line-verify'
+                )
+                AND z.nr_startowy NOT IN (
+                    SELECT nr_startowy FROM checkpoints 
+                    WHERE checkpoint_name = 'hidden-from-queue'
+                )
+                ORDER BY z.nr_startowy ASC
+             z parametrami: ('Junior A', 'K')
+ℹ️ Zapytanie nie zwróciło żadnych wyników
+🔍 Wykonuję zapytanie: 
+            SELECT DISTINCT
+                z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                c.timestamp as ostatni_skan,
+                w.czas_przejazdu_s,
+                w.status,
+                'SKANOWANY' as source_type
+            FROM zawodnicy z
+            JOIN checkpoints c ON z.nr_startowy = c.nr_startowy 
+                AND c.checkpoint_name = 'start-line-verify'
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            ORDER BY c.timestamp ASC
+        
+ℹ️ Zapytanie nie zwróciło żadnych wyników
+🔍 Wykonuję zapytanie: 
+                SELECT DISTINCT
+                    z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                    NULL as ostatni_skan,
+                    w.czas_przejazdu_s,
+                    w.status,
+                    'AKTYWNA_GRUPA' as source_type
+                FROM zawodnicy z
+                LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+                WHERE z.checked_in = TRUE 
+                AND z.kategoria = %s 
+                AND z.plec = %s
+                AND z.nr_startowy NOT IN (
+                    SELECT nr_startowy FROM checkpoints 
+                    WHERE checkpoint_name = 'start-line-verify'
+                )
+                AND z.nr_startowy NOT IN (
+                    SELECT nr_startowy FROM checkpoints 
+                    WHERE checkpoint_name = 'hidden-from-queue'
+                )
+                ORDER BY z.nr_startowy ASC
+             z parametrami: ('Junior A', 'K')
+ℹ️ Zapytanie nie zwróciło żadnych wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                kategoria,
+                plec,
+                COUNT(*) as liczba_zameldowanych,
+                STRING_AGG(
+                    CONCAT(nr_startowy, ': ', imie, ' ', nazwisko, ' (', klub, ')'), 
+                    E'
+' ORDER BY nr_startowy
+                ) as lista_zawodnikow,
+                STRING_AGG(nr_startowy::text, ',' ORDER BY nr_startowy) as numery_startowe
+            FROM zawodnicy 
+            WHERE checked_in = TRUE AND kategoria IS NOT NULL
+            GROUP BY kategoria, plec 
+            ORDER BY kategoria, plec
+        
+✅ Znaleziono 12 wyników
+✅ Ustawiono aktywną grupę: Grupa 2: Junior A M
+🔍 Wykonuję zapytanie: 
+            SELECT DISTINCT
+                z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                c.timestamp as ostatni_skan,
+                w.czas_przejazdu_s,
+                w.status,
+                'SKANOWANY' as source_type
+            FROM zawodnicy z
+            JOIN checkpoints c ON z.nr_startowy = c.nr_startowy 
+                AND c.checkpoint_name = 'start-line-verify'
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            ORDER BY c.timestamp ASC
+        
+ℹ️ Zapytanie nie zwróciło żadnych wyników
+🔍 Wykonuję zapytanie: 
+                SELECT DISTINCT
+                    z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                    NULL as ostatni_skan,
+                    w.czas_przejazdu_s,
+                    w.status,
+                    'AKTYWNA_GRUPA' as source_type
+                FROM zawodnicy z
+                LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+                WHERE z.checked_in = TRUE 
+                AND z.kategoria = %s 
+                AND z.plec = %s
+                AND z.nr_startowy NOT IN (
+                    SELECT nr_startowy FROM checkpoints 
+                    WHERE checkpoint_name = 'start-line-verify'
+                )
+                AND z.nr_startowy NOT IN (
+                    SELECT nr_startowy FROM checkpoints 
+                    WHERE checkpoint_name = 'hidden-from-queue'
+                )
+                ORDER BY z.nr_startowy ASC
+             z parametrami: ('Junior A', 'M')
+✅ Znaleziono 4 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT id FROM checkpoints 
+            WHERE checkpoint_name = 'start-line-verify' AND nr_startowy = %s
+         z parametrami: (5,)
+ℹ️ Zapytanie nie zwróciło żadnych wyników
+🔍 Wykonuję zapytanie: 
+                SELECT id FROM checkpoints 
+                WHERE checkpoint_name = 'hidden-from-queue' AND nr_startowy = %s
+             z parametrami: (5,)
+ℹ️ Zapytanie nie zwróciło żadnych wyników
+✅ Ukryto zawodnika z aktywnej grupy: Norbert Pawłowski (#5)
+🔍 Wykonuję zapytanie: 
+            SELECT DISTINCT
+                z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                c.timestamp as ostatni_skan,
+                w.czas_przejazdu_s,
+                w.status,
+                'SKANOWANY' as source_type
+            FROM zawodnicy z
+            JOIN checkpoints c ON z.nr_startowy = c.nr_startowy 
+                AND c.checkpoint_name = 'start-line-verify'
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            ORDER BY c.timestamp ASC
+        
+ℹ️ Zapytanie nie zwróciło żadnych wyników
+🔍 Wykonuję zapytanie: 
+                SELECT DISTINCT
+                    z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                    NULL as ostatni_skan,
+                    w.czas_przejazdu_s,
+                    w.status,
+                    'AKTYWNA_GRUPA' as source_type
+                FROM zawodnicy z
+                LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+                WHERE z.checked_in = TRUE 
+                AND z.kategoria = %s 
+                AND z.plec = %s
+                AND z.nr_startowy NOT IN (
+                    SELECT nr_startowy FROM checkpoints 
+                    WHERE checkpoint_name = 'start-line-verify'
+                )
+                AND z.nr_startowy NOT IN (
+                    SELECT nr_startowy FROM checkpoints 
+                    WHERE checkpoint_name = 'hidden-from-queue'
+                )
+                ORDER BY z.nr_startowy ASC
+             z parametrami: ('Junior A', 'M')
+✅ Znaleziono 3 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT DISTINCT
+                z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                c.timestamp as ostatni_skan,
+                w.czas_przejazdu_s,
+                w.status,
+                'SKANOWANY' as source_type
+            FROM zawodnicy z
+            JOIN checkpoints c ON z.nr_startowy = c.nr_startowy 
+                AND c.checkpoint_name = 'start-line-verify'
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            ORDER BY c.timestamp ASC
+        
+ℹ️ Zapytanie nie zwróciło żadnych wyników
+127.0.0.1 - - [01/Jun/2025 23:35:48] "GET /api/start-queue HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:35:50] "GET /api/zawodnicy HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:35:52] "GET /api/qr/manual-checkins HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:35:53] "GET /api/qr/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:36:01] "GET /api/zawodnicy/76 HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:36:03] "GET /api/qr/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:36:08] "POST /api/qr/check-in HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:36:09] "GET /api/qr/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:36:09] "GET /api/zawodnicy/76 HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:36:13] "GET /api/qr/dashboard HTTP/1.1" 200 -
+🔍 Wykonuję zapytanie: 
+                SELECT DISTINCT
+                    z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                    NULL as ostatni_skan,
+                    w.czas_przejazdu_s,
+                    w.status,
+                    'AKTYWNA_GRUPA' as source_type
+                FROM zawodnicy z
+                LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+                WHERE z.checked_in = TRUE 
+                AND z.kategoria = %s 
+                AND z.plec = %s
+                AND z.nr_startowy NOT IN (
+                    SELECT nr_startowy FROM checkpoints 
+                    WHERE checkpoint_name = 'start-line-verify'
+                )
+                AND z.nr_startowy NOT IN (
+                    SELECT nr_startowy FROM checkpoints 
+                    WHERE checkpoint_name = 'hidden-from-queue'
+                )
+                ORDER BY z.nr_startowy ASC
+             z parametrami: ('Junior A', 'M')
+✅ Znaleziono 3 wyników
+🔍 Wykonuję zapytanie: 
+        SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub, z.qr_code,
+               w.czas_przejazdu_s, w.status
+        FROM zawodnicy z
+        LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+        ORDER BY z.nr_startowy
+    
+✅ Znaleziono 251 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT c.nr_startowy, c.timestamp, c.device_id,
+                   z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                   z.checked_in, z.check_in_time
+            FROM checkpoints c
+            JOIN zawodnicy z ON c.nr_startowy = z.nr_startowy
+            WHERE c.checkpoint_name = 'manual-check-in'
+            ORDER BY c.timestamp DESC
+            LIMIT 50
+        
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                SUM(total_zawodnikow) as total_zawodnikow,
+                SUM(z_qr_kodami) as z_qr_kodami,
+                SUM(zameldowanych) as zameldowanych,
+                SUM(bez_qr_kodow) as bez_qr_kodow
+            FROM mv_statystyki_qr
+        
+✅ Znaleziono 1 wyników
+✅ Znaleziono 12 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                kategoria,
+                SUM(total_zawodnikow) as total,
+                SUM(zameldowanych) as zameldowanych,
+                (SELECT COUNT(*) 
+                 FROM mv_statystyki_wyniki w 
+                 WHERE w.kategoria = q.kategoria 
+                 AND w.status = 'FINISHED') as z_wynikami
+            FROM mv_statystyki_qr q
+            GROUP BY kategoria
+            ORDER BY kategoria
+        
+✅ Znaleziono 6 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                c.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                c.checkpoint_name,
+                c.timestamp,
+                c.device_id
+            FROM checkpoints c
+            JOIN zawodnicy z ON c.nr_startowy = z.nr_startowy
+            ORDER BY c.timestamp DESC
+            LIMIT 20
+        
+✅ Znaleziono 20 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub, 
+                   z.qr_code, z.checked_in, z.check_in_time,
+                   CASE WHEN w.czas_przejazdu_s IS NOT NULL THEN true ELSE false END as ma_wynik
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE z.nr_startowy = %s
+         z parametrami: (76,)
+✅ Znaleziono 1 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                SUM(total_zawodnikow) as total_zawodnikow,
+                SUM(z_qr_kodami) as z_qr_kodami,
+                SUM(zameldowanych) as zameldowanych,
+                SUM(bez_qr_kodow) as bez_qr_kodow
+            FROM mv_statystyki_qr
+        
+✅ Znaleziono 1 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                kategoria,
+                SUM(total_zawodnikow) as total,
+                SUM(zameldowanych) as zameldowanych,
+                (SELECT COUNT(*) 
+                 FROM mv_statystyki_wyniki w 
+                 WHERE w.kategoria = q.kategoria 
+                 AND w.status = 'FINISHED') as z_wynikami
+            FROM mv_statystyki_qr q
+            GROUP BY kategoria
+            ORDER BY kategoria
+        
+✅ Znaleziono 6 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                c.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                c.checkpoint_name,
+                c.timestamp,
+                c.device_id
+            FROM checkpoints c
+            JOIN zawodnicy z ON c.nr_startowy = z.nr_startowy
+            ORDER BY c.timestamp DESC
+            LIMIT 20
+        
+✅ Znaleziono 20 wyników
+🔍 Wykonuję zapytanie: 
+                SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub, checked_in
+                FROM zawodnicy 
+                WHERE nr_startowy = %s
+             z parametrami: (76,)
+✅ Znaleziono 1 wyników
+[MANUAL CHECK-IN] MANUAL CHECK-IN: Józef Michalak (#76) - Reason: awaria_skanera
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                SUM(total_zawodnikow) as total_zawodnikow,
+                SUM(z_qr_kodami) as z_qr_kodami,
+                SUM(zameldowanych) as zameldowanych,
+                SUM(bez_qr_kodow) as bez_qr_kodow
+            FROM mv_statystyki_qr
+        
+✅ Znaleziono 1 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                kategoria,
+                SUM(total_zawodnikow) as total,
+                SUM(zameldowanych) as zameldowanych,
+                (SELECT COUNT(*) 
+                 FROM mv_statystyki_wyniki w 
+                 WHERE w.kategoria = q.kategoria 
+                 AND w.status = 'FINISHED') as z_wynikami
+            FROM mv_statystyki_qr q
+            GROUP BY kategoria
+            ORDER BY kategoria
+        
+✅ Znaleziono 6 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                c.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                c.checkpoint_name,
+                c.timestamp,
+                c.device_id
+            FROM checkpoints c
+            JOIN zawodnicy z ON c.nr_startowy = z.nr_startowy
+            ORDER BY c.timestamp DESC
+            LIMIT 20
+        
+✅ Znaleziono 20 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub, 
+                   z.qr_code, z.checked_in, z.check_in_time,
+                   CASE WHEN w.czas_przejazdu_s IS NOT NULL THEN true ELSE false END as ma_wynik
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE z.nr_startowy = %s
+         z parametrami: (76,)
+✅ Znaleziono 1 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                SUM(total_zawodnikow) as total_zawodnikow,
+                SUM(z_qr_kodami) as z_qr_kodami,
+                SUM(zameldowanych) as zameldowanych,
+                SUM(bez_qr_kodow) as bez_qr_kodow
+            FROM mv_statystyki_qr
+        
+✅ Znaleziono 1 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                kategoria,
+                SUM(total_zawodnikow) as total,
+                SUM(zameldowanych) as zameldowanych,
+                (SELECT COUNT(*) 
+                 FROM mv_statystyki_wyniki w 
+                 WHERE w.kategoria = q.kategoria 
+                 AND w.status = 'FINISHED') as z_wynikami
+            FROM mv_statystyki_qr q
+            GROUP BY kategoria
+            ORDER BY kategoria
+        
+✅ Znaleziono 6 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                c.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                c.checkpoint_name,
+                c.timestamp,
+                c.device_id
+            FROM checkpoints c
+            JOIN zawodnicy z ON c.nr_startowy = z.nr_startowy
+            ORDER BY c.timestamp DESC
+            LIMIT 20
+        
+✅ Znaleziono 20 wyników
+127.0.0.1 - - [01/Jun/2025 23:36:23] "GET /api/qr/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:36:33] "GET /api/qr/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:36:43] "GET /api/qr/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:36:53] "GET /api/qr/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:37:03] "GET /api/qr/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:37:13] "GET /api/qr/dashboard HTTP/1.1" 200 -
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                SUM(total_zawodnikow) as total_zawodnikow,
+                SUM(z_qr_kodami) as z_qr_kodami,
+                SUM(zameldowanych) as zameldowanych,
+                SUM(bez_qr_kodow) as bez_qr_kodow
+            FROM mv_statystyki_qr
+        
+✅ Znaleziono 1 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                kategoria,
+                SUM(total_zawodnikow) as total,
+                SUM(zameldowanych) as zameldowanych,
+                (SELECT COUNT(*) 
+                 FROM mv_statystyki_wyniki w 
+                 WHERE w.kategoria = q.kategoria 
+                 AND w.status = 'FINISHED') as z_wynikami
+            FROM mv_statystyki_qr q
+            GROUP BY kategoria
+            ORDER BY kategoria
+        
+✅ Znaleziono 6 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                c.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                c.checkpoint_name,
+                c.timestamp,
+                c.device_id
+            FROM checkpoints c
+            JOIN zawodnicy z ON c.nr_startowy = z.nr_startowy
+            ORDER BY c.timestamp DESC
+            LIMIT 20
+        
+✅ Znaleziono 20 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                SUM(total_zawodnikow) as total_zawodnikow,
+                SUM(z_qr_kodami) as z_qr_kodami,
+                SUM(zameldowanych) as zameldowanych,
+                SUM(bez_qr_kodow) as bez_qr_kodow
+            FROM mv_statystyki_qr
+        
+✅ Znaleziono 1 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                kategoria,
+                SUM(total_zawodnikow) as total,
+                SUM(zameldowanych) as zameldowanych,
+                (SELECT COUNT(*) 
+                 FROM mv_statystyki_wyniki w 
+                 WHERE w.kategoria = q.kategoria 
+                 AND w.status = 'FINISHED') as z_wynikami
+            FROM mv_statystyki_qr q
+            GROUP BY kategoria
+            ORDER BY kategoria
+        
+✅ Znaleziono 6 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                c.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                c.checkpoint_name,
+                c.timestamp,
+                c.device_id
+            FROM checkpoints c
+            JOIN zawodnicy z ON c.nr_startowy = z.nr_startowy
+            ORDER BY c.timestamp DESC
+            LIMIT 20
+        
+✅ Znaleziono 20 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                SUM(total_zawodnikow) as total_zawodnikow,
+                SUM(z_qr_kodami) as z_qr_kodami,
+                SUM(zameldowanych) as zameldowanych,
+                SUM(bez_qr_kodow) as bez_qr_kodow
+            FROM mv_statystyki_qr
+        
+✅ Znaleziono 1 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                kategoria,
+                SUM(total_zawodnikow) as total,
+                SUM(zameldowanych) as zameldowanych,
+                (SELECT COUNT(*) 
+                 FROM mv_statystyki_wyniki w 
+                 WHERE w.kategoria = q.kategoria 
+                 AND w.status = 'FINISHED') as z_wynikami
+            FROM mv_statystyki_qr q
+            GROUP BY kategoria
+            ORDER BY kategoria
+        
+✅ Znaleziono 6 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                c.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                c.checkpoint_name,
+                c.timestamp,
+                c.device_id
+            FROM checkpoints c
+            JOIN zawodnicy z ON c.nr_startowy = z.nr_startowy
+            ORDER BY c.timestamp DESC
+            LIMIT 20
+        
+✅ Znaleziono 20 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                SUM(total_zawodnikow) as total_zawodnikow,
+                SUM(z_qr_kodami) as z_qr_kodami,
+                SUM(zameldowanych) as zameldowanych,
+                SUM(bez_qr_kodow) as bez_qr_kodow
+            FROM mv_statystyki_qr
+        
+✅ Znaleziono 1 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                kategoria,
+                SUM(total_zawodnikow) as total,
+                SUM(zameldowanych) as zameldowanych,
+                (SELECT COUNT(*) 
+                 FROM mv_statystyki_wyniki w 
+                 WHERE w.kategoria = q.kategoria 
+                 AND w.status = 'FINISHED') as z_wynikami
+            FROM mv_statystyki_qr q
+            GROUP BY kategoria
+            ORDER BY kategoria
+        
+✅ Znaleziono 6 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                c.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                c.checkpoint_name,
+                c.timestamp,
+                c.device_id
+            FROM checkpoints c
+            JOIN zawodnicy z ON c.nr_startowy = z.nr_startowy
+            ORDER BY c.timestamp DESC
+            LIMIT 20
+        
+✅ Znaleziono 20 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                SUM(total_zawodnikow) as total_zawodnikow,
+                SUM(z_qr_kodami) as z_qr_kodami,
+                SUM(zameldowanych) as zameldowanych,
+                SUM(bez_qr_kodow) as bez_qr_kodow
+            FROM mv_statystyki_qr
+        
+✅ Znaleziono 1 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                kategoria,
+                SUM(total_zawodnikow) as total,
+                SUM(zameldowanych) as zameldowanych,
+                (SELECT COUNT(*) 
+                 FROM mv_statystyki_wyniki w 
+                 WHERE w.kategoria = q.kategoria 
+                 AND w.status = 'FINISHED') as z_wynikami
+            FROM mv_statystyki_qr q
+            GROUP BY kategoria
+            ORDER BY kategoria
+        
+✅ Znaleziono 6 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                c.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                c.checkpoint_name,
+                c.timestamp,
+                c.device_id
+            FROM checkpoints c
+            JOIN zawodnicy z ON c.nr_startowy = z.nr_startowy
+            ORDER BY c.timestamp DESC
+            LIMIT 20
+        
+✅ Znaleziono 20 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                SUM(total_zawodnikow) as total_zawodnikow,
+                SUM(z_qr_kodami) as z_qr_kodami,
+                SUM(zameldowanych) as zameldowanych,
+                SUM(bez_qr_kodow) as bez_qr_kodow
+            FROM mv_statystyki_qr
+        
+✅ Znaleziono 1 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                kategoria,
+                SUM(total_zawodnikow) as total,
+                SUM(zameldowanych) as zameldowanych,
+                (SELECT COUNT(*) 
+                 FROM mv_statystyki_wyniki w 
+                 WHERE w.kategoria = q.kategoria 
+                 AND w.status = 'FINISHED') as z_wynikami
+            FROM mv_statystyki_qr q
+            GROUP BY kategoria
+            ORDER BY kategoria
+        
+✅ Znaleziono 6 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                c.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                c.checkpoint_name,
+                c.timestamp,
+                c.device_id
+            FROM checkpoints c
+            JOIN zawodnicy z ON c.nr_startowy = z.nr_startowy
+            ORDER BY c.timestamp DESC
+            LIMIT 20
+        
+✅ Znaleziono 20 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                SUM(total_zawodnikow) as total_zawodnikow,
+                SUM(z_qr_kodami) as z_qr_kodami,
+                SUM(zameldowanych) as zameldowanych,
+                SUM(bez_qr_kodow) as bez_qr_kodow
+            FROM mv_statystyki_qr
+        
+✅ Znaleziono 1 wyników
+127.0.0.1 - - [01/Jun/2025 23:37:23] "GET /api/qr/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:37:33] "GET /api/qr/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:37:43] "GET /api/qr/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:37:53] "GET /api/qr/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:38:03] "GET /api/qr/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:38:13] "GET /api/qr/dashboard HTTP/1.1" 200 -
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                kategoria,
+                SUM(total_zawodnikow) as total,
+                SUM(zameldowanych) as zameldowanych,
+                (SELECT COUNT(*) 
+                 FROM mv_statystyki_wyniki w 
+                 WHERE w.kategoria = q.kategoria 
+                 AND w.status = 'FINISHED') as z_wynikami
+            FROM mv_statystyki_qr q
+            GROUP BY kategoria
+            ORDER BY kategoria
+        
+✅ Znaleziono 6 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                c.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                c.checkpoint_name,
+                c.timestamp,
+                c.device_id
+            FROM checkpoints c
+            JOIN zawodnicy z ON c.nr_startowy = z.nr_startowy
+            ORDER BY c.timestamp DESC
+            LIMIT 20
+        
+✅ Znaleziono 20 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                SUM(total_zawodnikow) as total_zawodnikow,
+                SUM(z_qr_kodami) as z_qr_kodami,
+                SUM(zameldowanych) as zameldowanych,
+                SUM(bez_qr_kodow) as bez_qr_kodow
+            FROM mv_statystyki_qr
+        
+✅ Znaleziono 1 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                kategoria,
+                SUM(total_zawodnikow) as total,
+                SUM(zameldowanych) as zameldowanych,
+                (SELECT COUNT(*) 
+                 FROM mv_statystyki_wyniki w 
+                 WHERE w.kategoria = q.kategoria 
+                 AND w.status = 'FINISHED') as z_wynikami
+            FROM mv_statystyki_qr q
+            GROUP BY kategoria
+            ORDER BY kategoria
+        
+✅ Znaleziono 6 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                c.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                c.checkpoint_name,
+                c.timestamp,
+                c.device_id
+            FROM checkpoints c
+            JOIN zawodnicy z ON c.nr_startowy = z.nr_startowy
+            ORDER BY c.timestamp DESC
+            LIMIT 20
+        
+✅ Znaleziono 20 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                SUM(total_zawodnikow) as total_zawodnikow,
+                SUM(z_qr_kodami) as z_qr_kodami,
+                SUM(zameldowanych) as zameldowanych,
+                SUM(bez_qr_kodow) as bez_qr_kodow
+            FROM mv_statystyki_qr
+        
+✅ Znaleziono 1 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                kategoria,
+                SUM(total_zawodnikow) as total,
+                SUM(zameldowanych) as zameldowanych,
+                (SELECT COUNT(*) 
+                 FROM mv_statystyki_wyniki w 
+                 WHERE w.kategoria = q.kategoria 
+                 AND w.status = 'FINISHED') as z_wynikami
+            FROM mv_statystyki_qr q
+            GROUP BY kategoria
+            ORDER BY kategoria
+        
+✅ Znaleziono 6 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                c.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                c.checkpoint_name,
+                c.timestamp,
+                c.device_id
+            FROM checkpoints c
+            JOIN zawodnicy z ON c.nr_startowy = z.nr_startowy
+            ORDER BY c.timestamp DESC
+            LIMIT 20
+        
+✅ Znaleziono 20 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                SUM(total_zawodnikow) as total_zawodnikow,
+                SUM(z_qr_kodami) as z_qr_kodami,
+                SUM(zameldowanych) as zameldowanych,
+                SUM(bez_qr_kodow) as bez_qr_kodow
+            FROM mv_statystyki_qr
+        
+✅ Znaleziono 1 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                kategoria,
+                SUM(total_zawodnikow) as total,
+                SUM(zameldowanych) as zameldowanych,
+                (SELECT COUNT(*) 
+                 FROM mv_statystyki_wyniki w 
+                 WHERE w.kategoria = q.kategoria 
+                 AND w.status = 'FINISHED') as z_wynikami
+            FROM mv_statystyki_qr q
+            GROUP BY kategoria
+            ORDER BY kategoria
+        
+✅ Znaleziono 6 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                c.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                c.checkpoint_name,
+                c.timestamp,
+                c.device_id
+            FROM checkpoints c
+            JOIN zawodnicy z ON c.nr_startowy = z.nr_startowy
+            ORDER BY c.timestamp DESC
+            LIMIT 20
+        
+✅ Znaleziono 20 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                SUM(total_zawodnikow) as total_zawodnikow,
+                SUM(z_qr_kodami) as z_qr_kodami,
+                SUM(zameldowanych) as zameldowanych,
+                SUM(bez_qr_kodow) as bez_qr_kodow
+            FROM mv_statystyki_qr
+        
+✅ Znaleziono 1 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                kategoria,
+                SUM(total_zawodnikow) as total,
+                SUM(zameldowanych) as zameldowanych,
+                (SELECT COUNT(*) 
+                 FROM mv_statystyki_wyniki w 
+                 WHERE w.kategoria = q.kategoria 
+                 AND w.status = 'FINISHED') as z_wynikami
+            FROM mv_statystyki_qr q
+            GROUP BY kategoria
+            ORDER BY kategoria
+        
+✅ Znaleziono 6 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                c.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                c.checkpoint_name,
+                c.timestamp,
+                c.device_id
+            FROM checkpoints c
+            JOIN zawodnicy z ON c.nr_startowy = z.nr_startowy
+            ORDER BY c.timestamp DESC
+            LIMIT 20
+        
+✅ Znaleziono 20 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                SUM(total_zawodnikow) as total_zawodnikow,
+                SUM(z_qr_kodami) as z_qr_kodami,
+                SUM(zameldowanych) as zameldowanych,
+                SUM(bez_qr_kodow) as bez_qr_kodow
+            FROM mv_statystyki_qr
+        
+✅ Znaleziono 1 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                kategoria,
+                SUM(total_zawodnikow) as total,
+                SUM(zameldowanych) as zameldowanych,
+                (SELECT COUNT(*) 
+                 FROM mv_statystyki_wyniki w 
+                 WHERE w.kategoria = q.kategoria 
+                 AND w.status = 'FINISHED') as z_wynikami
+            FROM mv_statystyki_qr q
+            GROUP BY kategoria
+            ORDER BY kategoria
+        
+✅ Znaleziono 6 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                c.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                c.checkpoint_name,
+                c.timestamp,
+                c.device_id
+            FROM checkpoints c
+            JOIN zawodnicy z ON c.nr_startowy = z.nr_startowy
+            ORDER BY c.timestamp DESC
+            LIMIT 20
+        
+✅ Znaleziono 20 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                SUM(total_zawodnikow) as total_zawodnikow,
+                SUM(z_qr_kodami) as z_qr_kodami,
+                SUM(zameldowanych) as zameldowanych,
+                SUM(bez_qr_kodow) as bez_qr_kodow
+            FROM mv_statystyki_qr
+        
+✅ Znaleziono 1 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                kategoria,
+                SUM(total_zawodnikow) as total,
+                SUM(zameldowanych) as zameldowanych,
+                (SELECT COUNT(*) 
+                 FROM mv_statystyki_wyniki w 
+                 WHERE w.kategoria = q.kategoria 
+                 AND w.status = 'FINISHED') as z_wynikami
+            FROM mv_statystyki_qr q
+            GROUP BY kategoria
+            ORDER BY kategoria
+        
+✅ Znaleziono 6 wyników
+127.0.0.1 - - [01/Jun/2025 23:38:23] "GET /api/qr/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:38:33] "GET /api/qr/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:38:43] "GET /api/qr/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:38:53] "GET /api/qr/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:39:03] "GET /api/qr/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:39:13] "GET /api/qr/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:39:23] "GET /api/qr/dashboard HTTP/1.1" 200 -
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                c.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                c.checkpoint_name,
+                c.timestamp,
+                c.device_id
+            FROM checkpoints c
+            JOIN zawodnicy z ON c.nr_startowy = z.nr_startowy
+            ORDER BY c.timestamp DESC
+            LIMIT 20
+        
+✅ Znaleziono 20 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                SUM(total_zawodnikow) as total_zawodnikow,
+                SUM(z_qr_kodami) as z_qr_kodami,
+                SUM(zameldowanych) as zameldowanych,
+                SUM(bez_qr_kodow) as bez_qr_kodow
+            FROM mv_statystyki_qr
+        
+✅ Znaleziono 1 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                kategoria,
+                SUM(total_zawodnikow) as total,
+                SUM(zameldowanych) as zameldowanych,
+                (SELECT COUNT(*) 
+                 FROM mv_statystyki_wyniki w 
+                 WHERE w.kategoria = q.kategoria 
+                 AND w.status = 'FINISHED') as z_wynikami
+            FROM mv_statystyki_qr q
+            GROUP BY kategoria
+            ORDER BY kategoria
+        
+✅ Znaleziono 6 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                c.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                c.checkpoint_name,
+                c.timestamp,
+                c.device_id
+            FROM checkpoints c
+            JOIN zawodnicy z ON c.nr_startowy = z.nr_startowy
+            ORDER BY c.timestamp DESC
+            LIMIT 20
+        
+✅ Znaleziono 20 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                SUM(total_zawodnikow) as total_zawodnikow,
+                SUM(z_qr_kodami) as z_qr_kodami,
+                SUM(zameldowanych) as zameldowanych,
+                SUM(bez_qr_kodow) as bez_qr_kodow
+            FROM mv_statystyki_qr
+        
+✅ Znaleziono 1 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                kategoria,
+                SUM(total_zawodnikow) as total,
+                SUM(zameldowanych) as zameldowanych,
+                (SELECT COUNT(*) 
+                 FROM mv_statystyki_wyniki w 
+                 WHERE w.kategoria = q.kategoria 
+                 AND w.status = 'FINISHED') as z_wynikami
+            FROM mv_statystyki_qr q
+            GROUP BY kategoria
+            ORDER BY kategoria
+        
+✅ Znaleziono 6 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                c.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                c.checkpoint_name,
+                c.timestamp,
+                c.device_id
+            FROM checkpoints c
+            JOIN zawodnicy z ON c.nr_startowy = z.nr_startowy
+            ORDER BY c.timestamp DESC
+            LIMIT 20
+        
+✅ Znaleziono 20 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                SUM(total_zawodnikow) as total_zawodnikow,
+                SUM(z_qr_kodami) as z_qr_kodami,
+                SUM(zameldowanych) as zameldowanych,
+                SUM(bez_qr_kodow) as bez_qr_kodow
+            FROM mv_statystyki_qr
+        
+✅ Znaleziono 1 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                kategoria,
+                SUM(total_zawodnikow) as total,
+                SUM(zameldowanych) as zameldowanych,
+                (SELECT COUNT(*) 
+                 FROM mv_statystyki_wyniki w 
+                 WHERE w.kategoria = q.kategoria 
+                 AND w.status = 'FINISHED') as z_wynikami
+            FROM mv_statystyki_qr q
+            GROUP BY kategoria
+            ORDER BY kategoria
+        
+✅ Znaleziono 6 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                c.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                c.checkpoint_name,
+                c.timestamp,
+                c.device_id
+            FROM checkpoints c
+            JOIN zawodnicy z ON c.nr_startowy = z.nr_startowy
+            ORDER BY c.timestamp DESC
+            LIMIT 20
+        
+✅ Znaleziono 20 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                SUM(total_zawodnikow) as total_zawodnikow,
+                SUM(z_qr_kodami) as z_qr_kodami,
+                SUM(zameldowanych) as zameldowanych,
+                SUM(bez_qr_kodow) as bez_qr_kodow
+            FROM mv_statystyki_qr
+        
+✅ Znaleziono 1 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                kategoria,
+                SUM(total_zawodnikow) as total,
+                SUM(zameldowanych) as zameldowanych,
+                (SELECT COUNT(*) 
+                 FROM mv_statystyki_wyniki w 
+                 WHERE w.kategoria = q.kategoria 
+                 AND w.status = 'FINISHED') as z_wynikami
+            FROM mv_statystyki_qr q
+            GROUP BY kategoria
+            ORDER BY kategoria
+        
+✅ Znaleziono 6 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                c.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                c.checkpoint_name,
+                c.timestamp,
+                c.device_id
+            FROM checkpoints c
+            JOIN zawodnicy z ON c.nr_startowy = z.nr_startowy
+            ORDER BY c.timestamp DESC
+            LIMIT 20
+        
+✅ Znaleziono 20 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                SUM(total_zawodnikow) as total_zawodnikow,
+                SUM(z_qr_kodami) as z_qr_kodami,
+                SUM(zameldowanych) as zameldowanych,
+                SUM(bez_qr_kodow) as bez_qr_kodow
+            FROM mv_statystyki_qr
+        
+✅ Znaleziono 1 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                kategoria,
+                SUM(total_zawodnikow) as total,
+                SUM(zameldowanych) as zameldowanych,
+                (SELECT COUNT(*) 
+                 FROM mv_statystyki_wyniki w 
+                 WHERE w.kategoria = q.kategoria 
+                 AND w.status = 'FINISHED') as z_wynikami
+            FROM mv_statystyki_qr q
+            GROUP BY kategoria
+            ORDER BY kategoria
+        
+✅ Znaleziono 6 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                c.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                c.checkpoint_name,
+                c.timestamp,
+                c.device_id
+            FROM checkpoints c
+            JOIN zawodnicy z ON c.nr_startowy = z.nr_startowy
+            ORDER BY c.timestamp DESC
+            LIMIT 20
+        
+✅ Znaleziono 20 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                SUM(total_zawodnikow) as total_zawodnikow,
+                SUM(z_qr_kodami) as z_qr_kodami,
+                SUM(zameldowanych) as zameldowanych,
+                SUM(bez_qr_kodow) as bez_qr_kodow
+            FROM mv_statystyki_qr
+        
+✅ Znaleziono 1 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                kategoria,
+                SUM(total_zawodnikow) as total,
+                SUM(zameldowanych) as zameldowanych,
+                (SELECT COUNT(*) 
+                 FROM mv_statystyki_wyniki w 
+                 WHERE w.kategoria = q.kategoria 
+                 AND w.status = 'FINISHED') as z_wynikami
+            FROM mv_statystyki_qr q
+            GROUP BY kategoria
+            ORDER BY kategoria
+        
+✅ Znaleziono 6 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                c.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                c.checkpoint_name,
+                c.timestamp,
+                c.device_id
+            FROM checkpoints c
+            JOIN zawodnicy z ON c.nr_startowy = z.nr_startowy
+            ORDER BY c.timestamp DESC
+            LIMIT 20
+        
+✅ Znaleziono 20 wyników
+127.0.0.1 - - [01/Jun/2025 23:39:33] "GET /api/qr/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:39:43] "GET /api/qr/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:39:53] "GET /api/qr/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:40:03] "GET /api/qr/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:40:13] "GET /api/qr/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:40:23] "GET /api/qr/dashboard HTTP/1.1" 200 -
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                SUM(total_zawodnikow) as total_zawodnikow,
+                SUM(z_qr_kodami) as z_qr_kodami,
+                SUM(zameldowanych) as zameldowanych,
+                SUM(bez_qr_kodow) as bez_qr_kodow
+            FROM mv_statystyki_qr
+        
+✅ Znaleziono 1 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                kategoria,
+                SUM(total_zawodnikow) as total,
+                SUM(zameldowanych) as zameldowanych,
+                (SELECT COUNT(*) 
+                 FROM mv_statystyki_wyniki w 
+                 WHERE w.kategoria = q.kategoria 
+                 AND w.status = 'FINISHED') as z_wynikami
+            FROM mv_statystyki_qr q
+            GROUP BY kategoria
+            ORDER BY kategoria
+        
+✅ Znaleziono 6 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                c.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                c.checkpoint_name,
+                c.timestamp,
+                c.device_id
+            FROM checkpoints c
+            JOIN zawodnicy z ON c.nr_startowy = z.nr_startowy
+            ORDER BY c.timestamp DESC
+            LIMIT 20
+        
+✅ Znaleziono 20 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                SUM(total_zawodnikow) as total_zawodnikow,
+                SUM(z_qr_kodami) as z_qr_kodami,
+                SUM(zameldowanych) as zameldowanych,
+                SUM(bez_qr_kodow) as bez_qr_kodow
+            FROM mv_statystyki_qr
+        
+✅ Znaleziono 1 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                kategoria,
+                SUM(total_zawodnikow) as total,
+                SUM(zameldowanych) as zameldowanych,
+                (SELECT COUNT(*) 
+                 FROM mv_statystyki_wyniki w 
+                 WHERE w.kategoria = q.kategoria 
+                 AND w.status = 'FINISHED') as z_wynikami
+            FROM mv_statystyki_qr q
+            GROUP BY kategoria
+            ORDER BY kategoria
+        
+✅ Znaleziono 6 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                c.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                c.checkpoint_name,
+                c.timestamp,
+                c.device_id
+            FROM checkpoints c
+            JOIN zawodnicy z ON c.nr_startowy = z.nr_startowy
+            ORDER BY c.timestamp DESC
+            LIMIT 20
+        
+✅ Znaleziono 20 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                SUM(total_zawodnikow) as total_zawodnikow,
+                SUM(z_qr_kodami) as z_qr_kodami,
+                SUM(zameldowanych) as zameldowanych,
+                SUM(bez_qr_kodow) as bez_qr_kodow
+            FROM mv_statystyki_qr
+        
+✅ Znaleziono 1 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                kategoria,
+                SUM(total_zawodnikow) as total,
+                SUM(zameldowanych) as zameldowanych,
+                (SELECT COUNT(*) 
+                 FROM mv_statystyki_wyniki w 
+                 WHERE w.kategoria = q.kategoria 
+                 AND w.status = 'FINISHED') as z_wynikami
+            FROM mv_statystyki_qr q
+            GROUP BY kategoria
+            ORDER BY kategoria
+        
+✅ Znaleziono 6 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                c.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                c.checkpoint_name,
+                c.timestamp,
+                c.device_id
+            FROM checkpoints c
+            JOIN zawodnicy z ON c.nr_startowy = z.nr_startowy
+            ORDER BY c.timestamp DESC
+            LIMIT 20
+        
+✅ Znaleziono 20 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                SUM(total_zawodnikow) as total_zawodnikow,
+                SUM(z_qr_kodami) as z_qr_kodami,
+                SUM(zameldowanych) as zameldowanych,
+                SUM(bez_qr_kodow) as bez_qr_kodow
+            FROM mv_statystyki_qr
+        
+✅ Znaleziono 1 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                kategoria,
+                SUM(total_zawodnikow) as total,
+                SUM(zameldowanych) as zameldowanych,
+                (SELECT COUNT(*) 
+                 FROM mv_statystyki_wyniki w 
+                 WHERE w.kategoria = q.kategoria 
+                 AND w.status = 'FINISHED') as z_wynikami
+            FROM mv_statystyki_qr q
+            GROUP BY kategoria
+            ORDER BY kategoria
+        
+✅ Znaleziono 6 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                c.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                c.checkpoint_name,
+                c.timestamp,
+                c.device_id
+            FROM checkpoints c
+            JOIN zawodnicy z ON c.nr_startowy = z.nr_startowy
+            ORDER BY c.timestamp DESC
+            LIMIT 20
+        
+✅ Znaleziono 20 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                SUM(total_zawodnikow) as total_zawodnikow,
+                SUM(z_qr_kodami) as z_qr_kodami,
+                SUM(zameldowanych) as zameldowanych,
+                SUM(bez_qr_kodow) as bez_qr_kodow
+            FROM mv_statystyki_qr
+        
+✅ Znaleziono 1 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                kategoria,
+                SUM(total_zawodnikow) as total,
+                SUM(zameldowanych) as zameldowanych,
+                (SELECT COUNT(*) 
+                 FROM mv_statystyki_wyniki w 
+                 WHERE w.kategoria = q.kategoria 
+                 AND w.status = 'FINISHED') as z_wynikami
+            FROM mv_statystyki_qr q
+            GROUP BY kategoria
+            ORDER BY kategoria
+        
+✅ Znaleziono 6 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                c.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                c.checkpoint_name,
+                c.timestamp,
+                c.device_id
+            FROM checkpoints c
+            JOIN zawodnicy z ON c.nr_startowy = z.nr_startowy
+            ORDER BY c.timestamp DESC
+            LIMIT 20
+        
+✅ Znaleziono 20 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                SUM(total_zawodnikow) as total_zawodnikow,
+                SUM(z_qr_kodami) as z_qr_kodami,
+                SUM(zameldowanych) as zameldowanych,
+                SUM(bez_qr_kodow) as bez_qr_kodow
+            FROM mv_statystyki_qr
+        
+✅ Znaleziono 1 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                kategoria,
+                SUM(total_zawodnikow) as total,
+                SUM(zameldowanych) as zameldowanych,
+                (SELECT COUNT(*) 
+                 FROM mv_statystyki_wyniki w 
+                 WHERE w.kategoria = q.kategoria 
+                 AND w.status = 'FINISHED') as z_wynikami
+            FROM mv_statystyki_qr q
+            GROUP BY kategoria
+            ORDER BY kategoria
+        
+✅ Znaleziono 6 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                c.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                c.checkpoint_name,
+                c.timestamp,
+                c.device_id
+            FROM checkpoints c
+            JOIN zawodnicy z ON c.nr_startowy = z.nr_startowy
+            ORDER BY c.timestamp DESC
+            LIMIT 20
+        
+✅ Znaleziono 20 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                SUM(total_zawodnikow) as total_zawodnikow,
+                SUM(z_qr_kodami) as z_qr_kodami,
+                SUM(zameldowanych) as zameldowanych,
+                SUM(bez_qr_kodow) as bez_qr_kodow
+            FROM mv_statystyki_qr
+        
+✅ Znaleziono 1 wyników
+127.0.0.1 - - [01/Jun/2025 23:40:33] "GET /api/qr/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:40:43] "GET /api/qr/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:40:53] "GET /api/qr/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:41:03] "GET /api/qr/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jun/2025 23:41:13] "GET /api/qr/dashboard HTTP/1.1" 200 -

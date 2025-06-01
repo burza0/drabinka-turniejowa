@@ -1,5 +1,20 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import requests
 import time
-from api_server import get_all, get_one, get_db_connection, release_db_connection
+import statistics
+import json
+from datetime import datetime
+import psycopg2
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# Konfiguracja
+API_URL = "http://localhost:5001"  # Port zoptymalizowanego API
+ITERATIONS = 10  # Liczba powtórzeń każdego testu
 
 def analyze_query(query, params=None):
     """Analizuje plan wykonania zapytania"""
@@ -62,82 +77,153 @@ def print_query_analysis(name, query, params=None):
     
     return execution_time
 
-def run_performance_tests():
-    print("Rozpoczynam szczegółowe testy wydajności...")
-    
+def measure_endpoint(endpoint, name, with_cache=True):
+    """Mierzy czas odpowiedzi endpointu"""
     times = []
+    url = f"{API_URL}{endpoint}"
     
-    # Test 1: Wyszukiwanie po kategorii
-    query1 = """
-        SELECT z.*, w.czas_przejazdu_s 
-        FROM zawodnicy z 
-        LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy 
-        WHERE z.kategoria = 'OPEN'
-    """
-    times.append(print_query_analysis("Test 1 - Wyszukiwanie po kategorii", query1))
+    print(f"\n🔍 Test: {name}")
+    print("=" * 50)
     
-    # Test 2: Wyszukiwanie wyników
-    query2 = """
-        SELECT * FROM wyniki 
-        WHERE status = 'FINISHED'
-    """
-    times.append(print_query_analysis("Test 2 - Wyszukiwanie wyników po statusie", query2))
+    # Pierwszy request (cold start / wypełnienie cache)
+    start = time.time()
+    response = requests.get(url)
+    cold_time = (time.time() - start) * 1000
     
-    # Test 3: Złożone zapytanie z grupowaniem
-    query3 = """
-        SELECT kategoria, plec, COUNT(*) as liczba
-        FROM zawodnicy 
-        WHERE checked_in = TRUE
-        GROUP BY kategoria, plec
-    """
-    times.append(print_query_analysis("Test 3 - Grupowanie z filtrowaniem", query3))
+    if not response.ok:
+        print(f"❌ Błąd: {response.status_code}")
+        return None
+        
+    # Kolejne requesty
+    for i in range(ITERATIONS):
+        start = time.time()
+        response = requests.get(url)
+        end = time.time()
+        times.append((end - start) * 1000)
+        
+    # Statystyki
+    avg_time = statistics.mean(times)
+    min_time = min(times)
+    max_time = max(times)
     
-    # Test 4: Wyszukiwanie zawodników z wynikami
-    query4 = """
-        SELECT z.imie, z.nazwisko, z.kategoria, w.czas_przejazdu_s
-        FROM zawodnicy z
-        JOIN wyniki w ON z.nr_startowy = w.nr_startowy
-        WHERE z.plec = 'M' AND w.status = 'FINISHED'
-    """
-    times.append(print_query_analysis("Test 4 - Złożone join z filtrowaniem", query4))
+    print(f"Cold start: {cold_time:.2f}ms")
+    print(f"Średni czas: {avg_time:.2f}ms")
+    print(f"Min czas: {min_time:.2f}ms")
+    print(f"Max czas: {max_time:.2f}ms")
     
-    # Test 5: Wyszukiwanie checkpointów
-    query5 = """
-        SELECT c.*, z.imie, z.nazwisko
-        FROM checkpoints c
-        JOIN zawodnicy z ON c.nr_startowy = z.nr_startowy
-        WHERE c.checkpoint_name = 'check-in'
-        ORDER BY c.timestamp DESC
-        LIMIT 10
-    """
-    times.append(print_query_analysis("Test 5 - Wyszukiwanie checkpointów z join", query5))
+    if with_cache:
+        cache_improvement = ((cold_time - min_time) / cold_time) * 100
+        print(f"Poprawa dzięki cache: {cache_improvement:.1f}%")
     
-    # Test 6: Złożone zapytanie dla drabinki
-    query6 = """
-        WITH kwalifikacje AS (
-            SELECT 
-                z.nr_startowy,
-                z.imie,
-                z.nazwisko,
-                z.kategoria,
-                z.plec,
-                w.czas_przejazdu_s,
-                ROW_NUMBER() OVER (PARTITION BY z.kategoria, z.plec ORDER BY w.czas_przejazdu_s) as pozycja
+    return {
+        "endpoint": endpoint,
+        "cold_start_ms": cold_time,
+        "avg_time_ms": avg_time,
+        "min_time_ms": min_time,
+        "max_time_ms": max_time,
+        "cache_improvement": cache_improvement if with_cache else None
+    }
+
+def test_database_performance():
+    """Testy wydajności bazy danych"""
+    print("\n📊 TESTY WYDAJNOŚCI BAZY DANYCH")
+    print("=" * 50)
+    
+    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    cur = conn.cursor()
+    
+    queries = [
+        ("Test 1: Podstawowe zawodnicy", """
+            SELECT * FROM zawodnicy 
+            ORDER BY nr_startowy 
+            LIMIT 100
+        """),
+        ("Test 2: JOIN z wynikami", """
+            SELECT z.*, w.czas_przejazdu_s 
             FROM zawodnicy z
-            JOIN wyniki w ON z.nr_startowy = w.nr_startowy
-            WHERE w.status = 'FINISHED'
-        )
-        SELECT *
-        FROM kwalifikacje
-        WHERE pozycja <= 16
-        ORDER BY kategoria, plec, pozycja;
-    """
-    times.append(print_query_analysis("Test 6 - Złożone zapytanie kwalifikacyjne", query6))
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE z.kategoria = 'Junior A'
+        """),
+        ("Test 3: Grupowanie po kategoriach", """
+            SELECT kategoria, plec, COUNT(*) 
+            FROM zawodnicy 
+            GROUP BY kategoria, plec
+        """),
+        ("Test 4: Złożone zapytanie z wieloma JOIN", """
+            SELECT z.nr_startowy, z.imie, z.nazwisko,
+                   w.czas_przejazdu_s, c.checkpoint_name,
+                   k.nazwa as klub_nazwa
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            LEFT JOIN checkpoints c ON z.nr_startowy = c.nr_startowy
+            LEFT JOIN kluby k ON z.klub = k.nazwa
+            WHERE z.kategoria = 'Junior A'
+            AND z.plec = 'M'
+            ORDER BY w.czas_przejazdu_s NULLS LAST
+            LIMIT 20
+        """)
+    ]
     
-    print("\n=== Podsumowanie ===")
-    print(f"Średni czas wykonania: {sum(times)/len(times):.3f}ms")
-    print(f"Najszybsze zapytanie: {min(times):.3f}ms")
-    print(f"Najwolniejsze zapytanie: {max(times):.3f}ms")
+    results = []
+    for name, query in queries:
+        print(f"\n🔍 {name}")
+        times = []
+        
+        for i in range(ITERATIONS):
+            start = time.time()
+            cur.execute(query)
+            cur.fetchall()
+            end = time.time()
+            times.append((end - start) * 1000)
+            
+        avg_time = statistics.mean(times)
+        print(f"Średni czas: {avg_time:.2f}ms")
+        results.append({"name": name, "avg_time_ms": avg_time})
+    
+    cur.close()
+    conn.close()
+    return results
+
+def run_all_tests():
+    """Uruchamia wszystkie testy wydajności"""
+    print("\n🚀 ROZPOCZYNAM TESTY WYDAJNOŚCI")
+    print(f"Data: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print("=" * 50)
+    
+    results = {
+        "timestamp": datetime.now().isoformat(),
+        "api_version": requests.get(f"{API_URL}/api/version").json()["version"],
+        "endpoints": [],
+        "database": None
+    }
+    
+    # Testy endpointów API
+    endpoints = [
+        ("/api/zawodnicy", "Lista zawodników"),
+        ("/api/wyniki", "Lista wyników"),
+        ("/api/statystyki", "Statystyki"),
+        ("/api/kluby", "Lista klubów"),
+        ("/api/qr/dashboard", "QR Dashboard"),
+        ("/api/version", "Wersja API")
+    ]
+    
+    for endpoint, name in endpoints:
+        result = measure_endpoint(endpoint, name)
+        if result:
+            results["endpoints"].append(result)
+    
+    # Testy bazy danych
+    print("\nUruchamiam testy bazy danych...")
+    results["database"] = test_database_performance()
+    
+    # Zapisz wyniki do pliku
+    filename = f"performance_test_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    with open(filename, "w", encoding="utf-8") as f:
+        json.dump(results, f, indent=2, ensure_ascii=False)
+    
+    print(f"\n✅ Testy zakończone. Wyniki zapisano w: {filename}")
+    
+    return results
 
 if __name__ == "__main__":
-    run_performance_tests() 
+    run_all_tests() 

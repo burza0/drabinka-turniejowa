@@ -138,8 +138,8 @@
                         </div>
                         <span class="text-xs text-gray-600 dark:text-gray-300">☀️</span>
                     </div>
-                </div>
-                
+        </div>
+        
                 <!-- Subtitle -->
                 <div class="pb-3">
                     <p class="text-xs text-gray-600 dark:text-gray-400">QR Scanner - System zarządzania zawodami</p>
@@ -193,8 +193,8 @@
                     </button>
                 </nav>
             </div>
-        </div>
-
+            </div>
+            
         <!-- Main Content -->
         <main class="px-3 py-4">
             <!-- Check-in Tab -->
@@ -276,12 +276,12 @@
                                 id="status-select"
                                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm transition-colors duration-200"
                             >
-                                <option value="FINISHED">Ukończono</option>
-                                <option value="DNS">Nie wystartował</option>
-                                <option value="DNF">Nie ukończył</option>
-                                <option value="DSQ">Dyskwalifikacja</option>
-                            </select>
-                        </div>
+                            <option value="FINISHED">Ukończono</option>
+                            <option value="DNS">Nie wystartował</option>
+                            <option value="DNF">Nie ukończył</option>
+                            <option value="DSQ">Dyskwalifikacja</option>
+                        </select>
+                    </div>
                         <button 
                             class="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center space-x-2 text-sm font-medium transition-colors duration-200"
                             onclick="saveResult()"
@@ -750,16 +750,16 @@
                             <div class="flex justify-between">
                                 <span class="text-gray-600 dark:text-gray-400">Status:</span>
                                 <span class="font-medium text-gray-900 dark:text-white">${wynik.status || 'Brak'}</span>
-                            </div>
+                    </div>
                             <div class="flex justify-between">
                                 <span class="text-gray-600 dark:text-gray-400">Czas:</span>
                                 <span class="font-medium text-gray-900 dark:text-white">${czasFormatted}</span>
-                            </div>
+                    </div>
                             <div class="flex justify-between">
                                 <span class="text-gray-600 dark:text-gray-400">Data:</span>
                                 <span class="font-medium text-gray-900 dark:text-white">${wynik.data_utworzenia || 'Brak'}</span>
-                            </div>
-                        </div>
+                    </div>
+                    </div>
                     </div>
                 `;
             } else {
@@ -768,9 +768,9 @@
                         <div class="text-center text-gray-500 dark:text-gray-400">
                             <span class="text-xl block mb-2">⏱️</span>
                             <p class="text-sm">Brak wyników</p>
-                        </div>
                     </div>
-                `;
+                </div>
+            `;
             }
             
             element.innerHTML = wynikHtml;
@@ -796,7 +796,7 @@
                 document.getElementById('stats-content').innerHTML = `
                     <div class="bg-red-50 dark:bg-red-900 rounded-lg border border-red-200 dark:border-red-700 p-3 transition-colors duration-200">
                         <div class="text-red-800 dark:text-red-200 text-sm">
-                            Błąd ładowania statystyk: ${error.message}
+                        Błąd ładowania statystyk: ${error.message}
                         </div>
                     </div>
                 `;

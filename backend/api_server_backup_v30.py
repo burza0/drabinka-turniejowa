@@ -5,7 +5,8 @@ import os
 from dotenv import load_dotenv
 import math
 import re
-# from cache import app_cache  # WERSJA 30.1: Wyłączony cache
+from psycopg2 import pool
+from cache import app_cache
 
 load_dotenv()
 app = Flask(__name__)
@@ -13,50 +14,40 @@ CORS(app)
 
 DB_URL = os.getenv("DATABASE_URL")
 
-# WERSJA 30.2: Uproszczone połączenia bez connection pool
-# connection_pool = None
+# Connection pool dla lepszej wydajności
+connection_pool = None
 
-def get_simple_connection():
-    """WERSJA 30.2: Proste połączenie z bazą danych"""
-    try:
-        conn = psycopg2.connect(DB_URL)
-        return conn
-    except Exception as e:
-        print(f"❌ Błąd połączenia z bazą: {str(e)}")
-        return None
+def init_db_pool():
+    """Inicjalizuje pulę połączeń"""
+    global connection_pool
+    if connection_pool is None:
+        connection_pool = psycopg2.pool.SimpleConnectionPool(
+            1, 20,  # min 1, max 20 połączeń
+            DB_URL
+        )
 
-# WERSJA 30.2: Zakomentowane funkcje connection pooling
-# def init_db_pool():
-#     """Inicjalizuje pulę połączeń"""
-#     global connection_pool
-#     if connection_pool is None:
-#         connection_pool = psycopg2.pool.SimpleConnectionPool(
-#             1, 20,  # min 1, max 20 połączeń
-#             DB_URL
-#         )
+def get_db_connection():
+    """Pobiera połączenie z puli"""
+    global connection_pool
+    if connection_pool is None:
+        init_db_pool()
+    return connection_pool.getconn()
 
-# def get_db_connection():
-#     """Pobiera połączenie z puli"""
-#     global connection_pool
-#     if connection_pool is None:
-#         init_db_pool()
-#     return connection_pool.getconn()
-
-# def return_db_connection(conn):
-#     """Zwraca połączenie do puli"""
-#     global connection_pool
-#     if connection_pool is not None and conn is not None:
-#         try:
-#             connection_pool.putconn(conn)
-#         except psycopg2.pool.PoolError:
-#             # Jeśli wystąpi błąd, spróbuj zainicjować pulę ponownie
-#             init_db_pool()
+def return_db_connection(conn):
+    """Zwraca połączenie do puli"""
+    global connection_pool
+    if connection_pool is not None and conn is not None:
+        try:
+            connection_pool.putconn(conn)
+        except psycopg2.pool.PoolError:
+            # Jeśli wystąpi błąd, spróbuj zainicjować pulę ponownie
+            init_db_pool()
 
 def get_all(query, params=None):
-    """WERSJA 30.2: Pobiera wszystkie rekordy używając prostych połączeń"""
+    """Pobiera wszystkie rekordy z bazy danych używając connection pooling"""
     conn = None
     try:
-        conn = get_simple_connection()
+        conn = get_db_connection()
         if conn is None:
             print("❌ Błąd: Nie udało się uzyskać połączenia z bazą danych")
             return []
@@ -90,16 +81,13 @@ def get_all(query, params=None):
         return []
     finally:
         if conn:
-            conn.close()
+            return_db_connection(conn)
 
 def get_one(query, params=None):
-    """WERSJA 30.2: Pobiera pojedynczy rekord używając prostych połączeń"""
+    """Pobiera pojedynczy rekord używając connection pooling"""
     conn = None
     try:
-        conn = get_simple_connection()
-        if conn is None:
-            return None
-            
+        conn = get_db_connection()
         cur = conn.cursor()
         if params:
             cur.execute(query, params)
@@ -113,21 +101,15 @@ def get_one(query, params=None):
             result = None
         cur.close()
         return result
-    except Exception as e:
-        print(f"❌ Błąd w get_one: {str(e)}")
-        return None
     finally:
         if conn:
-            conn.close()
+            return_db_connection(conn)
 
 def execute_query(query, params=None):
-    """WERSJA 30.2: Wykonuje zapytanie używając prostych połączeń"""
+    """Wykonuje zapytanie używając connection pooling"""
     conn = None
     try:
-        conn = get_simple_connection()
-        if conn is None:
-            raise Exception("Nie można uzyskać połączenia z bazą danych")
-            
+        conn = get_db_connection()
         cur = conn.cursor()
         if params:
             cur.execute(query, params)
@@ -143,22 +125,22 @@ def execute_query(query, params=None):
         raise e
     finally:
         if conn:
-            conn.close()
+            return_db_connection(conn)
 
-# WERSJA 30.2: Zakomentowane funkcje connection pooling
-# @app.teardown_appcontext
-# def close_db_pool(error):
-#     """Zamyka pulę połączeń tylko przy wyłączaniu aplikacji"""
-#     global connection_pool
-#     if connection_pool is not None:
-#         try:
-#             connection_pool.closeall()
-#         except psycopg2.pool.PoolError:
-#             pass  # Ignoruj błąd jeśli pula jest już zamknięta
-#         connection_pool = None
+# Zamykanie puli tylko przy faktycznym wyłączaniu aplikacji
+@app.teardown_appcontext
+def close_db_pool(error):
+    """Zamyka pulę połączeń tylko przy wyłączaniu aplikacji"""
+    global connection_pool
+    if connection_pool is not None:
+        try:
+            connection_pool.closeall()
+        except psycopg2.pool.PoolError:
+            pass  # Ignoruj błąd jeśli pula jest już zamknięta
+        connection_pool = None
 
-# WERSJA 30.2: Wyłączona inicjalizacja puli
-# init_db_pool()
+# Inicjalizacja puli przy starcie aplikacji
+init_db_pool()
 
 # Cache aktywnej grupy
 aktywna_grupa_cache = {
@@ -1608,11 +1590,10 @@ def get_version():
 
 def get_statystyki_turnieju():
     """Pobiera statystyki turnieju z cache lub bazy danych"""
-    # WERSJA 30.1: Wyłączono cache
-    # cache_key = 'statystyki_turnieju'
-    # cached_data = app_cache.get(cache_key)
-    # if cached_data:
-    #     return cached_data
+    cache_key = 'statystyki_turnieju'
+    cached_data = app_cache.get(cache_key)
+    if cached_data:
+        return cached_data
 
     # Jeśli nie ma w cache, pobierz z bazy
     stats = {
@@ -1623,37 +1604,32 @@ def get_statystyki_turnieju():
     }
     
     # Zapisz w cache na 5 minut
-    # WERSJA 30.1: Wyłączono cache
-    # app_cache.set(cache_key, stats, ttl=300)
+    app_cache.set(cache_key, stats, ttl=300)
     return stats
 
 def get_lista_kategorii():
     """Pobiera listę kategorii z cache lub bazy danych"""
-    # WERSJA 30.1: Wyłączono cache
-    # cache_key = 'lista_kategorii'
-    # cached_data = app_cache.get(cache_key)
-    # if cached_data:
-    #     return cached_data
+    cache_key = 'lista_kategorii'
+    cached_data = app_cache.get(cache_key)
+    if cached_data:
+        return cached_data
 
     kategorie = get_all("SELECT DISTINCT kategoria, plec FROM zawodnicy ORDER BY kategoria, plec")
-    # WERSJA 30.1: Wyłączono cache
-    # app_cache.set(cache_key, kategorie, ttl=600)  # cache na 10 minut
+    app_cache.set(cache_key, kategorie, ttl=600)  # cache na 10 minut
     return kategorie
 
 # Invalidacja cache przy zmianach
 def invalidate_cache_after_change():
     """Funkcja do invalidacji cache po zmianach w danych"""
-    # WERSJA 30.1: Wyłączono cache
-    # app_cache.delete('statystyki_turnieju')
-    # app_cache.delete('lista_kategorii')
-    pass
+    app_cache.delete('statystyki_turnieju')
+    app_cache.delete('lista_kategorii')
 
 # Dodajemy nowy endpoint do odświeżania materialized views
 @app.route("/api/admin/refresh-stats", methods=['POST'])
 def refresh_materialized_views():
     """Odświeża wszystkie materialized views"""
     try:
-        conn = get_simple_connection()
+        conn = get_db_connection()
         cur = conn.cursor()
         
         # Odśwież każdy materialized view osobno
@@ -1672,8 +1648,7 @@ def refresh_materialized_views():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
     finally:
-        if conn:
-            conn.close()
+        return_db_connection(conn)
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
