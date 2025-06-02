@@ -13,16 +13,16 @@
       <div class="flex items-center space-x-3">
         <div class="text-sm text-gray-600 dark:text-gray-400">
           Scanner: 
-          <span :class="cameraActive ? 'text-green-600' : 'text-red-600'">
-            {{ cameraActive ? '🟢 Aktywny' : '🔴 Nieaktywny' }}
+          <span class="text-green-600">
+            🟢 Aktywny
           </span>
         </div>
         <button 
-          @click="refreshAll"
-          :disabled="loading"
+          @click="syncAllData('manual')"
+          :disabled="appState.loading"
           class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 text-sm font-medium transition-colors duration-200"
         >
-          <ArrowPathIcon class="h-5 w-5" :class="{ 'animate-spin': loading }" />
+          <ArrowPathIcon class="h-5 w-5" :class="{ 'animate-spin': appState.loading }" />
           <span>Odśwież wszystko</span>
         </button>
       </div>
@@ -43,7 +43,7 @@
       <div class="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg border border-orange-200 dark:border-orange-800">
         <div class="flex items-center space-x-2">
           <div class="text-2xl font-bold text-orange-600 dark:text-orange-400">{{ kolejkaStatus.total }}</div>
-          <div v-if="syncing" class="animate-spin">
+          <div v-if="appState.loading" class="animate-spin">
             <ArrowPathIcon class="h-4 w-4 text-orange-500" />
           </div>
         </div>
@@ -55,7 +55,7 @@
           <div class="text-2xl font-bold text-purple-600 dark:text-purple-400">
             {{ aktualna_grupa ? aktualna_grupa.numer_grupy : '-' }}
           </div>
-          <div v-if="syncing" class="animate-pulse">
+          <div v-if="appState.loading" class="animate-pulse">
             <div class="w-2 h-2 bg-purple-500 rounded-full"></div>
           </div>
         </div>
@@ -98,7 +98,7 @@
             </h3>
           </div>
           
-          <div v-if="loading" class="p-8 text-center text-gray-500 dark:text-gray-400">
+          <div v-if="appState.loading" class="p-8 text-center text-gray-500 dark:text-gray-400">
             <ArrowPathIcon class="h-8 w-8 animate-spin mx-auto mb-2" />
             <div>Ładowanie grup...</div>
           </div>
@@ -204,10 +204,10 @@
                 />
                 <button
                   @click="handleQRCode"
-                  :disabled="!manualQrCode || processing"
+                  :disabled="!manualQrCode || appState.loading"
                   class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm"
                 >
-                  {{ processing ? '⏳' : 'Skanuj' }}
+                  {{ appState.loading ? '⏳' : 'Skanuj' }}
                 </button>
               </div>
             </div>
@@ -261,7 +261,7 @@
               </div>
             </div>
             <div class="flex items-center space-x-2">
-              <div v-if="syncing" class="text-xs text-orange-600 dark:text-orange-400 flex items-center space-x-1">
+              <div v-if="appState.loading" class="text-xs text-orange-600 dark:text-orange-400 flex items-center space-x-1">
                 <ArrowPathIcon class="h-3 w-3 animate-spin" />
                 <span>Sync...</span>
               </div>
@@ -364,22 +364,20 @@ interface VerificationResult {
   komunikat: string
 }
 
-// State management - uproszczony
+// State management - CENTRALIZED
+const appState = ref({
+  loading: false,
+  error: null,
+  lastUpdate: null
+})
+
 const grupy = ref<Grupa[]>([])
 const aktualna_grupa = ref<Grupa | null>(null)
 const kolejka_zawodnikow = ref<Zawodnik[]>([])
 const selectedGrupa = ref<number | null>(null)
 const manualQrCode = ref('')
 const lastVerification = ref<VerificationResult | null>(null)
-const loading = ref(false)
-const processing = ref(false)
-const syncing = ref(false)
-const cameraActive = ref(true)
-const apiVersion = ref('30.3.7') // Fallback version
-
-// Auto-refresh WYŁĄCZONY - nie potrzebny
-// let queueRefreshTimer: number | null = null
-// const refreshInterval = ref(8000) // 8 sekund
+const apiVersion = ref('30.4.0')
 
 // Computed properties
 const totalZawodnikow = computed(() => {
@@ -400,144 +398,85 @@ const kolejkaStatus = computed(() => {
   return { total, skanowani, aktywnaGrupa }
 })
 
-// SIMPLIFIED: Direct API calls bez cache
-const loadApiVersion = async () => {
+// SIMPLIFIED: Jedna funkcja do synchronizacji WSZYSTKICH danych
+const syncAllData = async (reason = 'manual') => {
+  if (appState.value.loading) return
+  
+  appState.value.loading = true
+  appState.value.error = null
+  console.log(`🔄 Synchronizacja danych: ${reason}`)
+  
   try {
-    const response = await fetch('/api/version')
-    if (response.ok) {
-      const data = await response.json()
-      if (data.version) {
-        apiVersion.value = data.version
-        console.log('✅ API Version:', data.version)
+    // 1. API Version (tylko raz przy starcie)
+    if (!apiVersion.value || apiVersion.value === '30.4.0') {
+      try {
+        const versionResponse = await fetch('/api/version')
+        if (versionResponse.ok) {
+          const versionData = await versionResponse.json()
+          apiVersion.value = versionData.version || '30.4.0'
+        }
+      } catch (e) {
+        console.warn('⚠️ Nie można pobrać wersji API')
       }
     }
-  } catch (error) {
-    console.warn('⚠️ Nie można pobrać wersji API, używam fallback:', error)
-  }
-}
-
-const loadGrupy = async () => {
-  try {
-    const response = await fetch('/api/grupy-startowe?' + Date.now()) // Force fresh data
-    if (response.ok) {
-      const data = await response.json()
-      if (data.success) {
-        grupy.value = data.grupy || []
-        console.log('✅ Załadowano grupy:', grupy.value.length)
-        return true
-      }
-    }
-    console.error('❌ Błąd ładowania grup')
-    return false
-  } catch (error) {
-    console.error('❌ Błąd ładowania grup:', error)
-    return false
-  }
-}
-
-const loadKolejka = async () => {
-  try {
-    // Timeout dla wolnych połączeń Heroku  
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 sekund timeout
     
-    const response = await fetch('/api/start-queue?' + Date.now(), {
-      signal: controller.signal
-    })
+    // 2. Grupy startowe
+    const grupyResponse = await fetch('/api/grupy-startowe')
+    if (!grupyResponse.ok) throw new Error('Błąd ładowania grup')
+    const grupyData = await grupyResponse.json()
+    grupy.value = grupyData.grupy || []
     
-    clearTimeout(timeoutId)
-    
-    if (response.ok) {
-      const data = await response.json()
-      if (data.success) {
-        kolejka_zawodnikow.value = data.queue || []
-        
-        console.log('🔄 Kolejka załadowana:', {
-          total: kolejka_zawodnikow.value.length,
-          aktywna_grupa_backend: data.aktywna_grupa?.nazwa || 'null',
-          aktywna_grupa_frontend: aktualna_grupa.value?.nazwa || 'null'
-        })
-        
-        return true
-      }
-    }
-    console.error('❌ Błąd ładowania kolejki')
-    return false
-  } catch (error) {
-    if (error.name === 'AbortError') {
-      console.error('⏱️ Timeout ładowania kolejki')
-    } else {
-      console.error('❌ Błąd ładowania kolejki:', error)
-    }
-    return false
-  }
-}
-
-const loadAktywnaGrupa = async () => {
-  try {
-    const response = await fetch('/api/grupa-aktywna?' + Date.now()) // Force fresh data
-    if (response.ok) {
-      const data = await response.json()
-      if (data.success && data.aktywna_grupa) {
-        const grupaData = data.aktywna_grupa
-        const grupa = grupy.value.find(g => 
-          g.kategoria === grupaData.kategoria && g.plec === grupaData.plec
-        )
-        aktualna_grupa.value = grupa || null
-        console.log('✅ Aktywna grupa z API:', aktualna_grupa.value?.nazwa || 'brak')
-        return true
+    // 3. Aktywna grupa  
+    try {
+      const aktywnaResponse = await fetch('/api/grupa-aktywna')
+      if (aktywnaResponse.ok) {
+        const aktywnaData = await aktywnaResponse.json()
+        if (aktywnaData.success && aktywnaData.aktywna_grupa) {
+          const grupaData = aktywnaData.aktywna_grupa
+          aktualna_grupa.value = grupy.value.find(g => 
+            g.kategoria === grupaData.kategoria && g.plec === grupaData.plec
+          ) || null
+        } else {
+          aktualna_grupa.value = null
+        }
       } else {
         aktualna_grupa.value = null
-        console.log('✅ Brak aktywnej grupy')
-        return true
       }
-    } else if (response.status === 404) {
+    } catch (e) {
+      console.warn('⚠️ Błąd ładowania aktywnej grupy:', e)
       aktualna_grupa.value = null
-      console.log('✅ Brak aktywnej grupy (404)')
-      return true
     }
-    return false
+    
+    // 4. Kolejka startowa
+    const kolejkaResponse = await fetch('/api/start-queue')
+    if (!kolejkaResponse.ok) throw new Error('Błąd ładowania kolejki')
+    const kolejkaData = await kolejkaResponse.json()
+    kolejka_zawodnikow.value = kolejkaData.queue || []
+    
+    appState.value.lastUpdate = new Date()
+    console.log('✅ Synchronizacja zakończona:', {
+      grupy: grupy.value.length,
+      aktualna_grupa: aktualna_grupa.value?.nazwa || 'brak',
+      kolejka: kolejka_zawodnikow.value.length
+    })
+    
   } catch (error) {
-    console.error('❌ Błąd ładowania aktywnej grupy:', error)
-    return false
-  }
-}
-
-// SIMPLIFIED: Manual refresh - tylko przez przycisk
-const refreshAll = async () => {
-  if (loading.value) return
-  
-  loading.value = true
-  console.log('🔄 Odświeżanie wszystkich danych...')
-  
-  try {
-    // Sequence: grupy → aktywna grupa → kolejka  
-    const groupsLoaded = await loadGrupy()
-    if (groupsLoaded) {
-      await loadAktywnaGrupa()
-      await loadKolejka()
-    }
-    console.log('✅ Odświeżanie zakończone')
-    return groupsLoaded
+    console.error('❌ Błąd synchronizacji:', error)
+    appState.value.error = error.message
   } finally {
-    loading.value = false
+    appState.value.loading = false
   }
 }
 
-// OPTIMIZED: Aktywacja grupy z timeout handling dla Heroku
+// SIMPLIFIED: Aktywacja grupy - prostszy flow
 const setAktywnaGrupa = async (grupa: Grupa) => {
-  if (!grupa || processing.value) return
+  if (!grupa || appState.value.loading) return
   
   console.log('🎯 Aktywacja grupy:', grupa.nazwa)
+  appState.value.loading = true
+  appState.value.error = null
   
   try {
-    processing.value = true
-    syncing.value = true
-    
-    // Timeout controller dla wolnych połączeń Heroku
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 25000) // 25 sekund timeout
-    
     const response = await fetch('/api/grupa-aktywna', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -546,96 +485,63 @@ const setAktywnaGrupa = async (grupa: Grupa) => {
         kategoria: grupa.kategoria,
         plec: grupa.plec,
         nazwa: grupa.nazwa
-      }),
-      signal: controller.signal
+      })
     })
     
-    clearTimeout(timeoutId)
-    
-    if (response.ok) {
-      const result = await response.json()
-      console.log('✅ Backend potwierdził aktywację:', result)
-      
-      // Immediate update
-      aktualna_grupa.value = grupa
-      
-      // Force refresh kolejki po 3 sekundach (więcej czasu dla Heroku + cache-busting)
-      setTimeout(async () => {
-        console.log('🔄 Refreshing kolejka po aktywacji...')
-        // Wymuś świeże dane z cache-busting
-        await loadKolejka()
-        // Drugi refresh dla pewności na Heroku
-        setTimeout(async () => {
-          await loadKolejka()
-          syncing.value = false
-          console.log('✅ Grupa aktywowana:', grupa.nazwa)
-        }, 1000)
-      }, 3000)
-      
-      showSuccess(`✅ Aktywowano grupę: ${grupa.nazwa}`)
-    } else if (response.status === 503) {
-      syncing.value = false
-      throw new Error('Serwer przeciążony - spróbuj ponownie za chwilę')
-    } else {
-      syncing.value = false
-      const error = await response.text()
-      console.error('❌ Backend odrzucił aktywację:', error)
-      throw new Error(`Backend error: ${response.status}`)
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`Backend error: ${response.status} - ${errorText}`)
     }
+    
+    // SIMPLE: Po aktywacji, poczekaj chwilę i zsynchronizuj wszystko
+    console.log('✅ Grupa aktywowana, synchronizuję dane...')
+    await new Promise(resolve => setTimeout(resolve, 1500)) // Daj czas backend
+    await syncAllData('po aktywacji grupy')
+    
+    showSuccess(`✅ Aktywowano grupę: ${grupa.nazwa}`)
+    
   } catch (error) {
     console.error('❌ Błąd aktywacji grupy:', error)
-    syncing.value = false
-    
-    if (error.name === 'AbortError') {
-      alert('⏱️ Operacja przekroczyła limit czasu. Heroku może być przeciążony. Spróbuj ponownie.')
-    } else {
-      alert(`Błąd aktywacji grupy: ${error.message}`)
-    }
+    appState.value.error = error.message
+    showError(`Błąd aktywacji: ${error.message}`)
   } finally {
-    processing.value = false
+    appState.value.loading = false
   }
 }
 
-// OPTIMIZED: Clear aktywnej grupy
+// SIMPLIFIED: Clear grupy
 const clearAktywnaGrupa = async () => {
-  if (processing.value) return
+  if (appState.value.loading) return
   
   console.log('🧹 Czyszczenie aktywnej grupy...')
+  appState.value.loading = true
   
   try {
-    processing.value = true
-    syncing.value = true
-    
     const response = await fetch('/api/grupa-aktywna', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ clear: true })
     })
     
-    if (response.ok) {
-      aktualna_grupa.value = null
-      
-      // Force refresh kolejki
-      setTimeout(async () => {
-        await loadKolejka()
-        syncing.value = false
-        console.log('✅ Grupa wyczyszczona')
-      }, 500)
-      
-      showSuccess('🧹 Wyczyszczono aktywną grupę')
-    }
+    if (!response.ok) throw new Error('Błąd czyszczenia grupy')
+    
+    await syncAllData('po wyczyszczeniu grupy')
+    showSuccess('🧹 Wyczyszczono aktywną grupę')
+    
   } catch (error) {
     console.error('❌ Błąd czyszczenia grupy:', error)
-    syncing.value = false
+    appState.value.error = error.message
+    showError(`Błąd: ${error.message}`)
   } finally {
-    processing.value = false
+    appState.value.loading = false
   }
 }
 
+// SIMPLIFIED: QR Code handling
 const handleQRCode = async () => {
-  if (!manualQrCode.value) return
+  if (!manualQrCode.value || appState.value.loading) return
   
-  processing.value = true
+  appState.value.loading = true
   try {
     const response = await fetch('/api/start-line-verify', {
       method: 'POST',
@@ -644,7 +550,7 @@ const handleQRCode = async () => {
         qr_code: manualQrCode.value,
         kategoria: aktualna_grupa.value?.kategoria,
         plec: aktualna_grupa.value?.plec,
-        device_id: 'start-line-scanner-v30.3'
+        device_id: 'start-line-scanner-v30.4'
       })
     })
     
@@ -652,7 +558,7 @@ const handleQRCode = async () => {
       const data = await response.json()
       lastVerification.value = data
       manualQrCode.value = ''
-      await loadKolejka()
+      await syncAllData('po skanie QR')
     } else {
       const error = await response.json()
       lastVerification.value = {
@@ -664,7 +570,7 @@ const handleQRCode = async () => {
       }
     }
   } catch (error) {
-    console.error('Błąd:', error)
+    console.error('Błąd QR:', error)
     lastVerification.value = {
       success: false,
       action: 'ODRZUC',
@@ -673,15 +579,17 @@ const handleQRCode = async () => {
       komunikat: '❌ Błąd połączenia'
     }
   } finally {
-    processing.value = false
+    appState.value.loading = false
   }
 }
 
+// SIMPLIFIED: Remove from queue
 const removeFromQueue = async (zawodnik: Zawodnik) => {
   const confirmMessage = `Czy na pewno chcesz usunąć zawodnika #${zawodnik.nr_startowy} ${zawodnik.imie} ${zawodnik.nazwisko} z kolejki?`
   
   if (!confirm(confirmMessage)) return
   
+  appState.value.loading = true
   try {
     const response = await fetch(`/api/start-queue/remove/${zawodnik.nr_startowy}`, {
       method: 'DELETE',
@@ -689,18 +597,21 @@ const removeFromQueue = async (zawodnik: Zawodnik) => {
     })
     
     if (response.ok) {
-      await loadKolejka()
+      await syncAllData('po usunięciu z kolejki')
       showSuccess(`Usunięto zawodnika #${zawodnik.nr_startowy} z kolejki`)
     } else {
       const error = await response.json()
-      alert(`Błąd: ${error.message}`)
+      throw new Error(error.message || 'Błąd usuwania')
     }
   } catch (error) {
     console.error('Błąd usuwania:', error)
-    alert('Błąd połączenia z serwerem')
+    showError(`Błąd: ${error.message}`)
+  } finally {
+    appState.value.loading = false
   }
 }
 
+// SIMPLIFIED: Clear queue
 const clearQueue = async (type: 'all' | 'scanned') => {
   const confirmMessage = type === 'all' 
     ? 'Czy na pewno chcesz wyczyścić całą kolejkę startową?'
@@ -708,6 +619,7 @@ const clearQueue = async (type: 'all' | 'scanned') => {
   
   if (!confirm(confirmMessage)) return
   
+  appState.value.loading = true
   try {
     const response = await fetch('/api/start-queue/clear', {
       method: 'POST',
@@ -716,24 +628,26 @@ const clearQueue = async (type: 'all' | 'scanned') => {
     })
     
     if (response.ok) {
-      await loadKolejka()
+      await syncAllData('po czyszczeniu kolejki')
       showSuccess(`Wyczyszczono kolejkę: ${type}`)
+    } else {
+      throw new Error('Błąd czyszczenia kolejki')
     }
   } catch (error) {
     console.error('Błąd czyszczenia kolejki:', error)
+    showError(`Błąd: ${error.message}`)
+  } finally {
+    appState.value.loading = false
   }
 }
 
+// Helper functions
 const toggleGrupaDetails = (numer_grupy: number) => {
-  if (selectedGrupa.value === numer_grupy) {
-    selectedGrupa.value = null
-  } else {
-    selectedGrupa.value = numer_grupy
-  }
+  selectedGrupa.value = selectedGrupa.value === numer_grupy ? null : numer_grupy
 }
 
 const confirmStart = () => {
-  clearVerification()
+  lastVerification.value = null
 }
 
 const clearVerification = () => {
@@ -741,8 +655,13 @@ const clearVerification = () => {
 }
 
 const showSuccess = (message: string) => {
-  // Tu można dodać toast notification
   console.log(`✅ ${message}`)
+  // Tu można dodać toast notification
+}
+
+const showError = (message: string) => {
+  console.error(`❌ ${message}`)
+  // Tu można dodać toast notification
 }
 
 // Verification UI helpers
@@ -784,12 +703,10 @@ const getIconComponent = (action: string) => {
 
 // Lifecycle
 onMounted(async () => {
-  await loadApiVersion()
-  await refreshAll()
+  await syncAllData('inicjalizacja')
 })
 
 onUnmounted(() => {
-  // Auto-refresh WYŁĄCZONY - nie potrzebny
-  // stopQueueAutoRefresh()
+  // Cleanup jeśli potrzebny
 })
 </script> 
