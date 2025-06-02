@@ -265,9 +265,6 @@
                 <ArrowPathIcon class="h-3 w-3 animate-spin" />
                 <span>Sync...</span>
               </div>
-              <div class="text-xs text-gray-500 dark:text-gray-400">
-                Auto {{ refreshInterval / 1000 }}s
-              </div>
             </div>
           </div>
           
@@ -379,9 +376,9 @@ const processing = ref(false)
 const syncing = ref(false)
 const cameraActive = ref(true)
 
-// Auto-refresh TYLKO kolejki (nie grup)
-let queueRefreshTimer: number | null = null
-const refreshInterval = ref(8000) // 8 sekund
+// Auto-refresh WYŁĄCZONY - nie potrzebny
+// let queueRefreshTimer: number | null = null
+// const refreshInterval = ref(8000) // 8 sekund
 
 // Computed properties
 const totalZawodnikow = computed(() => {
@@ -586,29 +583,6 @@ const clearAktywnaGrupa = async () => {
   }
 }
 
-// Auto-refresh TYLKO kolejki (nie grup)
-const startQueueAutoRefresh = () => {
-  if (queueRefreshTimer) clearInterval(queueRefreshTimer)
-  
-  queueRefreshTimer = setInterval(async () => {
-    // Skip podczas operacji użytkownika
-    if (loading.value || processing.value || syncing.value) return
-    
-    // Tylko kolejka, bez grup
-    await loadKolejka()
-  }, refreshInterval.value)
-  
-  console.log('🔄 Auto-refresh kolejki włączony (co 8s)')
-}
-
-const stopQueueAutoRefresh = () => {
-  if (queueRefreshTimer) {
-    clearInterval(queueRefreshTimer)
-    queueRefreshTimer = null
-    console.log('⏹️ Auto-refresh kolejki wyłączony')
-  }
-}
-
 const handleQRCode = async () => {
   if (!manualQrCode.value) return
   
@@ -629,7 +603,7 @@ const handleQRCode = async () => {
       const data = await response.json()
       lastVerification.value = data
       manualQrCode.value = ''
-      debouncedLoadKolejka()
+      await loadKolejka()
     } else {
       const error = await response.json()
       lastVerification.value = {
@@ -666,7 +640,7 @@ const removeFromQueue = async (zawodnik: Zawodnik) => {
     })
     
     if (response.ok) {
-      debouncedLoadKolejka()
+      await loadKolejka()
       showSuccess(`Usunięto zawodnika #${zawodnik.nr_startowy} z kolejki`)
     } else {
       const error = await response.json()
@@ -693,7 +667,7 @@ const clearQueue = async (type: 'all' | 'scanned') => {
     })
     
     if (response.ok) {
-      debouncedLoadKolejka()
+      await loadKolejka()
       showSuccess(`Wyczyszczono kolejkę: ${type}`)
     }
   } catch (error) {
@@ -759,24 +733,13 @@ const getIconComponent = (action: string) => {
   }
 }
 
-// Debounced operations (pozostają bez zmian)
-let loadKolejkaTimeout: number | null = null
-
-const debouncedLoadKolejka = () => {
-  if (loadKolejkaTimeout) clearTimeout(loadKolejkaTimeout)
-  
-  loadKolejkaTimeout = setTimeout(async () => {
-    await loadKolejka() // Force fresh load
-  }, 300)
-}
-
 // Lifecycle
 onMounted(async () => {
   await refreshAll()
-  startQueueAutoRefresh()
 })
 
 onUnmounted(() => {
-  stopQueueAutoRefresh()
+  // Auto-refresh WYŁĄCZONY - nie potrzebny
+  // stopQueueAutoRefresh()
 })
 </script> 
