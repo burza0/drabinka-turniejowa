@@ -28,12 +28,6 @@
           <ArrowPathIcon class="h-5 w-5" :class="{ 'animate-spin': loading }" />
           <span>Odśwież wszystko</span>
         </button>
-        <button 
-          @click="clearAllCache"
-          class="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-xs font-medium"
-        >
-          🧹 Reset Cache
-        </button>
       </div>
     </div>
 
@@ -261,9 +255,14 @@
         <!-- Kolejka startowa -->
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
           <div class="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 flex items-center justify-between">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-              Kolejka startowa ({{ kolejka_zawodnikow.length }})
-            </h3>
+            <div>
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                Kolejka startowa ({{ aktualna_grupa ? aktualna_grupa.nazwa : `${kolejka_zawodnikow.length} zawodników` }})
+              </h3>
+              <div v-if="aktualna_grupa" class="text-sm text-gray-600 dark:text-gray-400">
+                {{ kolejka_zawodnikow.length }} zawodników w kolejce
+              </div>
+            </div>
             <div class="flex items-center space-x-2">
               <div v-if="syncing" class="text-xs text-orange-600 dark:text-orange-400 flex items-center space-x-1">
                 <ArrowPathIcon class="h-3 w-3 animate-spin" />
@@ -802,22 +801,6 @@ const debouncedLoadKolejka = () => {
   loadKolejkaTimeout = setTimeout(async () => {
     await loadKolejka() // Force fresh load
   }, 300)
-}
-
-// Clear cache method
-const clearAllCache = () => {
-  console.log('🧹 Czyszczenie cache...')
-  aktualna_grupa.value = null
-  backendAktywnaGrupa.value = null
-  kolejka_zawodnikow.value = []
-  grupy.value = []
-  localStorage.clear() // Clear any browser storage
-  sessionStorage.clear()
-  
-  // Force refresh with no-cache headers
-  setTimeout(() => {
-    refreshAll()
-  }, 500)
 }
 
 // Lifecycle
