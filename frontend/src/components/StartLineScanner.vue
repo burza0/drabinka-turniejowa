@@ -17,9 +17,6 @@
             {{ cameraActive ? '🟢 Aktywny' : '🔴 Nieaktywny' }}
           </span>
         </div>
-        <div class="text-xs text-gray-500 dark:text-gray-400">
-          Debug: Frontend={{ aktualna_grupa?.nazwa || 'null' }}, Backend={{ backendAktywnaGrupa || 'null' }}
-        </div>
         <button 
           @click="refreshAll"
           :disabled="loading"
