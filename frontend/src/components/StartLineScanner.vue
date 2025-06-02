@@ -6,7 +6,7 @@
         <QrCodeIcon class="h-8 w-8 text-green-600" />
         <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Centrum Startu</h2>
         <span class="text-sm bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded-full">
-          v30.3
+          v30.3.2
         </span>
       </div>
       
@@ -255,8 +255,14 @@
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
               Kolejka startowa ({{ kolejka_zawodnikow.length }})
             </h3>
-            <div class="text-xs text-gray-500 dark:text-gray-400">
-              Odświeża co {{ refreshInterval / 1000 }}s
+            <div class="flex items-center space-x-2">
+              <div v-if="syncing" class="text-xs text-orange-600 dark:text-orange-400 flex items-center space-x-1">
+                <ArrowPathIcon class="h-3 w-3 animate-spin" />
+                <span>Sync...</span>
+              </div>
+              <div class="text-xs text-gray-500 dark:text-gray-400">
+                Auto {{ refreshInterval / 1000 }}s
+              </div>
             </div>
           </div>
           
@@ -356,7 +362,7 @@ interface VerificationResult {
   komunikat: string
 }
 
-// State management z lepszą kontrolą
+// State management - uproszczony
 const grupy = ref<Grupa[]>([])
 const aktualna_grupa = ref<Grupa | null>(null)
 const kolejka_zawodnikow = ref<Zawodnik[]>([])
@@ -365,23 +371,12 @@ const manualQrCode = ref('')
 const lastVerification = ref<VerificationResult | null>(null)
 const loading = ref(false)
 const processing = ref(false)
-const syncing = ref(false) // Nowy flag dla synchronizacji
+const syncing = ref(false)
 const cameraActive = ref(true)
 
-// Auto-refresh control z jednolitą logiką
-let refreshTimer: number | null = null
-let syncTimeout: number | null = null
+// Auto-refresh TYLKO kolejki (nie grup)
+let queueRefreshTimer: number | null = null
 const refreshInterval = ref(8000) // 8 sekund
-
-// API cache z timestamp
-const apiCache = ref({
-  grupy: { data: [], timestamp: 0 },
-  kolejka: { data: [], timestamp: 0 },
-  aktywna_grupa: { data: null, timestamp: 0 }
-})
-
-// Cache validity (5 sekund)
-const CACHE_VALIDITY = 5000
 
 // Computed properties
 const totalZawodnikow = computed(() => {
@@ -402,151 +397,128 @@ const kolejkaStatus = computed(() => {
   return { total, skanowani, aktywnaGrupa }
 })
 
-// Unified API caller z cache i retry logic
-const callAPI = async (endpoint: string, options: RequestInit = {}) => {
-  const cacheKey = endpoint.split('?')[0] // Remove query params for cache key
-  const now = Date.now()
-  
-  // Sprawdź cache (tylko dla GET)
-  if (!options.method || options.method === 'GET') {
-    const cached = apiCache.value[cacheKey]
-    if (cached && now - cached.timestamp < CACHE_VALIDITY) {
-      return { data: cached.data, fromCache: true }
-    }
-  }
-  
+// SIMPLIFIED: Direct API calls bez cache
+const loadGrupy = async () => {
   try {
-    const response = await fetch(endpoint, {
-      headers: { 'Content-Type': 'application/json' },
-      ...options
-    })
-    
-    if (!response.ok) {
-      throw new Error(`API Error: ${response.status}`)
+    const response = await fetch('/api/grupy-startowe')
+    if (response.ok) {
+      const data = await response.json()
+      if (data.success) {
+        grupy.value = data.grupy || []
+        console.log('✅ Załadowano grupy:', grupy.value.length)
+        return true
+      }
     }
-    
-    const data = await response.json()
-    
-    // Update cache dla GET requests
-    if (!options.method || options.method === 'GET') {
-      apiCache.value[cacheKey] = { data, timestamp: now }
-    }
-    
-    return { data, fromCache: false }
-  } catch (error) {
-    console.error(`API Error for ${endpoint}:`, error)
-    throw error
-  }
-}
-
-// Optimized data loading z unified approach
-const loadGrupy = async (useCache = true) => {
-  try {
-    const result = await callAPI('/api/grupy-startowe')
-    if (result.data.success) {
-      grupy.value = result.data.grupy || []
-      return true
-    }
+    console.error('❌ Błąd ładowania grup')
     return false
   } catch (error) {
-    console.error('Błąd ładowania grup:', error)
+    console.error('❌ Błąd ładowania grup:', error)
     return false
   }
 }
 
-const loadKolejka = async (useCache = true) => {
+const loadKolejka = async () => {
   try {
-    const result = await callAPI('/api/start-queue')
-    if (result.data.success) {
-      kolejka_zawodnikow.value = result.data.queue || []
-      
-      // CRITICAL: Synchronizuj aktywną grupę z odpowiedzi kolejki
-      if (result.data.aktywna_grupa) {
-        const backendGrupa = result.data.aktywna_grupa
-        // Znajdź grupę w lokalnej liście
-        const grupa = grupy.value.find(g => 
-          g.kategoria === backendGrupa.kategoria && g.plec === backendGrupa.plec
-        )
-        if (grupa) {
-          aktualna_grupa.value = grupa
+    const response = await fetch('/api/start-queue')
+    if (response.ok) {
+      const data = await response.json()
+      if (data.success) {
+        kolejka_zawodnikow.value = data.queue || []
+        
+        console.log('🔄 Kolejka załadowana:', {
+          total: kolejka_zawodnikow.value.length,
+          aktywna_grupa_backend: data.aktywna_grupa,
+          aktywna_grupa_frontend: aktualna_grupa.value?.nazwa
+        })
+        
+        // CRITICAL: Sprawdź czy aktywna grupa z backendu jest synchronizowana
+        if (data.aktywna_grupa) {
+          const backendGrupa = data.aktywna_grupa
+          const grupa = grupy.value.find(g => 
+            g.kategoria === backendGrupa.kategoria && g.plec === backendGrupa.plec
+          )
+          
+          if (grupa && (!aktualna_grupa.value || aktualna_grupa.value.numer_grupy !== grupa.numer_grupy)) {
+            console.log('🔄 Synchronizuję aktywną grupę z backend:', grupa.nazwa)
+            aktualna_grupa.value = grupa
+          }
+        } else if (aktualna_grupa.value) {
+          console.log('🧹 Backend nie ma aktywnej grupy, czyszczę frontend')
+          aktualna_grupa.value = null
         }
+        
+        return true
+      }
+    }
+    console.error('❌ Błąd ładowania kolejki')
+    return false
+  } catch (error) {
+    console.error('❌ Błąd ładowania kolejki:', error)
+    return false
+  }
+}
+
+const loadAktywnaGrupa = async () => {
+  try {
+    const response = await fetch('/api/grupa-aktywna')
+    if (response.ok) {
+      const data = await response.json()
+      if (data.success && data.aktywna_grupa) {
+        const grupaData = data.aktywna_grupa
+        const grupa = grupy.value.find(g => 
+          g.kategoria === grupaData.kategoria && g.plec === grupaData.plec
+        )
+        aktualna_grupa.value = grupa || null
+        console.log('✅ Aktywna grupa z API:', aktualna_grupa.value?.nazwa || 'brak')
+        return true
       } else {
         aktualna_grupa.value = null
+        console.log('✅ Brak aktywnej grupy')
+        return true
       }
-      
+    } else if (response.status === 404) {
+      aktualna_grupa.value = null
+      console.log('✅ Brak aktywnej grupy (404)')
       return true
     }
     return false
   } catch (error) {
-    console.error('Błąd ładowania kolejki:', error)
+    console.error('❌ Błąd ładowania aktywnej grupy:', error)
     return false
   }
 }
 
-const loadAktywnaGrupa = async (useCache = true) => {
-  try {
-    const result = await callAPI('/api/grupa-aktywna')
-    if (result.data.success && result.data.aktywna_grupa) {
-      const grupaData = result.data.aktywna_grupa
-      // Znajdź grupę w liście grup
-      const grupa = grupy.value.find(g => 
-        g.kategoria === grupaData.kategoria && g.plec === grupaData.plec
-      )
-      aktualna_grupa.value = grupa || null
-      return true
-    } else {
-      aktualna_grupa.value = null
-      return true
-    }
-  } catch (error) {
-    if (error.message.includes('404')) {
-      aktualna_grupa.value = null
-      return true
-    }
-    console.error('Błąd ładowania aktywnej grupy:', error)
-    return false
-  }
-}
-
-// Unified refresh z proper sequencing
-const refreshAll = async (skipCache = false) => {
-  if (loading.value) return // Prevent concurrent calls
+// SIMPLIFIED: Manual refresh - tylko przez przycisk
+const refreshAll = async () => {
+  if (loading.value) return
   
   loading.value = true
+  console.log('🔄 Odświeżanie wszystkich danych...')
+  
   try {
-    // Invalidate cache if needed
-    if (skipCache) {
-      apiCache.value.grupy.timestamp = 0
-      apiCache.value.kolejka.timestamp = 0
-      apiCache.value.aktywna_grupa.timestamp = 0
-    }
-    
-    // Load in proper sequence: grupy first, then aktywna grupa, then kolejka
-    const groupsLoaded = await loadGrupy(!skipCache)
+    // Sequence: grupy → aktywna grupa → kolejka  
+    const groupsLoaded = await loadGrupy()
     if (groupsLoaded) {
-      await loadAktywnaGrupa(!skipCache)
-      await loadKolejka(!skipCache)
+      await loadAktywnaGrupa()
+      await loadKolejka()
     }
-    
+    console.log('✅ Odświeżanie zakończone')
     return groupsLoaded
   } finally {
     loading.value = false
   }
 }
 
-// OPTIMIZED: Aktywacja grupy z proper sync i validation
+// OPTIMIZED: Aktywacja grupy z lepszym debuggingiem
 const setAktywnaGrupa = async (grupa: Grupa) => {
   if (!grupa || processing.value) return
+  
+  console.log('🎯 Aktywacja grupy:', grupa.nazwa)
   
   try {
     processing.value = true
     syncing.value = true
     
-    // Optimistic update (natychmiastowa zmiana UI)
-    const previousGrupa = aktualna_grupa.value
-    aktualna_grupa.value = grupa
-    
-    // API call
     const response = await fetch('/api/grupa-aktywna', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -560,27 +532,28 @@ const setAktywnaGrupa = async (grupa: Grupa) => {
     
     if (response.ok) {
       const result = await response.json()
+      console.log('✅ Backend potwierdził aktywację:', result)
       
-      // Invalidate cache aby wymusić fresh data
-      apiCache.value.kolejka.timestamp = 0
-      apiCache.value.aktywna_grupa.timestamp = 0
+      // Immediate update
+      aktualna_grupa.value = grupa
       
-      // Synchroniczny refresh kolejki po 500ms (czas na proces backend)
+      // Force refresh kolejki po 1 sekundzie (czas na backend processing)
       setTimeout(async () => {
-        await loadKolejka(false) // Force fresh load
+        console.log('🔄 Refreshing kolejka po aktywacji...')
+        await loadKolejka()
         syncing.value = false
-      }, 500)
+        console.log('✅ Grupa aktywowana:', grupa.nazwa)
+      }, 1000)
       
       showSuccess(`✅ Aktywowano grupę: ${grupa.nazwa}`)
     } else {
-      // Rollback optimistic update
-      aktualna_grupa.value = previousGrupa
       syncing.value = false
-      throw new Error('Backend odrzucił aktywację grupy')
+      const error = await response.text()
+      console.error('❌ Backend odrzucił aktywację:', error)
+      throw new Error(`Backend error: ${response.status}`)
     }
   } catch (error) {
-    console.error('Błąd ustawiania grupy:', error)
-    aktualna_grupa.value = previousGrupa
+    console.error('❌ Błąd aktywacji grupy:', error)
     syncing.value = false
     alert(`Błąd aktywacji grupy: ${error.message}`)
   } finally {
@@ -591,6 +564,8 @@ const setAktywnaGrupa = async (grupa: Grupa) => {
 // OPTIMIZED: Clear aktywnej grupy
 const clearAktywnaGrupa = async () => {
   if (processing.value) return
+  
+  console.log('🧹 Czyszczenie aktywnej grupy...')
   
   try {
     processing.value = true
@@ -605,23 +580,43 @@ const clearAktywnaGrupa = async () => {
     if (response.ok) {
       aktualna_grupa.value = null
       
-      // Invalidate cache
-      apiCache.value.kolejka.timestamp = 0
-      apiCache.value.aktywna_grupa.timestamp = 0
-      
-      // Synchroniczny refresh
+      // Force refresh kolejki
       setTimeout(async () => {
-        await loadKolejka(false)
+        await loadKolejka()
         syncing.value = false
+        console.log('✅ Grupa wyczyszczona')
       }, 500)
       
       showSuccess('🧹 Wyczyszczono aktywną grupę')
     }
   } catch (error) {
-    console.error('Błąd czyszczenia grupy:', error)
+    console.error('❌ Błąd czyszczenia grupy:', error)
     syncing.value = false
   } finally {
     processing.value = false
+  }
+}
+
+// Auto-refresh TYLKO kolejki (nie grup)
+const startQueueAutoRefresh = () => {
+  if (queueRefreshTimer) clearInterval(queueRefreshTimer)
+  
+  queueRefreshTimer = setInterval(async () => {
+    // Skip podczas operacji użytkownika
+    if (loading.value || processing.value || syncing.value) return
+    
+    // Tylko kolejka, bez grup
+    await loadKolejka()
+  }, refreshInterval.value)
+  
+  console.log('🔄 Auto-refresh kolejki włączony (co 8s)')
+}
+
+const stopQueueAutoRefresh = () => {
+  if (queueRefreshTimer) {
+    clearInterval(queueRefreshTimer)
+    queueRefreshTimer = null
+    console.log('⏹️ Auto-refresh kolejki wyłączony')
   }
 }
 
@@ -775,37 +770,6 @@ const getIconComponent = (action: string) => {
   }
 }
 
-// OPTIMIZED Auto-refresh z intelligent timing
-const startAutoRefresh = () => {
-  if (refreshTimer) clearInterval(refreshTimer)
-  
-  refreshTimer = setInterval(async () => {
-    // Skip podczas operacji użytkownika
-    if (loading.value || processing.value || syncing.value) return
-    
-    // Inteligentny refresh: tylko kolejka, chyba że cache jest stary
-    const now = Date.now()
-    const shouldRefreshAll = now - apiCache.value.grupy.timestamp > CACHE_VALIDITY * 3
-    
-    if (shouldRefreshAll) {
-      await refreshAll(false)
-    } else {
-      await loadKolejka(false) // Always fresh queue data
-    }
-  }, refreshInterval.value)
-}
-
-const stopAutoRefresh = () => {
-  if (refreshTimer) {
-    clearInterval(refreshTimer)
-    refreshTimer = null
-  }
-  if (syncTimeout) {
-    clearTimeout(syncTimeout)
-    syncTimeout = null
-  }
-}
-
 // Debounced operations (pozostają bez zmian)
 let loadKolejkaTimeout: number | null = null
 
@@ -813,17 +777,17 @@ const debouncedLoadKolejka = () => {
   if (loadKolejkaTimeout) clearTimeout(loadKolejkaTimeout)
   
   loadKolejkaTimeout = setTimeout(async () => {
-    await loadKolejka(false) // Force fresh load
+    await loadKolejka() // Force fresh load
   }, 300)
 }
 
 // Lifecycle
 onMounted(async () => {
   await refreshAll()
-  startAutoRefresh()
+  startQueueAutoRefresh()
 })
 
 onUnmounted(() => {
-  stopAutoRefresh()
+  stopQueueAutoRefresh()
 })
 </script> 
