@@ -559,13 +559,18 @@ const setAktywnaGrupa = async (grupa: Grupa) => {
       // Immediate update
       aktualna_grupa.value = grupa
       
-      // Force refresh kolejki po 2 sekundach (więcej czasu dla Heroku)
+      // Force refresh kolejki po 3 sekundach (więcej czasu dla Heroku + cache-busting)
       setTimeout(async () => {
         console.log('🔄 Refreshing kolejka po aktywacji...')
+        // Wymuś świeże dane z cache-busting
         await loadKolejka()
-        syncing.value = false
-        console.log('✅ Grupa aktywowana:', grupa.nazwa)
-      }, 2000)
+        // Drugi refresh dla pewności na Heroku
+        setTimeout(async () => {
+          await loadKolejka()
+          syncing.value = false
+          console.log('✅ Grupa aktywowana:', grupa.nazwa)
+        }, 1000)
+      }, 3000)
       
       showSuccess(`✅ Aktywowano grupę: ${grupa.nazwa}`)
     } else if (response.status === 503) {
