@@ -1625,9 +1625,9 @@ def remove_from_start_queue(nr_startowy):
 def get_version():
     """Zwraca wersję API"""
     return jsonify({
-        "version": "30.4.0",
+        "version": "30.4.1",
         "status": "production", 
-        "optimizations": "Simplified frontend state management, centralized data sync, removed race conditions"
+        "optimizations": "Fixed loading state race condition in frontend activation flow"
     }), 200
 
 def get_statystyki_turnieju():

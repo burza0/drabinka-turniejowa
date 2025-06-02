@@ -377,7 +377,7 @@ const kolejka_zawodnikow = ref<Zawodnik[]>([])
 const selectedGrupa = ref<number | null>(null)
 const manualQrCode = ref('')
 const lastVerification = ref<VerificationResult | null>(null)
-const apiVersion = ref('30.4.0')
+const apiVersion = ref('30.4.1')
 
 // Computed properties
 const totalZawodnikow = computed(() => {
@@ -400,15 +400,20 @@ const kolejkaStatus = computed(() => {
 
 // SIMPLIFIED: Jedna funkcja do synchronizacji WSZYSTKICH danych
 const syncAllData = async (reason = 'manual') => {
-  if (appState.value.loading) return
-  
-  appState.value.loading = true
-  appState.value.error = null
+  // Remove guard to allow calls from setTimeout
   console.log(`🔄 Synchronizacja danych: ${reason}`)
+  
+  // Set loading only for manual calls to show spinner
+  if (reason === 'manual') {
+    if (appState.value.loading) return
+    appState.value.loading = true
+  }
+  
+  appState.value.error = null
   
   try {
     // 1. API Version (tylko raz przy starcie)
-    if (!apiVersion.value || apiVersion.value === '30.4.0') {
+    if (!apiVersion.value || apiVersion.value === '30.4.1') {
       try {
         const versionResponse = await fetch('/api/version')
         if (versionResponse.ok) {
@@ -464,7 +469,9 @@ const syncAllData = async (reason = 'manual') => {
     console.error('❌ Błąd synchronizacji:', error)
     appState.value.error = error.message
   } finally {
-    appState.value.loading = false
+    if (reason === 'manual') {
+      appState.value.loading = false
+    }
   }
 }
 
@@ -495,8 +502,14 @@ const setAktywnaGrupa = async (grupa: Grupa) => {
     
     // SIMPLE: Po aktywacji, poczekaj chwilę i zsynchronizuj wszystko
     console.log('✅ Grupa aktywowana, synchronizuję dane...')
-    await new Promise(resolve => setTimeout(resolve, 1500)) // Daj czas backend
-    await syncAllData('po aktywacji grupy')
+    setTimeout(async () => {
+      try {
+        // Temporary enable loading for sync after activation
+        await syncAllData('po aktywacji grupy')
+      } catch (error) {
+        console.error('❌ Błąd synchronizacji po aktywacji:', error)
+      }
+    }, 1500) // Daj czas backend
     
     showSuccess(`✅ Aktywowano grupę: ${grupa.nazwa}`)
     
