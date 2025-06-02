@@ -171,13 +171,61 @@ def close_db_pool(error):
 # Inicjalizacja puli przy starcie aplikacji
 init_db_pool()
 
-# Cache aktywnej grupy
-aktywna_grupa_cache = {
-    "numer_grupy": None,
-    "kategoria": None,
-    "plec": None,
-    "nazwa": None
-}
+# WERSJA 30.5.0: RADYKALNY REFACTOR - BRAK CACHE
+# Cache aktywnej grupy - USUŃ TO!
+# aktywna_grupa_cache = {
+#     "numer_grupy": None,
+#     "kategoria": None,
+#     "plec": None,
+#     "nazwa": None
+# }
+
+# NOWY: Prosty storage w bazie danych
+def get_aktywna_grupa_from_db():
+    """Pobiera aktywną grupę z bazy danych - ŚWIEŻE DANE"""
+    try:
+        result = get_one("""
+            SELECT kategoria, plec, nazwa, numer_grupy 
+            FROM aktywna_grupa_settings 
+            ORDER BY updated_at DESC 
+            LIMIT 1
+        """)
+        return result
+    except:
+        # Jeśli tabela nie istnieje, stwórz ją
+        try:
+            execute_query("""
+                CREATE TABLE IF NOT EXISTS aktywna_grupa_settings (
+                    id SERIAL PRIMARY KEY,
+                    kategoria VARCHAR(50),
+                    plec CHAR(1),
+                    nazwa VARCHAR(100),
+                    numer_grupy INTEGER,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            print("✅ Utworzono tabelę aktywna_grupa_settings")
+        except Exception as e:
+            print(f"⚠️ Błąd tworzenia tabeli: {e}")
+        return None
+
+def set_aktywna_grupa_in_db(kategoria, plec, nazwa, numer_grupy):
+    """Zapisuje aktywną grupę w bazie danych"""
+    try:
+        # Usuń wszystkie stare wpisy
+        execute_query("DELETE FROM aktywna_grupa_settings")
+        
+        # Dodaj nowy wpis
+        execute_query("""
+            INSERT INTO aktywna_grupa_settings (kategoria, plec, nazwa, numer_grupy)
+            VALUES (%s, %s, %s, %s)
+        """, (kategoria, plec, nazwa, numer_grupy))
+        
+        print(f"✅ Zapisano aktywną grupę w DB: {nazwa} ({kategoria} {plec})")
+        return True
+    except Exception as e:
+        print(f"❌ Błąd zapisu aktywnej grupy: {e}")
+        return False
 
 def validate_time_format(time_str):
     """Waliduje format czasu MM:SS.ms lub SS.ms"""
@@ -1275,14 +1323,23 @@ def grupy_startowe():
 
 @app.route("/api/grupa-aktywna", methods=['GET'])
 def get_grupa_aktywna():
-    """Pobierz aktywną grupę"""
+    """Pobierz aktywną grupę - NOWA LOGIKA Z BAZY DANYCH"""
     try:
-        if aktywna_grupa_cache["numer_grupy"] is None:
+        aktywna_grupa = get_aktywna_grupa_from_db()
+        
+        if not aktywna_grupa:
             return jsonify({"success": False, "message": "Brak aktywnej grupy"}), 404
-            
+        
+        print(f"📖 Czytam aktywną grupę z DB: {aktywna_grupa['nazwa']} ({aktywna_grupa['kategoria']} {aktywna_grupa['plec']})")
+        
         return jsonify({
             "success": True,
-            "aktywna_grupa": aktywna_grupa_cache
+            "aktywna_grupa": {
+                "numer_grupy": aktywna_grupa['numer_grupy'],
+                "kategoria": aktywna_grupa['kategoria'],
+                "plec": aktywna_grupa['plec'],
+                "nazwa": aktywna_grupa['nazwa']
+            }
         }), 200
         
     except Exception as e:
@@ -1291,20 +1348,14 @@ def get_grupa_aktywna():
 
 @app.route("/api/grupa-aktywna", methods=['POST'])
 def set_grupa_aktywna():
-    """Ustawienie aktywnej grupy startowej"""
+    """Ustawienie aktywnej grupy startowej - NOWA LOGIKA Z BAZY DANYCH"""
     try:
         data = request.json
         
         # Sprawdź czy to żądanie czyszczenia
         if data.get('clear'):
-            global aktywna_grupa_cache
-            aktywna_grupa_cache = {
-                "numer_grupy": None,
-                "kategoria": None,
-                "plec": None,
-                "nazwa": None
-            }
-            print("🧹 Wyczyszczono aktywną grupę")
+            execute_query("DELETE FROM aktywna_grupa_settings")
+            print("🧹 Wyczyszczono aktywną grupę z DB")
             return jsonify({
                 "success": True,
                 "message": "Wyczyszczono aktywną grupę"
@@ -1318,13 +1369,11 @@ def set_grupa_aktywna():
         if not all([numer_grupy, kategoria, plec]):
             return jsonify({"error": "Brak wymaganych danych"}), 400
         
-        # Zapisz do cache
-        aktywna_grupa_cache = {
-            "numer_grupy": numer_grupy,
-            "kategoria": kategoria,
-            "plec": plec,
-            "nazwa": nazwa
-        }
+        # Zapisz do bazy danych
+        success = set_aktywna_grupa_in_db(kategoria, plec, nazwa, numer_grupy)
+        
+        if not success:
+            return jsonify({"error": "Błąd zapisu do bazy danych"}), 500
         
         # WAŻNE: Przy aktywacji grupy przywróć wszystkich zawodników z tej grupy
         # Usuń checkpointy 'hidden-from-queue' dla zawodników z tej grupy
@@ -1340,12 +1389,17 @@ def set_grupa_aktywna():
         if deleted_hidden > 0:
             print(f"🔄 Przywrócono {deleted_hidden} ukrytych zawodników z grupy {nazwa}")
         
-        print(f"✅ Ustawiono aktywną grupę: {nazwa}")
+        print(f"✅ AKTYWOWANO GRUPĘ: {nazwa} ({kategoria} {plec}) - przywrócono {deleted_hidden} ukrytych")
         
         return jsonify({
             "success": True,
             "message": f"Grupa {numer_grupy} ({kategoria} {plec}) ustawiona jako aktywna",
-            "aktywna_grupa": aktywna_grupa_cache,
+            "aktywna_grupa": {
+                "numer_grupy": numer_grupy,
+                "kategoria": kategoria,
+                "plec": plec,
+                "nazwa": nazwa
+            },
             "przywrocono_ukrytych": deleted_hidden
         }), 200
         
@@ -1355,12 +1409,14 @@ def set_grupa_aktywna():
 
 @app.route("/api/start-queue", methods=['GET'])
 def get_start_queue():
-    """Pobierz kolejkę zawodników oczekujących na starcie - ZOPTYMALIZOWANA WERSJA"""
+    """NOWA WERSJA 30.5.0: Pobierz kolejkę zawodników - RADYKALNIE UPROSZCZONA LOGIKA"""
     try:
+        print("🚀 === START QUEUE REQUEST ===")
+        
         queue_data = []
         
-        # WERSJA 30.3.7: Uproszczone zapytanie bez skomplikowanych NOT IN sub-queries
-        # Pobierz zawodników skanowanych (start-line-verify) 
+        # KROK 1: Pobierz zawodników skanowanych (start-line-verify) 
+        print("🔍 KROK 1: Szukam skanowanych zawodników...")
         skanowani_zawodnicy = get_all("""
             SELECT DISTINCT
                 z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
@@ -1375,11 +1431,22 @@ def get_start_queue():
             ORDER BY c.timestamp ASC
         """)
         
+        print(f"✅ Znaleziono {len(skanowani_zawodnicy)} skanowanych zawodników")
+        for s in skanowani_zawodnicy:
+            print(f"   - #{s['nr_startowy']} {s['imie']} {s['nazwisko']} ({s['kategoria']} {s['plec']})")
+        
         queue_data.extend(skanowani_zawodnicy)
         
-        # Jeśli jest aktywna grupa, dodaj zawodników z tej grupy  
-        if aktywna_grupa_cache["numer_grupy"] is not None:
-            # Prostsze zapytanie - bez skomplikowanych NOT IN
+        # KROK 2: Pobierz aktywną grupę Z BAZY DANYCH
+        print("🔍 KROK 2: Czytam aktywną grupę z bazy danych...")
+        aktywna_grupa = get_aktywna_grupa_from_db()
+        
+        if aktywna_grupa:
+            print(f"✅ AKTYWNA GRUPA: {aktywna_grupa['nazwa']} (kategoria={aktywna_grupa['kategoria']}, plec={aktywna_grupa['plec']})")
+            
+            # KROK 3: Pobierz zawodników z aktywnej grupy
+            print(f"🔍 KROK 3: Szukam zawodników z aktywnej grupy: {aktywna_grupa['kategoria']} {aktywna_grupa['plec']}")
+            
             grupa_zawodnicy = get_all("""
                 SELECT 
                     z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
@@ -1393,19 +1460,27 @@ def get_start_queue():
                 AND z.kategoria = %s 
                 AND z.plec = %s
                 ORDER BY z.nr_startowy ASC
-            """, (aktywna_grupa_cache["kategoria"], aktywna_grupa_cache["plec"]))
+            """, (aktywna_grupa['kategoria'], aktywna_grupa['plec']))
             
-            # Filtrowanie w Python (szybsze niż SQL NOT IN na dużych tabelach)
+            print(f"✅ Znaleziono {len(grupa_zawodnicy)} zawodników z aktywnej grupy:")
+            for g in grupa_zawodnicy:
+                print(f"   - #{g['nr_startowy']} {g['imie']} {g['nazwisko']} ({g['kategoria']} {g['plec']})")
+            
+            # KROK 4: Filtruj zawodników (usuń skanowanych i ukrytych)
+            print("🔍 KROK 4: Filtruję zawodników...")
+            
             skanowani_nr = {z['nr_startowy'] for z in skanowani_zawodnicy}
+            print(f"   - Skanowani numery: {skanowani_nr}")
             
-            # Pobierz numery ukrytych zawodników
+            # Pobierz ukrytych zawodników
             ukryci_zawodnicy = get_all("""
                 SELECT nr_startowy FROM checkpoints 
                 WHERE checkpoint_name = 'hidden-from-queue'
             """)
             ukryci_nr = {z['nr_startowy'] for z in ukryci_zawodnicy}
+            print(f"   - Ukryci numery: {ukryci_nr}")
             
-            # Filtruj grupę - usuń skanowanych i ukrytych
+            # Filtruj grupę
             filtered_grupa = []
             for zawodnik in grupa_zawodnicy:
                 nr = zawodnik['nr_startowy']
@@ -1414,14 +1489,23 @@ def get_start_queue():
                     for skanowany in skanowani_zawodnicy:
                         if skanowany['nr_startowy'] == nr:
                             skanowany['source_type'] = 'AKTYWNA_GRUPA_I_SKANOWANY'
+                            print(f"   ✏️ #{nr} oznaczony jako AKTYWNA_GRUPA_I_SKANOWANY")
                             break
                 elif nr not in ukryci_nr:
                     # Dodaj do grupy jeśli nie jest ukryty
                     filtered_grupa.append(zawodnik)
+                    print(f"   ✅ #{nr} dodany do kolejki z aktywnej grupy")
+                else:
+                    print(f"   ❌ #{nr} pominięty (ukryty)")
             
             queue_data.extend(filtered_grupa)
+            print(f"✅ Dodano {len(filtered_grupa)} zawodników z aktywnej grupy do kolejki")
+            
+        else:
+            print("⚠️ Brak aktywnej grupy")
         
-        # Sortowanie: najpierw aktywna grupa, potem skanowani
+        # KROK 5: Sortowanie
+        print("🔍 KROK 5: Sortuję kolejkę...")
         def sort_key(item):
             if item['source_type'] == 'AKTYWNA_GRUPA':
                 return (0, item['nr_startowy'])
@@ -1432,15 +1516,22 @@ def get_start_queue():
         
         queue_data.sort(key=sort_key)
         
-        return jsonify({
+        print(f"✅ FINALNA KOLEJKA ({len(queue_data)} zawodników):")
+        for i, z in enumerate(queue_data):
+            print(f"   {i+1}. #{z['nr_startowy']} {z['imie']} {z['nazwisko']} ({z['kategoria']} {z['plec']}) - {z['source_type']}")
+        
+        result = {
             "success": True,
             "queue": queue_data,
             "count": len(queue_data),
-            "aktywna_grupa": aktywna_grupa_cache if aktywna_grupa_cache["numer_grupy"] is not None else None
-        }), 200
+            "aktywna_grupa": aktywna_grupa if aktywna_grupa else None
+        }
+        
+        print("🏁 === KONIEC START QUEUE REQUEST ===")
+        return jsonify(result), 200
         
     except Exception as e:
-        print(f"Błąd w start-queue: {e}")
+        print(f"❌ BŁĄD W START-QUEUE: {e}")
         return jsonify({"error": str(e)}), 500
 
 @app.route("/api/qr/manual-checkins", methods=['GET'])
@@ -1625,9 +1716,9 @@ def remove_from_start_queue(nr_startowy):
 def get_version():
     """Zwraca wersję API"""
     return jsonify({
-        "version": "30.4.1",
+        "version": "30.5.0",
         "status": "production", 
-        "optimizations": "Fixed loading state race condition in frontend activation flow"
+        "optimizations": "RADYKALNY REFACTOR: Usunięto cache, nowa logika z bazy danych, jasne debugowanie"
     }), 200
 
 def get_statystyki_turnieju():
@@ -1738,6 +1829,168 @@ def optimize_database():
     except Exception as e:
         print(f"Błąd optymalizacji DB: {e}")
         return jsonify({"error": str(e)}), 500
+
+@app.route("/api/admin/init-tables", methods=['POST'])
+def init_tables():
+    """Inicjalizuje wymagane tabele dla v30.5.0"""
+    try:
+        # Utwórz tabelę aktywna_grupa_settings
+        execute_query("""
+            CREATE TABLE IF NOT EXISTS aktywna_grupa_settings (
+                id SERIAL PRIMARY KEY,
+                kategoria VARCHAR(50) NOT NULL,
+                plec CHAR(1) NOT NULL,
+                nazwa VARCHAR(100) NOT NULL,
+                numer_grupy INTEGER NOT NULL,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        print("✅ Tabela aktywna_grupa_settings utworzona/sprawdzona")
+        
+        return jsonify({
+            "success": True,
+            "message": "Tabele zainicjalizowane pomyślnie",
+            "tables_created": ["aktywna_grupa_settings"]
+        }), 200
+        
+    except Exception as e:
+        print(f"❌ Błąd inicjalizacji tabel: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/start-line-verify", methods=['POST'])
+def start_line_verify():
+    """Endpoint do weryfikacji zawodników na linii startu"""
+    try:
+        data = request.json
+        qr_code = data.get('qr_code')
+        kategoria = data.get('kategoria')
+        plec = data.get('plec') 
+        device_id = data.get('device_id', 'start-line-scanner')
+        
+        if not qr_code:
+            return jsonify({
+                "success": False,
+                "action": "ODRZUC",
+                "issues": ["Brak QR kodu"],
+                "zawodnik": {},
+                "komunikat": "❌ Brak QR kodu"
+            }), 400
+        
+        # Spróbuj znaleźć zawodnika po QR kodzie
+        zawodnik_data = None
+        nr_startowy = None
+        
+        # Sprawdź czy to QR kod
+        if qr_code.startswith('SKATECROSS_'):
+            zawodnik_data = get_all("""
+                SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub, checked_in
+                FROM zawodnicy 
+                WHERE qr_code = %s
+            """, (qr_code,))
+        else:
+            # Spróbuj jako numer startowy
+            try:
+                nr_startowy = int(qr_code)
+                zawodnik_data = get_all("""
+                    SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub, checked_in
+                    FROM zawodnicy 
+                    WHERE nr_startowy = %s
+                """, (nr_startowy,))
+            except ValueError:
+                pass
+        
+        if not zawodnik_data:
+            return jsonify({
+                "success": False,
+                "action": "ODRZUC", 
+                "issues": ["Nie znaleziono zawodnika"],
+                "zawodnik": {},
+                "komunikat": f"❌ Nie znaleziono zawodnika: {qr_code}"
+            }), 404
+        
+        zawodnik = zawodnik_data[0]
+        issues = []
+        action = "AKCEPTUJ"
+        
+        # Weryfikacja 1: Czy zawodnik jest zameldowany
+        if not zawodnik['checked_in']:
+            issues.append("Zawodnik nie jest zameldowany")
+            action = "ODRZUC"
+        
+        # Weryfikacja 2: Czy zawodnik pasuje do aktywnej grupy (jeśli podana)
+        if kategoria and plec:
+            if zawodnik['kategoria'] != kategoria or zawodnik['plec'] != plec:
+                issues.append(f"Zawodnik z innej grupy: {zawodnik['kategoria']} {zawodnik['plec']} (aktywna: {kategoria} {plec})")
+                action = "OSTRZEZENIE"  # Pozwól ale ostrzeż
+        
+        # Weryfikacja 3: Czy zawodnik już nie jest w kolejce
+        existing_scan = get_all("""
+            SELECT id FROM checkpoints 
+            WHERE checkpoint_name = 'start-line-verify' AND nr_startowy = %s
+        """, (zawodnik['nr_startowy'],))
+        
+        if existing_scan:
+            issues.append("Zawodnik już w kolejce startowej")
+            action = "OSTRZEZENIE"
+        
+        # Weryfikacja 4: Czy zawodnik nie ma już wyniku
+        if zawodnik.get('czas_przejazdu_s'):
+            issues.append("Zawodnik już ma wynik")
+            action = "OSTRZEZENIE"
+        
+        # Jeśli akcja to AKCEPTUJ lub OSTRZEZENIE, dodaj checkpoint
+        if action in ['AKCEPTUJ', 'OSTRZEZENIE']:
+            try:
+                # Usuń stary checkpoint jeśli istnieje (pozwala na ponowne skanowanie)
+                execute_query("""
+                    DELETE FROM checkpoints 
+                    WHERE checkpoint_name = 'start-line-verify' AND nr_startowy = %s
+                """, (zawodnik['nr_startowy'],))
+                
+                # Dodaj nowy checkpoint
+                execute_query("""
+                    INSERT INTO checkpoints (nr_startowy, checkpoint_name, qr_code, device_id)
+                    VALUES (%s, %s, %s, %s)
+                """, (zawodnik['nr_startowy'], 'start-line-verify', qr_code, device_id))
+                
+                print(f"✅ Dodano zawodnika do kolejki: {zawodnik['imie']} {zawodnik['nazwisko']} (#{zawodnik['nr_startowy']})")
+                
+            except Exception as e:
+                print(f"❌ Błąd dodawania checkpoint: {e}")
+                return jsonify({
+                    "success": False,
+                    "action": "ODRZUC",
+                    "issues": [f"Błąd bazy danych: {str(e)}"],
+                    "zawodnik": zawodnik,
+                    "komunikat": "❌ Błąd zapisu"
+                }), 500
+        
+        # Przygotuj komunikat
+        if action == "AKCEPTUJ":
+            komunikat = f"✅ {zawodnik['imie']} {zawodnik['nazwisko']} dodany do kolejki"
+        elif action == "OSTRZEZENIE":
+            komunikat = f"⚠️ {zawodnik['imie']} {zawodnik['nazwisko']} - sprawdź ostrzeżenia"
+        else:
+            komunikat = f"❌ {zawodnik['imie']} {zawodnik['nazwisko']} - nie można dodać"
+        
+        return jsonify({
+            "success": action != "ODRZUC",
+            "action": action,
+            "issues": issues,
+            "zawodnik": zawodnik,
+            "komunikat": komunikat
+        }), 200
+        
+    except Exception as e:
+        print(f"Błąd w start-line-verify: {e}")
+        return jsonify({
+            "success": False,
+            "action": "ODRZUC",
+            "issues": [f"Błąd serwera: {str(e)}"],
+            "zawodnik": {},
+            "komunikat": "❌ Błąd serwera"
+        }), 500
 
 if __name__ == "__main__":
     # Inicjalizacja connection pool przed startem

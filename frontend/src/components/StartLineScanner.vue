@@ -53,13 +53,20 @@
       <div class="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg border border-purple-200 dark:border-purple-800">
         <div class="flex items-center space-x-2">
           <div class="text-2xl font-bold text-purple-600 dark:text-purple-400">
-            {{ aktualna_grupa ? aktualna_grupa.numer_grupy : '-' }}
+            {{ currentActiveGroup ? currentActiveGroup.numer_grupy : '-' }}
           </div>
-          <div v-if="appState.loading" class="animate-pulse">
+          <div v-if="appState.activatingGroupId" class="animate-pulse">
             <div class="w-2 h-2 bg-purple-500 rounded-full"></div>
           </div>
+          <div v-else-if="appState.syncingData" class="animate-spin">
+            <ArrowPathIcon class="h-4 w-4 text-purple-500" />
+          </div>
         </div>
-        <div class="text-sm text-purple-700 dark:text-purple-300">Aktywna grupa</div>
+        <div class="text-sm text-purple-700 dark:text-purple-300">
+          Aktywna grupa
+          <span v-if="appState.activatingGroupId" class="text-xs text-orange-600">(aktywuję...)</span>
+          <span v-else-if="appState.syncingData" class="text-xs text-blue-600">(sync...)</span>
+        </div>
       </div>
     </div>
 
@@ -70,20 +77,25 @@
       <div class="space-y-6">
         
         <!-- Aktywna grupa -->
-        <div v-if="aktualna_grupa" class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+        <div v-if="currentActiveGroup" class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
           <div class="flex items-center justify-between">
             <div class="flex items-center space-x-3">
               <UsersIcon class="h-6 w-6 text-green-600 dark:text-green-400" />
               <div>
-                <h4 class="font-medium text-green-800 dark:text-green-200">{{ aktualna_grupa.nazwa }}</h4>
+                <h4 class="font-medium text-green-800 dark:text-green-200">
+                  {{ currentActiveGroup.nazwa }}
+                  <span v-if="appState.activatingGroupId" class="text-xs text-orange-600">(aktywuję...)</span>
+                  <span v-else-if="appState.syncingData" class="text-xs text-blue-600">(sync...)</span>
+                </h4>
                 <p class="text-sm text-green-700 dark:text-green-300">
-                  {{ aktualna_grupa.liczba_zawodnikow }} zawodników
+                  {{ currentActiveGroup.liczba_zawodnikow }} zawodników
                 </p>
               </div>
             </div>
             <button 
               @click="clearAktywnaGrupa" 
-              class="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200 p-1"
+              :disabled="appState.activatingGroupId"
+              class="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200 p-1 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <XMarkIcon class="h-5 w-5" />
             </button>
@@ -128,15 +140,22 @@
                 
                 <button 
                   @click="setAktywnaGrupa(grupa)"
-                  :disabled="aktualna_grupa?.numer_grupy === grupa.numer_grupy"
+                  :disabled="getGroupButtonState(grupa).isDisabled"
                   :class="[
-                    'px-3 py-1 rounded-md text-xs font-medium transition-colors duration-200',
-                    aktualna_grupa?.numer_grupy === grupa.numer_grupy
-                      ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 cursor-not-allowed'
-                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                    'inline-flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 shadow-sm border',
+                    getGroupButtonState(grupa).isActive
+                      ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200 cursor-not-allowed'
+                      : getGroupButtonState(grupa).isActivating
+                      ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800 text-orange-800 dark:text-orange-200 cursor-not-allowed'
+                      : 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700 hover:border-blue-700 hover:shadow-md active:transform active:scale-95'
                   ]"
                 >
-                  {{ aktualna_grupa?.numer_grupy === grupa.numer_grupy ? 'Aktywna' : 'Aktywuj' }}
+                  <!-- Ikona stanu -->
+                  <CheckCircleIcon v-if="getGroupButtonState(grupa).isActive" class="h-4 w-4" />
+                  <ArrowPathIcon v-else-if="getGroupButtonState(grupa).isActivating" class="h-4 w-4 animate-spin" />
+                  <PlayIcon v-else class="h-4 w-4" />
+                  
+                  <span>{{ getGroupButtonState(grupa).text }}</span>
                 </button>
               </div>
               
@@ -254,21 +273,40 @@
           <div class="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 flex items-center justify-between">
             <div>
               <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                Kolejka startowa ({{ aktualna_grupa ? aktualna_grupa.nazwa : `${kolejka_zawodnikow.length} zawodników` }})
+                Kolejka startowa ({{ currentActiveGroup ? currentActiveGroup.nazwa : `${kolejka_zawodnikow.length} zawodników` }})
               </h3>
-              <div v-if="aktualna_grupa" class="text-sm text-gray-600 dark:text-gray-400">
+              <div v-if="currentActiveGroup" class="text-sm text-gray-600 dark:text-gray-400">
                 {{ kolejka_zawodnikow.length }} zawodników w kolejce
+                <span v-if="appState.syncingQueue" class="text-blue-600 dark:text-blue-400">• synchronizuję...</span>
+                <span v-else-if="appState.syncingData" class="text-orange-600 dark:text-orange-400">• ładuję dane...</span>
               </div>
             </div>
             <div class="flex items-center space-x-2">
-              <div v-if="appState.loading" class="text-xs text-orange-600 dark:text-orange-400 flex items-center space-x-1">
+              <div v-if="appState.syncingQueue" class="text-xs text-blue-600 dark:text-blue-400 flex items-center space-x-1">
+                <ArrowPathIcon class="h-3 w-3 animate-spin" />
+                <span>Sync kolejki</span>
+              </div>
+              <div v-else-if="appState.syncingData" class="text-xs text-orange-600 dark:text-orange-400 flex items-center space-x-1">
+                <ArrowPathIcon class="h-3 w-3 animate-spin" />
+                <span>Sync danych</span>
+              </div>
+              <div v-else-if="appState.loading" class="text-xs text-orange-600 dark:text-orange-400 flex items-center space-x-1">
                 <ArrowPathIcon class="h-3 w-3 animate-spin" />
                 <span>Sync...</span>
               </div>
             </div>
           </div>
           
-          <div v-if="kolejka_zawodnikow.length === 0" class="p-8 text-center text-gray-500 dark:text-gray-400">
+          <div v-if="appState.syncingQueue || appState.syncingData" class="p-6 text-center text-gray-500 dark:text-gray-400">
+            <ArrowPathIcon class="h-8 w-8 animate-spin mx-auto mb-2 text-blue-500" />
+            <div class="text-lg font-medium mb-1">
+              <span v-if="appState.syncingQueue">Synchronizuję kolejkę...</span>
+              <span v-else>Ładuję dane...</span>
+            </div>
+            <div class="text-sm">Aktualny stan może się zmienić</div>
+          </div>
+          
+          <div v-else-if="kolejka_zawodnikow.length === 0" class="p-8 text-center text-gray-500 dark:text-gray-400">
             <div class="text-4xl mb-2">🏁</div>
             <div class="text-lg font-medium mb-1">Kolejka pusta</div>
             <div class="text-sm">Zawodnicy pojawią się po skanowaniu lub aktywacji grupy</div>
@@ -327,7 +365,8 @@ import {
   TrashIcon,
   CheckCircleIcon,
   ExclamationTriangleIcon,
-  XCircleIcon
+  XCircleIcon,
+  PlayIcon
 } from '@heroicons/vue/24/outline'
 
 // Interfaces
@@ -368,7 +407,11 @@ interface VerificationResult {
 const appState = ref({
   loading: false,
   error: null,
-  lastUpdate: null
+  lastUpdate: null,
+  optimisticActiveGroupId: null,
+  syncingData: false,
+  syncingQueue: false,
+  activatingGroupId: null
 })
 
 const grupy = ref<Grupa[]>([])
@@ -377,7 +420,7 @@ const kolejka_zawodnikow = ref<Zawodnik[]>([])
 const selectedGrupa = ref<number | null>(null)
 const manualQrCode = ref('')
 const lastVerification = ref<VerificationResult | null>(null)
-const apiVersion = ref('30.4.1')
+const apiVersion = ref('30.5.0')
 
 // Computed properties
 const totalZawodnikow = computed(() => {
@@ -398,89 +441,15 @@ const kolejkaStatus = computed(() => {
   return { total, skanowani, aktywnaGrupa }
 })
 
-// SIMPLIFIED: Jedna funkcja do synchronizacji WSZYSTKICH danych
-const syncAllData = async (reason = 'manual') => {
-  // Remove guard to allow calls from setTimeout
-  console.log(`🔄 Synchronizacja danych: ${reason}`)
-  
-  // Set loading only for manual calls to show spinner
-  if (reason === 'manual') {
-    if (appState.value.loading) return
-    appState.value.loading = true
-  }
-  
-  appState.value.error = null
-  
-  try {
-    // 1. API Version (tylko raz przy starcie)
-    if (!apiVersion.value || apiVersion.value === '30.4.1') {
-      try {
-        const versionResponse = await fetch('/api/version')
-        if (versionResponse.ok) {
-          const versionData = await versionResponse.json()
-          apiVersion.value = versionData.version || '30.4.0'
-        }
-      } catch (e) {
-        console.warn('⚠️ Nie można pobrać wersji API')
-      }
-    }
-    
-    // 2. Grupy startowe
-    const grupyResponse = await fetch('/api/grupy-startowe')
-    if (!grupyResponse.ok) throw new Error('Błąd ładowania grup')
-    const grupyData = await grupyResponse.json()
-    grupy.value = grupyData.grupy || []
-    
-    // 3. Aktywna grupa  
-    try {
-      const aktywnaResponse = await fetch('/api/grupa-aktywna')
-      if (aktywnaResponse.ok) {
-        const aktywnaData = await aktywnaResponse.json()
-        if (aktywnaData.success && aktywnaData.aktywna_grupa) {
-          const grupaData = aktywnaData.aktywna_grupa
-          aktualna_grupa.value = grupy.value.find(g => 
-            g.kategoria === grupaData.kategoria && g.plec === grupaData.plec
-          ) || null
-        } else {
-          aktualna_grupa.value = null
-        }
-      } else {
-        aktualna_grupa.value = null
-      }
-    } catch (e) {
-      console.warn('⚠️ Błąd ładowania aktywnej grupy:', e)
-      aktualna_grupa.value = null
-    }
-    
-    // 4. Kolejka startowa
-    const kolejkaResponse = await fetch('/api/start-queue')
-    if (!kolejkaResponse.ok) throw new Error('Błąd ładowania kolejki')
-    const kolejkaData = await kolejkaResponse.json()
-    kolejka_zawodnikow.value = kolejkaData.queue || []
-    
-    appState.value.lastUpdate = new Date()
-    console.log('✅ Synchronizacja zakończona:', {
-      grupy: grupy.value.length,
-      aktualna_grupa: aktualna_grupa.value?.nazwa || 'brak',
-      kolejka: kolejka_zawodnikow.value.length
-    })
-    
-  } catch (error) {
-    console.error('❌ Błąd synchronizacji:', error)
-    appState.value.error = error.message
-  } finally {
-    if (reason === 'manual') {
-      appState.value.loading = false
-    }
-  }
-}
-
-// SIMPLIFIED: Aktywacja grupy - prostszy flow
+// IMPROVED: Optymistyczne aktualizacje dla aktywnej grupy
 const setAktywnaGrupa = async (grupa: Grupa) => {
-  if (!grupa || appState.value.loading) return
+  if (!grupa || appState.value.activatingGroupId) return
   
   console.log('🎯 Aktywacja grupy:', grupa.nazwa)
-  appState.value.loading = true
+  
+  // OPTYMISTIC UPDATE: Zapisz ID aktywowanej grupy
+  appState.value.optimisticActiveGroupId = grupa.numer_grupy
+  appState.value.activatingGroupId = grupa.numer_grupy
   appState.value.error = null
   
   try {
@@ -500,34 +469,46 @@ const setAktywnaGrupa = async (grupa: Grupa) => {
       throw new Error(`Backend error: ${response.status} - ${errorText}`)
     }
     
-    // SIMPLE: Po aktywacji, poczekaj chwilę i zsynchronizuj wszystko
+    // Po sukcesie ustaw prawdziwą aktywną grupę
+    aktualna_grupa.value = grupa
+    
+    // SYNC: Po aktywacji synchronizuj dane w tle (z loading indicator)
     console.log('✅ Grupa aktywowana, synchronizuję dane...')
     setTimeout(async () => {
       try {
-        // Temporary enable loading for sync after activation
+        appState.value.syncingData = true
         await syncAllData('po aktywacji grupy')
       } catch (error) {
         console.error('❌ Błąd synchronizacji po aktywacji:', error)
+      } finally {
+        appState.value.syncingData = false
       }
-    }, 1500) // Daj czas backend
+    }, 500) // Krótsze opóźnienie
     
     showSuccess(`✅ Aktywowano grupę: ${grupa.nazwa}`)
     
   } catch (error) {
     console.error('❌ Błąd aktywacji grupy:', error)
+    // ROLLBACK: W przypadku błędu, cofnij optymistyczną zmianę
+    appState.value.optimisticActiveGroupId = null
     appState.value.error = error.message
     showError(`Błąd aktywacji: ${error.message}`)
   } finally {
-    appState.value.loading = false
+    appState.value.activatingGroupId = null
   }
 }
 
-// SIMPLIFIED: Clear grupy
+// IMPROVED: Clear z optymistyczną aktualizacją
 const clearAktywnaGrupa = async () => {
-  if (appState.value.loading) return
+  if (appState.value.activatingGroupId) return
   
   console.log('🧹 Czyszczenie aktywnej grupy...')
-  appState.value.loading = true
+  
+  // OPTYMISTIC UPDATE
+  const previousGroup = aktualna_grupa.value
+  aktualna_grupa.value = null
+  appState.value.optimisticActiveGroupId = null
+  appState.value.activatingGroupId = -1  // Specjalna wartość dla czyszczenia
   
   try {
     const response = await fetch('/api/grupa-aktywna', {
@@ -538,15 +519,114 @@ const clearAktywnaGrupa = async () => {
     
     if (!response.ok) throw new Error('Błąd czyszczenia grupy')
     
-    await syncAllData('po wyczyszczeniu grupy')
+    // Synchronizuj w tle
+    setTimeout(async () => {
+      appState.value.syncingData = true
+      try {
+        await syncAllData('po wyczyszczeniu grupy')
+      } finally {
+        appState.value.syncingData = false
+      }
+    }, 500)
+    
     showSuccess('🧹 Wyczyszczono aktywną grupę')
     
   } catch (error) {
     console.error('❌ Błąd czyszczenia grupy:', error)
+    // ROLLBACK
+    aktualna_grupa.value = previousGroup
+    appState.value.optimisticActiveGroupId = previousGroup?.numer_grupy || null
     appState.value.error = error.message
     showError(`Błąd: ${error.message}`)
   } finally {
-    appState.value.loading = false
+    appState.value.activatingGroupId = null
+  }
+}
+
+// IMPROVED: Sync z lepszymi loading states
+const syncAllData = async (reason = 'manual') => {
+  console.log(`🔄 Synchronizacja danych: ${reason}`)
+  
+  // Różne loading states dla różnych powodów
+  if (reason === 'manual') {
+    if (appState.value.loading) return
+    appState.value.loading = true
+  } else if (reason.includes('kolejka') || reason.includes('queue')) {
+    appState.value.syncingQueue = true
+  } else {
+    appState.value.syncingData = true
+  }
+  
+  appState.value.error = null
+  
+  try {
+    // 1. API Version (tylko raz przy starcie)
+    if (!apiVersion.value || apiVersion.value === '30.5.0') {
+      try {
+        const versionResponse = await fetch('/api/version')
+        if (versionResponse.ok) {
+          const versionData = await versionResponse.json()
+          apiVersion.value = versionData.version || '30.4.0'
+        }
+      } catch (e) {
+        console.warn('⚠️ Nie można pobrać wersji API')
+      }
+    }
+    
+    // 2. Grupy startowe
+    const grupyResponse = await fetch('/api/grupy-startowe')
+    if (!grupyResponse.ok) throw new Error('Błąd ładowania grup')
+    const grupyData = await grupyResponse.json()
+    grupy.value = grupyData.grupy || []
+    
+    // 3. Aktywna grupa (tylko jeśli nie ma optymistycznej)
+    if (!appState.value.optimisticActiveGroupId) {
+      try {
+        const aktywnaResponse = await fetch('/api/grupa-aktywna')
+        if (aktywnaResponse.ok) {
+          const aktywnaData = await aktywnaResponse.json()
+          if (aktywnaData.success && aktywnaData.aktywna_grupa) {
+            const grupaData = aktywnaData.aktywna_grupa
+            aktualna_grupa.value = grupy.value.find(g => 
+              g.kategoria === grupaData.kategoria && g.plec === grupaData.plec
+            ) || null
+          } else {
+            aktualna_grupa.value = null
+          }
+        } else {
+          aktualna_grupa.value = null
+        }
+      } catch (e) {
+        console.warn('⚠️ Błąd ładowania aktywnej grupy:', e)
+        if (!appState.value.optimisticActiveGroupId) {
+          aktualna_grupa.value = null
+        }
+      }
+    }
+    
+    // 4. Kolejka startowa
+    const kolejkaResponse = await fetch('/api/start-queue')
+    if (!kolejkaResponse.ok) throw new Error('Błąd ładowania kolejki')
+    const kolejkaData = await kolejkaResponse.json()
+    kolejka_zawodnikow.value = kolejkaData.queue || []
+    
+    appState.value.lastUpdate = new Date()
+    console.log('✅ Synchronizacja zakończona:', {
+      grupy: grupy.value.length,
+      aktualna_grupa: aktualna_grupa.value?.nazwa || `ID:${appState.value.optimisticActiveGroupId}` || 'brak',
+      kolejka: kolejka_zawodnikow.value.length
+    })
+    
+  } catch (error) {
+    console.error('❌ Błąd synchronizacji:', error)
+    appState.value.error = error.message
+  } finally {
+    // Wyczyść wszystkie loading states
+    if (reason === 'manual') {
+      appState.value.loading = false
+    }
+    appState.value.syncingData = false
+    appState.value.syncingQueue = false
   }
 }
 
@@ -596,13 +676,16 @@ const handleQRCode = async () => {
   }
 }
 
-// SIMPLIFIED: Remove from queue
+// IMPROVED: Remove z optymistyczną aktualizacją
 const removeFromQueue = async (zawodnik: Zawodnik) => {
   const confirmMessage = `Czy na pewno chcesz usunąć zawodnika #${zawodnik.nr_startowy} ${zawodnik.imie} ${zawodnik.nazwisko} z kolejki?`
   
   if (!confirm(confirmMessage)) return
   
-  appState.value.loading = true
+  // OPTYMISTIC UPDATE: Od razu usuń z lokalnej listy
+  const originalQueue = [...kolejka_zawodnikow.value]
+  kolejka_zawodnikow.value = kolejka_zawodnikow.value.filter(z => z.nr_startowy !== zawodnik.nr_startowy)
+  
   try {
     const response = await fetch(`/api/start-queue/remove/${zawodnik.nr_startowy}`, {
       method: 'DELETE',
@@ -610,7 +693,20 @@ const removeFromQueue = async (zawodnik: Zawodnik) => {
     })
     
     if (response.ok) {
-      await syncAllData('po usunięciu z kolejki')
+      // Synchronizuj w tle dla pewności
+      setTimeout(async () => {
+        appState.value.syncingQueue = true
+        try {
+          const kolejkaResponse = await fetch('/api/start-queue')
+          if (kolejkaResponse.ok) {
+            const kolejkaData = await kolejkaResponse.json()
+            kolejka_zawodnikow.value = kolejkaData.queue || []
+          }
+        } finally {
+          appState.value.syncingQueue = false
+        }
+      }, 1000)
+      
       showSuccess(`Usunięto zawodnika #${zawodnik.nr_startowy} z kolejki`)
     } else {
       const error = await response.json()
@@ -618,9 +714,9 @@ const removeFromQueue = async (zawodnik: Zawodnik) => {
     }
   } catch (error) {
     console.error('Błąd usuwania:', error)
+    // ROLLBACK: Przywróć oryginalną kolejkę
+    kolejka_zawodnikow.value = originalQueue
     showError(`Błąd: ${error.message}`)
-  } finally {
-    appState.value.loading = false
   }
 }
 
@@ -711,6 +807,30 @@ const getIconComponent = (action: string) => {
     case 'OSTRZEZENIE': return ExclamationTriangleIcon
     case 'ODRZUC': return XCircleIcon
     default: return QrCodeIcon
+  }
+}
+
+// Computed: Aktywna grupa z optymistyczną aktualizacją
+const currentActiveGroup = computed(() => {
+  // Jeśli mamy optymistyczną aktywną grupę, znajdź ją w liście grup
+  if (appState.value.optimisticActiveGroupId) {
+    return grupy.value.find(g => g.numer_grupy === appState.value.optimisticActiveGroupId) || aktualna_grupa.value
+  }
+  return aktualna_grupa.value
+})
+
+// NOWE: Helper do sprawdzania stanu przycisku grupy
+const getGroupButtonState = (grupa: Grupa) => {
+  const isCurrentActive = currentActiveGroup.value?.numer_grupy === grupa.numer_grupy
+  const isActivating = appState.value.activatingGroupId === grupa.numer_grupy
+  const isAnyActivating = appState.value.activatingGroupId !== null
+  
+  return {
+    isActive: isCurrentActive,
+    isActivating: isActivating,
+    isDisabled: isCurrentActive || isAnyActivating,
+    text: isCurrentActive ? 'Aktywna' : isActivating ? 'Aktywuję...' : 'Aktywuj',
+    showSpinner: isActivating
   }
 }
 
