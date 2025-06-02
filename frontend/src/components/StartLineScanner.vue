@@ -421,7 +421,16 @@ const loadGrupy = async () => {
 
 const loadKolejka = async () => {
   try {
-    const response = await fetch('/api/start-queue?' + Date.now()) // Force fresh data
+    // Timeout dla wolnych połączeń Heroku  
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 sekund timeout
+    
+    const response = await fetch('/api/start-queue?' + Date.now(), {
+      signal: controller.signal
+    })
+    
+    clearTimeout(timeoutId)
+    
     if (response.ok) {
       const data = await response.json()
       if (data.success) {
@@ -439,7 +448,11 @@ const loadKolejka = async () => {
     console.error('❌ Błąd ładowania kolejki')
     return false
   } catch (error) {
-    console.error('❌ Błąd ładowania kolejki:', error)
+    if (error.name === 'AbortError') {
+      console.error('⏱️ Timeout ładowania kolejki')
+    } else {
+      console.error('❌ Błąd ładowania kolejki:', error)
+    }
     return false
   }
 }
@@ -495,7 +508,7 @@ const refreshAll = async () => {
   }
 }
 
-// OPTIMIZED: Aktywacja grupy z lepszym debuggingiem
+// OPTIMIZED: Aktywacja grupy z timeout handling dla Heroku
 const setAktywnaGrupa = async (grupa: Grupa) => {
   if (!grupa || processing.value) return
   
@@ -505,6 +518,10 @@ const setAktywnaGrupa = async (grupa: Grupa) => {
     processing.value = true
     syncing.value = true
     
+    // Timeout controller dla wolnych połączeń Heroku
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 25000) // 25 sekund timeout
+    
     const response = await fetch('/api/grupa-aktywna', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -513,8 +530,11 @@ const setAktywnaGrupa = async (grupa: Grupa) => {
         kategoria: grupa.kategoria,
         plec: grupa.plec,
         nazwa: grupa.nazwa
-      })
+      }),
+      signal: controller.signal
     })
+    
+    clearTimeout(timeoutId)
     
     if (response.ok) {
       const result = await response.json()
@@ -523,15 +543,18 @@ const setAktywnaGrupa = async (grupa: Grupa) => {
       // Immediate update
       aktualna_grupa.value = grupa
       
-      // Force refresh kolejki po 1 sekundzie (czas na backend processing)
+      // Force refresh kolejki po 2 sekundach (więcej czasu dla Heroku)
       setTimeout(async () => {
         console.log('🔄 Refreshing kolejka po aktywacji...')
         await loadKolejka()
         syncing.value = false
         console.log('✅ Grupa aktywowana:', grupa.nazwa)
-      }, 1000)
+      }, 2000)
       
       showSuccess(`✅ Aktywowano grupę: ${grupa.nazwa}`)
+    } else if (response.status === 503) {
+      syncing.value = false
+      throw new Error('Serwer przeciążony - spróbuj ponownie za chwilę')
     } else {
       syncing.value = false
       const error = await response.text()
@@ -541,7 +564,12 @@ const setAktywnaGrupa = async (grupa: Grupa) => {
   } catch (error) {
     console.error('❌ Błąd aktywacji grupy:', error)
     syncing.value = false
-    alert(`Błąd aktywacji grupy: ${error.message}`)
+    
+    if (error.name === 'AbortError') {
+      alert('⏱️ Operacja przekroczyła limit czasu. Heroku może być przeciążony. Spróbuj ponownie.')
+    } else {
+      alert(`Błąd aktywacji grupy: ${error.message}`)
+    }
   } finally {
     processing.value = false
   }
