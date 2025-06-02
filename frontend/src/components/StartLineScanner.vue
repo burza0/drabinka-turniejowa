@@ -435,31 +435,37 @@ const loadKolejka = async () => {
       if (data.success) {
         kolejka_zawodnikow.value = data.queue || []
         
-        // Track backend state dla debugging
-        backendAktywnaGrupa.value = data.aktywna_grupa ? data.aktywna_grupa.nazwa : null
-        
-        console.log('🔄 Kolejka załadowana:', {
-          total: kolejka_zawodnikow.value.length,
-          aktywna_grupa_backend: data.aktywna_grupa,
-          aktywna_grupa_frontend: aktualna_grupa.value?.nazwa,
-          sync_status: backendAktywnaGrupa.value === (aktualna_grupa.value?.nazwa || null) ? '✅ SYNC' : '❌ DESYNC'
-        })
-        
-        // CRITICAL: Sprawdź czy aktywna grupa z backendu jest synchronizowana
+        // CRITICAL FIX: ZAWSZE synchronizuj aktywną grupę z backend response
         if (data.aktywna_grupa) {
           const backendGrupa = data.aktywna_grupa
+          backendAktywnaGrupa.value = backendGrupa.nazwa
+          
+          // Znajdź grupę w lokalnej liście
           const grupa = grupy.value.find(g => 
             g.kategoria === backendGrupa.kategoria && g.plec === backendGrupa.plec
           )
           
-          if (grupa && (!aktualna_grupa.value || aktualna_grupa.value.numer_grupy !== grupa.numer_grupy)) {
-            console.log('🔄 Synchronizuję aktywną grupę z backend:', grupa.nazwa)
+          // ZAWSZE aktualizuj, nawet jeśli wydaje się że to ta sama
+          if (grupa) {
             aktualna_grupa.value = grupa
+            console.log('🔄 Synchronizacja WYMUSZONA z backend:', grupa.nazwa)
+          } else {
+            console.warn('⚠️ Backend grupa nie znaleziona w lokalnej liście:', backendGrupa)
+            aktualna_grupa.value = null
           }
-        } else if (aktualna_grupa.value) {
-          console.log('🧹 Backend nie ma aktywnej grupy, czyszczę frontend')
+        } else {
+          // Backend nie ma aktywnej grupy
+          backendAktywnaGrupa.value = null
           aktualna_grupa.value = null
+          console.log('🧹 Backend nie ma aktywnej grupy, czyszczę frontend')
         }
+        
+        console.log('🔄 Kolejka załadowana:', {
+          total: kolejka_zawodnikow.value.length,
+          aktywna_grupa_backend: data.aktywna_grupa?.nazwa || 'null',
+          aktywna_grupa_frontend: aktualna_grupa.value?.nazwa || 'null',
+          sync_status: (backendAktywnaGrupa.value === (aktualna_grupa.value?.nazwa || null)) ? '✅ SYNC' : '❌ DESYNC'
+        })
         
         return true
       }
