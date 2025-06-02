@@ -1992,6 +1992,449 @@ def start_line_verify():
             "komunikat": "❌ Błąd serwera"
         }), 500
 
+# ============================================================================
+# SYSTEM PUNKTOWY SKATECROSS - RANKINGI
+# ============================================================================
+
+# Tabela punktów SKATECROSS dla miejsc 1-32
+SKATECROSS_POINTS_TABLE = {
+    1: 100, 2: 80, 3: 60, 4: 50, 5: 45, 6: 40, 7: 36, 8: 32,
+    9: 29, 10: 26, 11: 24, 12: 22, 13: 20, 14: 18, 15: 16, 16: 15,
+    17: 14, 18: 13, 19: 12, 20: 11, 21: 10, 22: 9, 23: 8, 24: 7,
+    25: 6, 26: 5, 27: 4, 28: 3, 29: 2, 30: 1, 31: 1, 32: 1
+}
+
+def get_points_for_position(position):
+    """Zwraca punkty za daną pozycję według tabeli SKATECROSS"""
+    return SKATECROSS_POINTS_TABLE.get(position, 0)
+
+def calculate_individual_ranking(season=None):
+    """Kalkuluje ranking indywidualny (suma wszystkich punktów)"""
+    # Usuwam filtrowanie po sezonie bo brakuje kolumny created_at
+    # season_filter = f"AND EXTRACT(YEAR FROM w.created_at) = {season}" if season else ""
+    
+    query = f"""
+        WITH wyniki_z_pozycjami AS (
+            SELECT 
+                w.nr_startowy,
+                z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                ROW_NUMBER() OVER (
+                    PARTITION BY z.kategoria, z.plec 
+                    ORDER BY w.czas_przejazdu_s ASC
+                ) as pozycja,
+                w.czas_przejazdu_s
+            FROM wyniki w
+            JOIN zawodnicy z ON w.nr_startowy = z.nr_startowy
+            WHERE w.status = 'FINISHED' 
+                AND w.czas_przejazdu_s IS NOT NULL
+        ),
+        punkty_zawodnikow AS (
+            SELECT 
+                nr_startowy, imie, nazwisko, kategoria, plec, klub,
+                pozycja,
+                CASE 
+                    WHEN pozycja <= 32 THEN 
+                        CASE pozycja
+                            WHEN 1 THEN 100 WHEN 2 THEN 80 WHEN 3 THEN 60 WHEN 4 THEN 50
+                            WHEN 5 THEN 45 WHEN 6 THEN 40 WHEN 7 THEN 36 WHEN 8 THEN 32
+                            WHEN 9 THEN 29 WHEN 10 THEN 26 WHEN 11 THEN 24 WHEN 12 THEN 22
+                            WHEN 13 THEN 20 WHEN 14 THEN 18 WHEN 15 THEN 16 WHEN 16 THEN 15
+                            WHEN 17 THEN 14 WHEN 18 THEN 13 WHEN 19 THEN 12 WHEN 20 THEN 11
+                            WHEN 21 THEN 10 WHEN 22 THEN 9 WHEN 23 THEN 8 WHEN 24 THEN 7
+                            WHEN 25 THEN 6 WHEN 26 THEN 5 WHEN 27 THEN 4 WHEN 28 THEN 3
+                            WHEN 29 THEN 2 WHEN 30 THEN 1 WHEN 31 THEN 1 WHEN 32 THEN 1
+                            ELSE 0
+                        END
+                    ELSE 0
+                END as punkty,
+                czas_przejazdu_s
+            FROM wyniki_z_pozycjami
+        )
+        SELECT 
+            nr_startowy, imie, nazwisko, kategoria, plec, klub,
+            SUM(punkty) as punkty,
+            COUNT(*) as liczba_zawodow,
+            MIN(czas_przejazdu_s) as najlepszy_czas
+        FROM punkty_zawodnikow
+        GROUP BY nr_startowy, imie, nazwisko, kategoria, plec, klub
+        ORDER BY punkty DESC, najlepszy_czas ASC
+    """
+    
+    return get_all(query)
+
+def calculate_general_ranking_n2(season=None):
+    """Kalkuluje ranking generalny z zasadą n-2 (najlepsze minus 2 najsłabsze)"""
+    # Usuwam filtrowanie po sezonie bo brakuje kolumny created_at
+    # season_filter = f"AND EXTRACT(YEAR FROM w.created_at) = {season}" if season else ""
+    
+    query = f"""
+        WITH wyniki_z_pozycjami AS (
+            SELECT 
+                w.nr_startowy,
+                z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                ROW_NUMBER() OVER (
+                    PARTITION BY z.kategoria, z.plec 
+                    ORDER BY w.czas_przejazdu_s ASC
+                ) as pozycja,
+                w.czas_przejazdu_s
+            FROM wyniki w
+            JOIN zawodnicy z ON w.nr_startowy = z.nr_startowy
+            WHERE w.status = 'FINISHED' 
+                AND w.czas_przejazdu_s IS NOT NULL
+        ),
+        punkty_zawodnikow AS (
+            SELECT 
+                nr_startowy, imie, nazwisko, kategoria, plec, klub,
+                pozycja,
+                CASE 
+                    WHEN pozycja <= 32 THEN 
+                        CASE pozycja
+                            WHEN 1 THEN 100 WHEN 2 THEN 80 WHEN 3 THEN 60 WHEN 4 THEN 50
+                            WHEN 5 THEN 45 WHEN 6 THEN 40 WHEN 7 THEN 36 WHEN 8 THEN 32
+                            WHEN 9 THEN 29 WHEN 10 THEN 26 WHEN 11 THEN 24 WHEN 12 THEN 22
+                            WHEN 13 THEN 20 WHEN 14 THEN 18 WHEN 15 THEN 16 WHEN 16 THEN 15
+                            WHEN 17 THEN 14 WHEN 18 THEN 13 WHEN 19 THEN 12 WHEN 20 THEN 11
+                            WHEN 21 THEN 10 WHEN 22 THEN 9 WHEN 23 THEN 8 WHEN 24 THEN 7
+                            WHEN 25 THEN 6 WHEN 26 THEN 5 WHEN 27 THEN 4 WHEN 28 THEN 3
+                            WHEN 29 THEN 2 WHEN 30 THEN 1 WHEN 31 THEN 1 WHEN 32 THEN 1
+                            ELSE 0
+                        END
+                    ELSE 0
+                END as punkty,
+                czas_przejazdu_s
+            FROM wyniki_z_pozycjami
+        ),
+        zawodnicy_z_punktami AS (
+            SELECT 
+                nr_startowy, imie, nazwisko, kategoria, plec, klub,
+                punkty,
+                ROW_NUMBER() OVER (
+                    PARTITION BY nr_startowy 
+                    ORDER BY punkty ASC
+                ) as ranking_najslabsze
+            FROM punkty_zawodnikow
+        ),
+        ranking_n2 AS (
+            SELECT 
+                nr_startowy, imie, nazwisko, kategoria, plec, klub,
+                COUNT(*) as uczestnictwa,
+                CASE 
+                    WHEN COUNT(*) > 2 THEN 
+                        SUM(CASE WHEN ranking_najslabsze <= COUNT(*) - 2 THEN punkty ELSE 0 END)
+                    ELSE SUM(punkty)
+                END as punkty_koncowe,
+                CASE 
+                    WHEN COUNT(*) > 2 THEN 2
+                    ELSE 0
+                END as odrzucone
+            FROM zawodnicy_z_punktami
+            GROUP BY nr_startowy, imie, nazwisko, kategoria, plec, klub
+        )
+        SELECT *
+        FROM ranking_n2
+        ORDER BY punkty_koncowe DESC, uczestnictwa DESC
+    """
+    
+    return get_all(query)
+
+def calculate_club_ranking_total(season=None):
+    """Kalkuluje ranking klubowy - suma wszystkich punktów"""
+    # Usuwam filtrowanie po sezonie bo brakuje kolumny created_at
+    # season_filter = f"AND EXTRACT(YEAR FROM w.created_at) = {season}" if season else ""
+    
+    query = f"""
+        WITH wyniki_z_pozycjami AS (
+            SELECT 
+                w.nr_startowy,
+                z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                ROW_NUMBER() OVER (
+                    PARTITION BY z.kategoria, z.plec 
+                    ORDER BY w.czas_przejazdu_s ASC
+                ) as pozycja,
+                w.czas_przejazdu_s
+            FROM wyniki w
+            JOIN zawodnicy z ON w.nr_startowy = z.nr_startowy
+            WHERE w.status = 'FINISHED' 
+                AND w.czas_przejazdu_s IS NOT NULL
+                AND z.klub IS NOT NULL
+        ),
+        punkty_zawodnikow AS (
+            SELECT 
+                klub,
+                CASE 
+                    WHEN pozycja <= 32 THEN 
+                        CASE pozycja
+                            WHEN 1 THEN 100 WHEN 2 THEN 80 WHEN 3 THEN 60 WHEN 4 THEN 50
+                            WHEN 5 THEN 45 WHEN 6 THEN 40 WHEN 7 THEN 36 WHEN 8 THEN 32
+                            WHEN 9 THEN 29 WHEN 10 THEN 26 WHEN 11 THEN 24 WHEN 12 THEN 22
+                            WHEN 13 THEN 20 WHEN 14 THEN 18 WHEN 15 THEN 16 WHEN 16 THEN 15
+                            WHEN 17 THEN 14 WHEN 18 THEN 13 WHEN 19 THEN 12 WHEN 20 THEN 11
+                            WHEN 21 THEN 10 WHEN 22 THEN 9 WHEN 23 THEN 8 WHEN 24 THEN 7
+                            WHEN 25 THEN 6 WHEN 26 THEN 5 WHEN 27 THEN 4 WHEN 28 THEN 3
+                            WHEN 29 THEN 2 WHEN 30 THEN 1 WHEN 31 THEN 1 WHEN 32 THEN 1
+                            ELSE 0
+                        END
+                    ELSE 0
+                END as punkty
+            FROM wyniki_z_pozycjami
+        )
+        SELECT 
+            klub,
+            SUM(punkty) as laczne_punkty,
+            COUNT(*) as liczba_zawodnikow,
+            ROUND(AVG(punkty), 1) as srednia
+        FROM punkty_zawodnikow
+        GROUP BY klub
+        ORDER BY laczne_punkty DESC, srednia DESC
+    """
+    
+    return get_all(query)
+
+def calculate_club_ranking_top3(season=None):
+    """Kalkuluje ranking klubowy - top 3 zawodników z każdej kategorii"""
+    # Usuwam filtrowanie po sezonie bo brakuje kolumny created_at
+    # season_filter = f"AND EXTRACT(YEAR FROM w.created_at) = {season}" if season else ""
+    
+    query = f"""
+        WITH wyniki_z_pozycjami AS (
+            SELECT 
+                w.nr_startowy,
+                z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                ROW_NUMBER() OVER (
+                    PARTITION BY z.kategoria, z.plec 
+                    ORDER BY w.czas_przejazdu_s ASC
+                ) as pozycja,
+                w.czas_przejazdu_s
+            FROM wyniki w
+            JOIN zawodnicy z ON w.nr_startowy = z.nr_startowy
+            WHERE w.status = 'FINISHED' 
+                AND w.czas_przejazdu_s IS NOT NULL
+                AND z.klub IS NOT NULL
+        ),
+        punkty_zawodnikow AS (
+            SELECT 
+                klub, kategoria, plec, nr_startowy,
+                CASE 
+                    WHEN pozycja <= 32 THEN 
+                        CASE pozycja
+                            WHEN 1 THEN 100 WHEN 2 THEN 80 WHEN 3 THEN 60 WHEN 4 THEN 50
+                            WHEN 5 THEN 45 WHEN 6 THEN 40 WHEN 7 THEN 36 WHEN 8 THEN 32
+                            WHEN 9 THEN 29 WHEN 10 THEN 26 WHEN 11 THEN 24 WHEN 12 THEN 22
+                            WHEN 13 THEN 20 WHEN 14 THEN 18 WHEN 15 THEN 16 WHEN 16 THEN 15
+                            WHEN 17 THEN 14 WHEN 18 THEN 13 WHEN 19 THEN 12 WHEN 20 THEN 11
+                            WHEN 21 THEN 10 WHEN 22 THEN 9 WHEN 23 THEN 8 WHEN 24 THEN 7
+                            WHEN 25 THEN 6 WHEN 26 THEN 5 WHEN 27 THEN 4 WHEN 28 THEN 3
+                            WHEN 29 THEN 2 WHEN 30 THEN 1 WHEN 31 THEN 1 WHEN 32 THEN 1
+                            ELSE 0
+                        END
+                    ELSE 0
+                END as punkty,
+                ROW_NUMBER() OVER (
+                    PARTITION BY klub, kategoria, plec 
+                    ORDER BY pozycja ASC
+                ) as ranking_w_kategorii
+            FROM wyniki_z_pozycjami
+        ),
+        top3_per_category AS (
+            SELECT 
+                klub, kategoria, plec, punkty
+            FROM punkty_zawodnikow
+            WHERE ranking_w_kategorii <= 3
+        )
+        SELECT 
+            klub,
+            SUM(punkty) as punkty_top3,
+            COUNT(DISTINCT CONCAT(kategoria, '_', plec)) as aktywne_kategorie,
+            ROUND(AVG(punkty), 1) as balance
+        FROM top3_per_category
+        GROUP BY klub
+        ORDER BY punkty_top3 DESC, aktywne_kategorie DESC
+    """
+    
+    return get_all(query)
+
+def calculate_medal_ranking(season=None):
+    """Kalkuluje ranking medalowy (złote, srebrne, brązowe medale)"""
+    # Usuwam filtrowanie po sezonie bo brakuje kolumny created_at
+    # season_filter = f"AND EXTRACT(YEAR FROM w.created_at) = {season}" if season else ""
+    
+    query = f"""
+        WITH wyniki_z_pozycjami AS (
+            SELECT 
+                w.nr_startowy,
+                z.klub,
+                ROW_NUMBER() OVER (
+                    PARTITION BY z.kategoria, z.plec 
+                    ORDER BY w.czas_przejazdu_s ASC
+                ) as pozycja
+            FROM wyniki w
+            JOIN zawodnicy z ON w.nr_startowy = z.nr_startowy
+            WHERE w.status = 'FINISHED' 
+                AND w.czas_przejazdu_s IS NOT NULL
+                AND z.klub IS NOT NULL
+        ),
+        medale AS (
+            SELECT 
+                klub,
+                SUM(CASE WHEN pozycja = 1 THEN 1 ELSE 0 END) as zlote,
+                SUM(CASE WHEN pozycja = 2 THEN 1 ELSE 0 END) as srebrne,
+                SUM(CASE WHEN pozycja = 3 THEN 1 ELSE 0 END) as brazowe
+            FROM wyniki_z_pozycjami
+            WHERE pozycja <= 3
+            GROUP BY klub
+        )
+        SELECT 
+            klub,
+            zlote,
+            srebrne,
+            brazowe,
+            (zlote + srebrne + brazowe) as lacznie
+        FROM medale
+        ORDER BY zlote DESC, srebrne DESC, brazowe DESC
+    """
+    
+    return get_all(query)
+
+# ============================================================================
+# ENDPOINTS RANKINGOWE
+# ============================================================================
+
+@app.route("/api/rankings/individual")
+def get_individual_ranking():
+    """Endpoint dla klasyfikacji indywidualnej"""
+    try:
+        season = request.args.get('season')
+        if season:
+            try:
+                season = int(season)
+            except ValueError:
+                return jsonify({"error": "Nieprawidłowy format sezonu"}), 400
+        
+        ranking = calculate_individual_ranking(season)
+        
+        return jsonify(ranking), 200
+        
+    except Exception as e:
+        print(f"Błąd w individual ranking: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/rankings/general")
+def get_general_ranking():
+    """Endpoint dla klasyfikacji generalnej z zasadą n-2"""
+    try:
+        season = request.args.get('season')
+        if season:
+            try:
+                season = int(season)
+            except ValueError:
+                return jsonify({"error": "Nieprawidłowy format sezonu"}), 400
+        
+        ranking = calculate_general_ranking_n2(season)
+        
+        return jsonify(ranking), 200
+        
+    except Exception as e:
+        print(f"Błąd w general ranking: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/rankings/clubs/total")
+def get_club_ranking_total():
+    """Endpoint dla klasyfikacji klubowej - suma punktów"""
+    try:
+        season = request.args.get('season')
+        if season:
+            try:
+                season = int(season)
+            except ValueError:
+                return jsonify({"error": "Nieprawidłowy format sezonu"}), 400
+        
+        ranking = calculate_club_ranking_total(season)
+        
+        return jsonify(ranking), 200
+        
+    except Exception as e:
+        print(f"Błąd w club ranking total: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/rankings/clubs/top3")
+def get_club_ranking_top3():
+    """Endpoint dla klasyfikacji klubowej - top 3 z każdej kategorii"""
+    try:
+        season = request.args.get('season')
+        if season:
+            try:
+                season = int(season)
+            except ValueError:
+                return jsonify({"error": "Nieprawidłowy format sezonu"}), 400
+        
+        ranking = calculate_club_ranking_top3(season)
+        
+        return jsonify(ranking), 200
+        
+    except Exception as e:
+        print(f"Błąd w club ranking top3: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/rankings/medals")
+def get_medal_ranking():
+    """Endpoint dla klasyfikacji medalowej"""
+    try:
+        season = request.args.get('season')
+        if season:
+            try:
+                season = int(season)
+            except ValueError:
+                return jsonify({"error": "Nieprawidłowy format sezonu"}), 400
+        
+        ranking = calculate_medal_ranking(season)
+        
+        return jsonify(ranking), 200
+        
+    except Exception as e:
+        print(f"Błąd w medal ranking: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/rankings/summary")
+def get_rankings_summary():
+    """Endpoint zwracający podsumowanie wszystkich rankingów"""
+    try:
+        season = request.args.get('season')
+        if season:
+            try:
+                season = int(season)
+            except ValueError:
+                return jsonify({"error": "Nieprawidłowy format sezonu"}), 400
+        
+        # Pobierz podstawowe statystyki
+        individual = calculate_individual_ranking(season)
+        general = calculate_general_ranking_n2(season)
+        clubs_total = calculate_club_ranking_total(season)
+        clubs_top3 = calculate_club_ranking_top3(season)
+        medals = calculate_medal_ranking(season)
+        
+        # Przygotuj podsumowanie
+        summary = {
+            "season": season or "wszystkie",
+            "stats": {
+                "zawodnicy_total": len(individual),
+                "zawodnicy_general": len(general),
+                "kluby_total": len(clubs_total),
+                "kluby_top3": len(clubs_top3),
+                "kluby_z_medalami": len(medals)
+            },
+            "top_zawodnik": individual[0] if individual else None,
+            "top_general": general[0] if general else None,
+            "top_klub_total": clubs_total[0] if clubs_total else None,
+            "top_klub_top3": clubs_top3[0] if clubs_top3 else None,
+            "top_medals": medals[0] if medals else None
+        }
+        
+        return jsonify(summary), 200
+        
+    except Exception as e:
+        print(f"Błąd w rankings summary: {e}")
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == "__main__":
     # Inicjalizacja connection pool przed startem
     init_db_pool()
