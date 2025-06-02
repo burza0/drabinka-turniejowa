@@ -403,17 +403,38 @@ const loadAktywnaGrupa = async () => {
     const response = await fetch('/api/grupa-aktywna')
     if (response.ok) {
       const data = await response.json()
-      if (data.kategoria && data.plec) {
+      // POPRAWKA: Odczytaj dane z obiektu aktywna_grupa
+      const grupaData = data.aktywna_grupa
+      if (grupaData && grupaData.kategoria && grupaData.plec) {
         // Znajdź grupę w liście grup
         aktualna_grupa.value = grupy.value.find(g => 
-          g.kategoria === data.kategoria && g.plec === data.plec
+          g.kategoria === grupaData.kategoria && g.plec === grupaData.plec
         ) || null
+        
+        // Jeśli nie znaleziono w liście grup, stwórz obiekt z danych z API
+        if (!aktualna_grupa.value) {
+          aktualna_grupa.value = {
+            numer_grupy: grupaData.numer_grupy,
+            nazwa: grupaData.nazwa,
+            kategoria: grupaData.kategoria,
+            plec: grupaData.plec,
+            liczba_zawodnikow: 0,
+            lista_zawodnikow: '',
+            numery_startowe: '',
+            estimated_time: 0,
+            status: 'aktywna'
+          }
+        }
       } else {
         aktualna_grupa.value = null
       }
+    } else if (response.status === 404) {
+      // 404 oznacza brak aktywnej grupy
+      aktualna_grupa.value = null
     }
   } catch (error) {
     console.error('Błąd ładowania aktywnej grupy:', error)
+    aktualna_grupa.value = null
   }
 }
 
@@ -463,7 +484,7 @@ const clearAktywnaGrupa = async () => {
     const response = await fetch('/api/grupa-aktywna', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({})
+      body: JSON.stringify({ clear: true })
     })
     
     if (response.ok) {
