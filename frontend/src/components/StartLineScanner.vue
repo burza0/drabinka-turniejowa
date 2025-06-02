@@ -17,6 +17,9 @@
             {{ cameraActive ? '🟢 Aktywny' : '🔴 Nieaktywny' }}
           </span>
         </div>
+        <div class="text-xs text-gray-500 dark:text-gray-400">
+          Debug: Frontend={{ aktualna_grupa?.nazwa || 'null' }}, Backend={{ backendAktywnaGrupa || 'null' }}
+        </div>
         <button 
           @click="refreshAll"
           :disabled="loading"
@@ -24,6 +27,12 @@
         >
           <ArrowPathIcon class="h-5 w-5" :class="{ 'animate-spin': loading }" />
           <span>Odśwież wszystko</span>
+        </button>
+        <button 
+          @click="clearAllCache"
+          class="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-xs font-medium"
+        >
+          🧹 Reset Cache
         </button>
       </div>
     </div>
@@ -365,6 +374,7 @@ interface VerificationResult {
 // State management - uproszczony
 const grupy = ref<Grupa[]>([])
 const aktualna_grupa = ref<Grupa | null>(null)
+const backendAktywnaGrupa = ref<string | null>(null) // Debug: backend state
 const kolejka_zawodnikow = ref<Zawodnik[]>([])
 const selectedGrupa = ref<number | null>(null)
 const manualQrCode = ref('')
@@ -400,7 +410,7 @@ const kolejkaStatus = computed(() => {
 // SIMPLIFIED: Direct API calls bez cache
 const loadGrupy = async () => {
   try {
-    const response = await fetch('/api/grupy-startowe')
+    const response = await fetch('/api/grupy-startowe?' + Date.now()) // Force fresh data
     if (response.ok) {
       const data = await response.json()
       if (data.success) {
@@ -419,16 +429,20 @@ const loadGrupy = async () => {
 
 const loadKolejka = async () => {
   try {
-    const response = await fetch('/api/start-queue')
+    const response = await fetch('/api/start-queue?' + Date.now()) // Force fresh data
     if (response.ok) {
       const data = await response.json()
       if (data.success) {
         kolejka_zawodnikow.value = data.queue || []
         
+        // Track backend state dla debugging
+        backendAktywnaGrupa.value = data.aktywna_grupa ? data.aktywna_grupa.nazwa : null
+        
         console.log('🔄 Kolejka załadowana:', {
           total: kolejka_zawodnikow.value.length,
           aktywna_grupa_backend: data.aktywna_grupa,
-          aktywna_grupa_frontend: aktualna_grupa.value?.nazwa
+          aktywna_grupa_frontend: aktualna_grupa.value?.nazwa,
+          sync_status: backendAktywnaGrupa.value === (aktualna_grupa.value?.nazwa || null) ? '✅ SYNC' : '❌ DESYNC'
         })
         
         // CRITICAL: Sprawdź czy aktywna grupa z backendu jest synchronizowana
@@ -460,7 +474,7 @@ const loadKolejka = async () => {
 
 const loadAktywnaGrupa = async () => {
   try {
-    const response = await fetch('/api/grupa-aktywna')
+    const response = await fetch('/api/grupa-aktywna?' + Date.now()) // Force fresh data
     if (response.ok) {
       const data = await response.json()
       if (data.success && data.aktywna_grupa) {
@@ -469,15 +483,18 @@ const loadAktywnaGrupa = async () => {
           g.kategoria === grupaData.kategoria && g.plec === grupaData.plec
         )
         aktualna_grupa.value = grupa || null
+        backendAktywnaGrupa.value = grupaData.nazwa
         console.log('✅ Aktywna grupa z API:', aktualna_grupa.value?.nazwa || 'brak')
         return true
       } else {
         aktualna_grupa.value = null
+        backendAktywnaGrupa.value = null
         console.log('✅ Brak aktywnej grupy')
         return true
       }
     } else if (response.status === 404) {
       aktualna_grupa.value = null
+      backendAktywnaGrupa.value = null
       console.log('✅ Brak aktywnej grupy (404)')
       return true
     }
@@ -779,6 +796,22 @@ const debouncedLoadKolejka = () => {
   loadKolejkaTimeout = setTimeout(async () => {
     await loadKolejka() // Force fresh load
   }, 300)
+}
+
+// Clear cache method
+const clearAllCache = () => {
+  console.log('🧹 Czyszczenie cache...')
+  aktualna_grupa.value = null
+  backendAktywnaGrupa.value = null
+  kolejka_zawodnikow.value = []
+  grupy.value = []
+  localStorage.clear() // Clear any browser storage
+  sessionStorage.clear()
+  
+  // Force refresh with no-cache headers
+  setTimeout(() => {
+    refreshAll()
+  }, 500)
 }
 
 // Lifecycle
