@@ -370,7 +370,6 @@ interface VerificationResult {
 // State management - uproszczony
 const grupy = ref<Grupa[]>([])
 const aktualna_grupa = ref<Grupa | null>(null)
-const backendAktywnaGrupa = ref<string | null>(null) // Debug: backend state
 const kolejka_zawodnikow = ref<Zawodnik[]>([])
 const selectedGrupa = ref<number | null>(null)
 const manualQrCode = ref('')
@@ -431,36 +430,10 @@ const loadKolejka = async () => {
       if (data.success) {
         kolejka_zawodnikow.value = data.queue || []
         
-        // CRITICAL FIX: ZAWSZE synchronizuj aktywną grupę z backend response
-        if (data.aktywna_grupa) {
-          const backendGrupa = data.aktywna_grupa
-          backendAktywnaGrupa.value = backendGrupa.nazwa
-          
-          // Znajdź grupę w lokalnej liście
-          const grupa = grupy.value.find(g => 
-            g.kategoria === backendGrupa.kategoria && g.plec === backendGrupa.plec
-          )
-          
-          // ZAWSZE aktualizuj, nawet jeśli wydaje się że to ta sama
-          if (grupa) {
-            aktualna_grupa.value = grupa
-            console.log('🔄 Synchronizacja WYMUSZONA z backend:', grupa.nazwa)
-          } else {
-            console.warn('⚠️ Backend grupa nie znaleziona w lokalnej liście:', backendGrupa)
-            aktualna_grupa.value = null
-          }
-        } else {
-          // Backend nie ma aktywnej grupy
-          backendAktywnaGrupa.value = null
-          aktualna_grupa.value = null
-          console.log('🧹 Backend nie ma aktywnej grupy, czyszczę frontend')
-        }
-        
         console.log('🔄 Kolejka załadowana:', {
           total: kolejka_zawodnikow.value.length,
           aktywna_grupa_backend: data.aktywna_grupa?.nazwa || 'null',
-          aktywna_grupa_frontend: aktualna_grupa.value?.nazwa || 'null',
-          sync_status: (backendAktywnaGrupa.value === (aktualna_grupa.value?.nazwa || null)) ? '✅ SYNC' : '❌ DESYNC'
+          aktywna_grupa_frontend: aktualna_grupa.value?.nazwa || 'null'
         })
         
         return true
@@ -485,18 +458,15 @@ const loadAktywnaGrupa = async () => {
           g.kategoria === grupaData.kategoria && g.plec === grupaData.plec
         )
         aktualna_grupa.value = grupa || null
-        backendAktywnaGrupa.value = grupaData.nazwa
         console.log('✅ Aktywna grupa z API:', aktualna_grupa.value?.nazwa || 'brak')
         return true
       } else {
         aktualna_grupa.value = null
-        backendAktywnaGrupa.value = null
         console.log('✅ Brak aktywnej grupy')
         return true
       }
     } else if (response.status === 404) {
       aktualna_grupa.value = null
-      backendAktywnaGrupa.value = null
       console.log('✅ Brak aktywnej grupy (404)')
       return true
     }
