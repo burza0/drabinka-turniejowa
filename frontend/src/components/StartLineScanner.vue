@@ -6,7 +6,7 @@
         <QrCodeIcon class="h-8 w-8 text-green-600" />
         <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Centrum Startu</h2>
         <span class="text-sm bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded-full">
-          v30.3.2
+          v{{ apiVersion }}
         </span>
       </div>
       
@@ -375,6 +375,7 @@ const loading = ref(false)
 const processing = ref(false)
 const syncing = ref(false)
 const cameraActive = ref(true)
+const apiVersion = ref('30.3.7') // Fallback version
 
 // Auto-refresh WYŁĄCZONY - nie potrzebny
 // let queueRefreshTimer: number | null = null
@@ -400,6 +401,21 @@ const kolejkaStatus = computed(() => {
 })
 
 // SIMPLIFIED: Direct API calls bez cache
+const loadApiVersion = async () => {
+  try {
+    const response = await fetch('/api/version')
+    if (response.ok) {
+      const data = await response.json()
+      if (data.version) {
+        apiVersion.value = data.version
+        console.log('✅ API Version:', data.version)
+      }
+    }
+  } catch (error) {
+    console.warn('⚠️ Nie można pobrać wersji API, używam fallback:', error)
+  }
+}
+
 const loadGrupy = async () => {
   try {
     const response = await fetch('/api/grupy-startowe?' + Date.now()) // Force fresh data
@@ -763,6 +779,7 @@ const getIconComponent = (action: string) => {
 
 // Lifecycle
 onMounted(async () => {
+  await loadApiVersion()
   await refreshAll()
 })
 
