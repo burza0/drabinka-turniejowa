@@ -60,15 +60,98 @@
     <div v-else>
       <!-- Klasyfikacja Indywidualna -->
       <div v-if="activeTab === 'individual'" class="space-y-6">
-        <div class="flex items-center justify-between">
-          <h3 class="text-lg font-medium text-gray-900 dark:text-white">Klasyfikacja Indywidualna</h3>
-          <select 
-            v-model="selectedCategory" 
-            class="rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
-          >
-            <option value="">Wszystkie kategorie</option>
-            <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
-          </select>
+        <!-- Filtry i sortowanie -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6 transition-colors duration-200">
+          <!-- Nagłówek sekcji -->
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Filtry i sortowanie</h3>
+            <button 
+              @click="clearAllFilters" 
+              class="text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 flex items-center space-x-1 transition-colors duration-200"
+            >
+              <span>🗑️</span>
+              <span>Wyczyść filtry</span>
+            </button>
+          </div>
+
+          <!-- Filtry w grid layout -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Filtr kategorii -->
+            <div>
+              <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                <span class="flex items-center space-x-2">
+                  <span>🏆</span>
+                  <span>Kategoria</span>
+                </span>
+              </label>
+              <select 
+                v-model="selectedCategory" 
+                class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg"
+              >
+                <option value="">Wszystkie</option>
+                <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
+              </select>
+            </div>
+
+            <!-- Filtr klubu -->
+            <div>
+              <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                <span class="flex items-center space-x-2">
+                  <span>🏢</span>
+                  <span>Klub</span>
+                </span>
+              </label>
+              <select 
+                v-model="selectedClub" 
+                class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg"
+              >
+                <option value="">Wszystkie</option>
+                <option v-for="club in clubs" :key="club" :value="club">{{ club }}</option>
+              </select>
+            </div>
+
+            <!-- Filtr płci -->
+            <div>
+              <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                <span class="flex items-center space-x-2">
+                  <span>👥</span>
+                  <span>Płeć</span>
+                </span>
+              </label>
+              <select 
+                v-model="selectedGender" 
+                class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg"
+              >
+                <option value="">Wszystkie</option>
+                <option value="M">Mężczyźni</option>
+                <option value="K">Kobiety</option>
+              </select>
+            </div>
+
+            <!-- Sortowanie -->
+            <div>
+              <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                <span class="flex items-center space-x-2">
+                  <span>🔄</span>
+                  <span>Sortowanie</span>
+                </span>
+              </label>
+              <select 
+                v-model="sortBy" 
+                class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg"
+              >
+                <option value="pozycja_asc">Pozycja (najlepsi)</option>
+                <option value="pozycja_desc">Pozycja (najgorsi)</option>
+                <option value="punkty_desc">Punkty (malejąco)</option>
+                <option value="punkty_asc">Punkty (rosnąco)</option>
+                <option value="nazwisko_asc">Nazwisko (A-Z)</option>
+                <option value="nazwisko_desc">Nazwisko (Z-A)</option>
+                <option value="klub_asc">Klub (A-Z)</option>
+                <option value="kategoria_asc">Kategoria (A-Z)</option>
+                <option value="starty_desc">Starty (malejąco)</option>
+              </select>
+            </div>
+          </div>
         </div>
         
         <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
@@ -80,13 +163,13 @@
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Klub</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Kategoria</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Punkty</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Zawody</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Starty</th>
               </tr>
             </thead>
             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               <tr v-if="filteredIndividualRanking.length === 0">
                 <td colspan="6" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-                  Brak danych rankingowych dla wybranej kategorii
+                  Brak zawodników spełniających wybrane kryteria
                 </td>
               </tr>
               <tr v-for="(rider, index) in filteredIndividualRanking" :key="rider.id" class="hover:bg-gray-50 dark:hover:bg-gray-700">
@@ -111,6 +194,98 @@
 
       <!-- Klasyfikacja Generalna -->
       <div v-if="activeTab === 'general'" class="space-y-6">
+        <!-- Filtry i sortowanie dla Generalnej -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6 transition-colors duration-200">
+          <!-- Nagłówek sekcji -->
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Filtry i sortowanie</h3>
+            <button 
+              @click="clearGeneralFilters" 
+              class="text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 flex items-center space-x-1 transition-colors duration-200"
+            >
+              <span>🗑️</span>
+              <span>Wyczyść filtry</span>
+            </button>
+          </div>
+
+          <!-- Filtry w grid layout -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Filtr kategorii -->
+            <div>
+              <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                <span class="flex items-center space-x-2">
+                  <span>🏆</span>
+                  <span>Kategoria</span>
+                </span>
+              </label>
+              <select 
+                v-model="selectedCategoryGeneral" 
+                class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg"
+              >
+                <option value="">Wszystkie</option>
+                <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
+              </select>
+            </div>
+
+            <!-- Filtr klubu -->
+            <div>
+              <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                <span class="flex items-center space-x-2">
+                  <span>🏢</span>
+                  <span>Klub</span>
+                </span>
+              </label>
+              <select 
+                v-model="selectedClubGeneral" 
+                class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg"
+              >
+                <option value="">Wszystkie</option>
+                <option v-for="club in clubs" :key="club" :value="club">{{ club }}</option>
+              </select>
+            </div>
+
+            <!-- Filtr płci -->
+            <div>
+              <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                <span class="flex items-center space-x-2">
+                  <span>👥</span>
+                  <span>Płeć</span>
+                </span>
+              </label>
+              <select 
+                v-model="selectedGenderGeneral" 
+                class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg"
+              >
+                <option value="">Wszystkie</option>
+                <option value="M">Mężczyźni</option>
+                <option value="K">Kobiety</option>
+              </select>
+            </div>
+
+            <!-- Sortowanie -->
+            <div>
+              <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                <span class="flex items-center space-x-2">
+                  <span>🔄</span>
+                  <span>Sortowanie</span>
+                </span>
+              </label>
+              <select 
+                v-model="sortByGeneral" 
+                class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg"
+              >
+                <option value="punkty_desc">Punkty (malejąco)</option>
+                <option value="punkty_asc">Punkty (rosnąco)</option>
+                <option value="nazwisko_asc">Nazwisko (A-Z)</option>
+                <option value="nazwisko_desc">Nazwisko (Z-A)</option>
+                <option value="kategoria_asc">Kategoria (A-Z)</option>
+                <option value="starty_desc">Starty (malejąco)</option>
+                <option value="odrzucone_desc">Odrzucone (malejąco)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        
         <div class="flex items-center justify-between">
           <h3 class="text-lg font-medium text-gray-900 dark:text-white">Klasyfikacja Generalna (n-2)</h3>
           <div class="text-sm text-gray-600 dark:text-gray-400">
@@ -126,17 +301,17 @@
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Zawodnik</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Kategoria</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Punkty końcowe</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Uczestnictwa</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Starty</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Odrzucone</th>
               </tr>
             </thead>
             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              <tr v-if="generalRanking.length === 0">
+              <tr v-if="filteredGeneralRanking.length === 0">
                 <td colspan="6" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-                  Brak danych rankingu generalnego
+                  Brak zawodników spełniających wybrane kryteria
                 </td>
               </tr>
-              <tr v-for="(rider, index) in generalRanking" :key="rider.id" class="hover:bg-gray-50 dark:hover:bg-gray-700">
+              <tr v-for="(rider, index) in filteredGeneralRanking" :key="rider.id" class="hover:bg-gray-50 dark:hover:bg-gray-700">
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                   <span v-if="index === 0">🏆</span>
                   <span v-else>{{ index + 1 }}</span>
@@ -157,6 +332,64 @@
 
       <!-- Klasyfikacja Klubowa - Suma -->
       <div v-if="activeTab === 'clubs-total'" class="space-y-6">
+        <!-- Filtry i sortowanie dla Klubowej - Suma -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6 transition-colors duration-200">
+          <!-- Nagłówek sekcji -->
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Filtry i sortowanie</h3>
+            <button 
+              @click="clearClubsTotalFilters" 
+              class="text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 flex items-center space-x-1 transition-colors duration-200"
+            >
+              <span>🗑️</span>
+              <span>Wyczyść filtry</span>
+            </button>
+          </div>
+
+          <!-- Filtry w grid layout -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Filtr min. zawodników -->
+            <div>
+              <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                <span class="flex items-center space-x-2">
+                  <span>👥</span>
+                  <span>Min. zawodników</span>
+                </span>
+              </label>
+              <input 
+                v-model="minZawodnikow" 
+                type="number"
+                min="1"
+                placeholder="Minimalna liczba"
+                class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg"
+              />
+            </div>
+
+            <!-- Sortowanie -->
+            <div>
+              <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                <span class="flex items-center space-x-2">
+                  <span>🔄</span>
+                  <span>Sortowanie</span>
+                </span>
+              </label>
+              <select 
+                v-model="sortByClubsTotal" 
+                class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg"
+              >
+                <option value="punkty_desc">Punkty (malejąco)</option>
+                <option value="punkty_asc">Punkty (rosnąco)</option>
+                <option value="srednia_desc">Średnia (malejąco)</option>
+                <option value="srednia_asc">Średnia (rosnąco)</option>
+                <option value="zawodnicy_desc">Zawodnicy (malejąco)</option>
+                <option value="zawodnicy_asc">Zawodnicy (rosnąco)</option>
+                <option value="nazwa_asc">Nazwa (A-Z)</option>
+                <option value="nazwa_desc">Nazwa (Z-A)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        
         <div class="flex items-center justify-between">
           <h3 class="text-lg font-medium text-gray-900 dark:text-white">Klasyfikacja Klubowa - Suma Punktów</h3>
           <div class="text-sm text-gray-600 dark:text-gray-400">
@@ -176,12 +409,12 @@
               </tr>
             </thead>
             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              <tr v-if="clubRankingTotal.length === 0">
+              <tr v-if="filteredClubsTotal.length === 0">
                 <td colspan="5" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-                  Brak danych rankingu klubowego
+                  Brak klubów spełniających wybrane kryteria
                 </td>
               </tr>
-              <tr v-for="(club, index) in clubRankingTotal" :key="club.klub" class="hover:bg-gray-50 dark:hover:bg-gray-700">
+              <tr v-for="(club, index) in filteredClubsTotal" :key="club.klub" class="hover:bg-gray-50 dark:hover:bg-gray-700">
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                   <span v-if="index === 0">🏆</span>
                   <span v-else-if="index === 1">🥈</span>
@@ -191,7 +424,7 @@
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{{ club.klub }}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-blue-600 dark:text-blue-400">{{ club.laczne_punkty }} pkt</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ club.liczba_zawodnikow }}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ club.srednia.toFixed(1) }} pkt</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ parseFloat(club.srednia).toFixed(1) }} pkt</td>
               </tr>
             </tbody>
           </table>
@@ -200,6 +433,64 @@
 
       <!-- Klasyfikacja Klubowa - Top 3 -->
       <div v-if="activeTab === 'clubs-top3'" class="space-y-6">
+        <!-- Filtry i sortowanie dla Klubowej - Top 3 -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6 transition-colors duration-200">
+          <!-- Nagłówek sekcji -->
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Filtry i sortowanie</h3>
+            <button 
+              @click="clearClubsTop3Filters" 
+              class="text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 flex items-center space-x-1 transition-colors duration-200"
+            >
+              <span>🗑️</span>
+              <span>Wyczyść filtry</span>
+            </button>
+          </div>
+
+          <!-- Filtry w grid layout -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Filtr min. kategorii -->
+            <div>
+              <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                <span class="flex items-center space-x-2">
+                  <span>🏆</span>
+                  <span>Min. aktywnych kategorii</span>
+                </span>
+              </label>
+              <input 
+                v-model="minKategorie" 
+                type="number"
+                min="1"
+                placeholder="Minimalna liczba"
+                class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg"
+              />
+            </div>
+
+            <!-- Sortowanie -->
+            <div>
+              <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                <span class="flex items-center space-x-2">
+                  <span>🔄</span>
+                  <span>Sortowanie</span>
+                </span>
+              </label>
+              <select 
+                v-model="sortByClubsTop3" 
+                class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg"
+              >
+                <option value="punkty_desc">Punkty Top 3 (malejąco)</option>
+                <option value="punkty_asc">Punkty Top 3 (rosnąco)</option>
+                <option value="kategorie_desc">Kategorie (malejąco)</option>
+                <option value="kategorie_asc">Kategorie (rosnąco)</option>
+                <option value="balance_desc">Równowaga (malejąco)</option>
+                <option value="balance_asc">Równowaga (rosnąco)</option>
+                <option value="nazwa_asc">Nazwa (A-Z)</option>
+                <option value="nazwa_desc">Nazwa (Z-A)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        
         <div class="flex items-center justify-between">
           <h3 class="text-lg font-medium text-gray-900 dark:text-white">Klasyfikacja Klubowa - Top 3</h3>
           <div class="text-sm text-gray-600 dark:text-gray-400">
@@ -215,16 +506,16 @@
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Klub</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Punkty Top 3</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Kategorie</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Balance</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Równowaga</th>
               </tr>
             </thead>
             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              <tr v-if="clubRankingTop3.length === 0">
+              <tr v-if="filteredClubsTop3.length === 0">
                 <td colspan="5" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-                  Brak danych rankingu klubowego Top 3
+                  Brak klubów spełniających wybrane kryteria
                 </td>
               </tr>
-              <tr v-for="(club, index) in clubRankingTop3" :key="club.klub" class="hover:bg-gray-50 dark:hover:bg-gray-700">
+              <tr v-for="(club, index) in filteredClubsTop3" :key="club.klub" class="hover:bg-gray-50 dark:hover:bg-gray-700">
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{{ index + 1 }}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{{ club.klub }}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-green-600 dark:text-green-400">{{ club.punkty_top3 }} pkt</td>
@@ -238,6 +529,66 @@
 
       <!-- Klasyfikacja Medalowa -->
       <div v-if="activeTab === 'medals'" class="space-y-6">
+        <!-- Filtry i sortowanie dla Medalowej -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6 transition-colors duration-200">
+          <!-- Nagłówek sekcji -->
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Filtry i sortowanie</h3>
+            <button 
+              @click="clearMedalsFilters" 
+              class="text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 flex items-center space-x-1 transition-colors duration-200"
+            >
+              <span>🗑️</span>
+              <span>Wyczyść filtry</span>
+            </button>
+          </div>
+
+          <!-- Filtry w grid layout -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Filtr min. złotych medali -->
+            <div>
+              <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                <span class="flex items-center space-x-2">
+                  <span>🥇</span>
+                  <span>Min. złotych medali</span>
+                </span>
+              </label>
+              <input 
+                v-model="minZlote" 
+                type="number"
+                min="0"
+                placeholder="Minimalna liczba"
+                class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg"
+              />
+            </div>
+
+            <!-- Sortowanie -->
+            <div>
+              <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                <span class="flex items-center space-x-2">
+                  <span>🔄</span>
+                  <span>Sortowanie</span>
+                </span>
+              </label>
+              <select 
+                v-model="sortByMedals" 
+                class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg"
+              >
+                <option value="zlote_desc">Złote (malejąco)</option>
+                <option value="zlote_asc">Złote (rosnąco)</option>
+                <option value="srebrne_desc">Srebrne (malejąco)</option>
+                <option value="srebrne_asc">Srebrne (rosnąco)</option>
+                <option value="brazowe_desc">Brązowe (malejąco)</option>
+                <option value="brazowe_asc">Brązowe (rosnąco)</option>
+                <option value="lacznie_desc">Łącznie (malejąco)</option>
+                <option value="lacznie_asc">Łącznie (rosnąco)</option>
+                <option value="nazwa_asc">Nazwa (A-Z)</option>
+                <option value="nazwa_desc">Nazwa (Z-A)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        
         <div class="flex items-center justify-between">
           <h3 class="text-lg font-medium text-gray-900 dark:text-white">Klasyfikacja Medalowa</h3>
           <div class="text-sm text-gray-600 dark:text-gray-400">
@@ -258,12 +609,12 @@
               </tr>
             </thead>
             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              <tr v-if="medalRanking.length === 0">
+              <tr v-if="filteredMedalRanking.length === 0">
                 <td colspan="6" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-                  Brak danych medalowych
+                  Brak klubów spełniających wybrane kryteria
                 </td>
               </tr>
-              <tr v-for="(club, index) in medalRanking" :key="club.klub" class="hover:bg-gray-50 dark:hover:bg-gray-700">
+              <tr v-for="(club, index) in filteredMedalRanking" :key="club.klub" class="hover:bg-gray-50 dark:hover:bg-gray-700">
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{{ index + 1 }}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{{ club.klub }}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-bold text-yellow-600">{{ club.zlote }}</td>
@@ -310,7 +661,31 @@ import {
 // State
 const loading = ref(false)
 const selectedSeason = ref('2025')
+
+// Filtry dla zakładki Individual
 const selectedCategory = ref('')
+const selectedClub = ref('')
+const selectedGender = ref('')
+const sortBy = ref('pozycja_asc')
+
+// Filtry dla zakładki General
+const selectedCategoryGeneral = ref('')
+const selectedClubGeneral = ref('')
+const selectedGenderGeneral = ref('')
+const sortByGeneral = ref('punkty_desc')
+
+// Filtry dla zakładki Clubs Total
+const minZawodnikow = ref('')
+const sortByClubsTotal = ref('punkty_desc')
+
+// Filtry dla zakładki Clubs Top3
+const minKategorie = ref('')
+const sortByClubsTop3 = ref('punkty_desc')
+
+// Filtry dla zakładki Medals
+const minZlote = ref('')
+const sortByMedals = ref('zlote_desc')
+
 const activeTab = ref('individual')
 
 // Data
@@ -356,9 +731,189 @@ const tabs = computed(() => [
 ])
 
 // Computed
+const clubs = computed(() => {
+  const uniqueClubs = [...new Set(individualRanking.value.map(rider => rider.klub).filter(Boolean))]
+  return uniqueClubs.sort()
+})
+
+const genders = computed(() => {
+  const uniqueGenders = [...new Set(individualRanking.value.map(rider => rider.plec).filter(Boolean))]
+  return uniqueGenders.sort()
+})
+
 const filteredIndividualRanking = computed(() => {
-  if (!selectedCategory.value) return individualRanking.value
-  return individualRanking.value.filter(rider => rider.kategoria === selectedCategory.value)
+  let filtered = individualRanking.value
+  
+  // Filter by category
+  if (selectedCategory.value) {
+    filtered = filtered.filter(rider => rider.kategoria === selectedCategory.value)
+  }
+  
+  // Filter by club
+  if (selectedClub.value) {
+    filtered = filtered.filter(rider => rider.klub === selectedClub.value)
+  }
+  
+  // Filter by gender
+  if (selectedGender.value) {
+    filtered = filtered.filter(rider => rider.plec === selectedGender.value)
+  }
+  
+  // Sorting
+  if (sortBy.value === 'pozycja_asc') {
+    // Default ranking order (by points descending, then by best time)
+    filtered.sort((a, b) => parseFloat(b.punkty) - parseFloat(a.punkty))
+  } else if (sortBy.value === 'pozycja_desc') {
+    filtered.sort((a, b) => parseFloat(a.punkty) - parseFloat(b.punkty))
+  } else if (sortBy.value === 'punkty_desc') {
+    filtered.sort((a, b) => parseFloat(b.punkty) - parseFloat(a.punkty))
+  } else if (sortBy.value === 'punkty_asc') {
+    filtered.sort((a, b) => parseFloat(a.punkty) - parseFloat(b.punkty))
+  } else if (sortBy.value === 'nazwisko_asc') {
+    filtered.sort((a, b) => a.nazwisko.localeCompare(b.nazwisko))
+  } else if (sortBy.value === 'nazwisko_desc') {
+    filtered.sort((a, b) => b.nazwisko.localeCompare(a.nazwisko))
+  } else if (sortBy.value === 'klub_asc') {
+    filtered.sort((a, b) => (a.klub || '').localeCompare(b.klub || ''))
+  } else if (sortBy.value === 'kategoria_asc') {
+    filtered.sort((a, b) => a.kategoria.localeCompare(b.kategoria))
+  } else if (sortBy.value === 'starty_desc') {
+    filtered.sort((a, b) => parseInt(b.liczba_zawodow) - parseInt(a.liczba_zawodow))
+  }
+  
+  return filtered
+})
+
+const filteredGeneralRanking = computed(() => {
+  let filtered = generalRanking.value
+  
+  // Filter by category
+  if (selectedCategoryGeneral.value) {
+    filtered = filtered.filter(rider => rider.kategoria === selectedCategoryGeneral.value)
+  }
+  
+  // Filter by club
+  if (selectedClubGeneral.value) {
+    filtered = filtered.filter(rider => rider.klub === selectedClubGeneral.value)
+  }
+  
+  // Filter by gender
+  if (selectedGenderGeneral.value) {
+    filtered = filtered.filter(rider => rider.plec === selectedGenderGeneral.value)
+  }
+  
+  // Sorting
+  if (sortByGeneral.value === 'punkty_desc') {
+    filtered.sort((a, b) => parseFloat(b.punkty_koncowe) - parseFloat(a.punkty_koncowe))
+  } else if (sortByGeneral.value === 'punkty_asc') {
+    filtered.sort((a, b) => parseFloat(a.punkty_koncowe) - parseFloat(b.punkty_koncowe))
+  } else if (sortByGeneral.value === 'nazwisko_asc') {
+    filtered.sort((a, b) => a.nazwisko.localeCompare(b.nazwisko))
+  } else if (sortByGeneral.value === 'nazwisko_desc') {
+    filtered.sort((a, b) => b.nazwisko.localeCompare(a.nazwisko))
+  } else if (sortByGeneral.value === 'kategoria_asc') {
+    filtered.sort((a, b) => a.kategoria.localeCompare(b.kategoria))
+  } else if (sortByGeneral.value === 'starty_desc') {
+    filtered.sort((a, b) => parseInt(b.uczestnictwa) - parseInt(a.uczestnictwa))
+  } else if (sortByGeneral.value === 'odrzucone_desc') {
+    filtered.sort((a, b) => parseInt(b.odrzucone || 0) - parseInt(a.odrzucone || 0))
+  }
+  
+  return filtered
+})
+
+const filteredClubsTotal = computed(() => {
+  let filtered = clubRankingTotal.value
+  
+  // Filter by minimum zawodnikow
+  if (minZawodnikow.value) {
+    filtered = filtered.filter(club => parseInt(club.liczba_zawodnikow) >= parseInt(minZawodnikow.value))
+  }
+  
+  // Sorting
+  if (sortByClubsTotal.value === 'punkty_desc') {
+    filtered.sort((a, b) => parseFloat(b.laczne_punkty) - parseFloat(a.laczne_punkty))
+  } else if (sortByClubsTotal.value === 'punkty_asc') {
+    filtered.sort((a, b) => parseFloat(a.laczne_punkty) - parseFloat(b.laczne_punkty))
+  } else if (sortByClubsTotal.value === 'srednia_desc') {
+    filtered.sort((a, b) => parseFloat(b.srednia) - parseFloat(a.srednia))
+  } else if (sortByClubsTotal.value === 'srednia_asc') {
+    filtered.sort((a, b) => parseFloat(a.srednia) - parseFloat(b.srednia))
+  } else if (sortByClubsTotal.value === 'zawodnicy_desc') {
+    filtered.sort((a, b) => parseInt(b.liczba_zawodnikow) - parseInt(a.liczba_zawodnikow))
+  } else if (sortByClubsTotal.value === 'zawodnicy_asc') {
+    filtered.sort((a, b) => parseInt(a.liczba_zawodnikow) - parseInt(b.liczba_zawodnikow))
+  } else if (sortByClubsTotal.value === 'nazwa_asc') {
+    filtered.sort((a, b) => a.klub.localeCompare(b.klub))
+  } else if (sortByClubsTotal.value === 'nazwa_desc') {
+    filtered.sort((a, b) => b.klub.localeCompare(a.klub))
+  }
+  
+  return filtered
+})
+
+const filteredClubsTop3 = computed(() => {
+  let filtered = clubRankingTop3.value
+  
+  // Filter by minimum aktywnych kategorii
+  if (minKategorie.value) {
+    filtered = filtered.filter(club => parseInt(club.aktywne_kategorie) >= parseInt(minKategorie.value))
+  }
+  
+  // Sorting
+  if (sortByClubsTop3.value === 'punkty_desc') {
+    filtered.sort((a, b) => parseFloat(b.punkty_top3) - parseFloat(a.punkty_top3))
+  } else if (sortByClubsTop3.value === 'punkty_asc') {
+    filtered.sort((a, b) => parseFloat(a.punkty_top3) - parseFloat(b.punkty_top3))
+  } else if (sortByClubsTop3.value === 'kategorie_desc') {
+    filtered.sort((a, b) => parseInt(b.aktywne_kategorie) - parseInt(a.aktywne_kategorie))
+  } else if (sortByClubsTop3.value === 'kategorie_asc') {
+    filtered.sort((a, b) => parseInt(a.aktywne_kategorie) - parseInt(b.aktywne_kategorie))
+  } else if (sortByClubsTop3.value === 'balance_desc') {
+    filtered.sort((a, b) => parseFloat(b.balance) - parseFloat(a.balance))
+  } else if (sortByClubsTop3.value === 'balance_asc') {
+    filtered.sort((a, b) => parseFloat(a.balance) - parseFloat(b.balance))
+  } else if (sortByClubsTop3.value === 'nazwa_asc') {
+    filtered.sort((a, b) => a.klub.localeCompare(b.klub))
+  } else if (sortByClubsTop3.value === 'nazwa_desc') {
+    filtered.sort((a, b) => b.klub.localeCompare(a.klub))
+  }
+  
+  return filtered
+})
+
+const filteredMedalRanking = computed(() => {
+  let filtered = medalRanking.value
+  
+  // Filter by minimum złotych medali
+  if (minZlote.value) {
+    filtered = filtered.filter(club => parseInt(club.zlote) >= parseInt(minZlote.value))
+  }
+  
+  // Sorting
+  if (sortByMedals.value === 'zlote_desc') {
+    filtered.sort((a, b) => parseInt(b.zlote) - parseInt(a.zlote) || parseInt(b.srebrne) - parseInt(a.srebrne) || parseInt(b.brazowe) - parseInt(a.brazowe))
+  } else if (sortByMedals.value === 'zlote_asc') {
+    filtered.sort((a, b) => parseInt(a.zlote) - parseInt(b.zlote))
+  } else if (sortByMedals.value === 'srebrne_desc') {
+    filtered.sort((a, b) => parseInt(b.srebrne) - parseInt(a.srebrne))
+  } else if (sortByMedals.value === 'srebrne_asc') {
+    filtered.sort((a, b) => parseInt(a.srebrne) - parseInt(b.srebrne))
+  } else if (sortByMedals.value === 'brazowe_desc') {
+    filtered.sort((a, b) => parseInt(b.brazowe) - parseInt(a.brazowe))
+  } else if (sortByMedals.value === 'brazowe_asc') {
+    filtered.sort((a, b) => parseInt(a.brazowe) - parseInt(b.brazowe))
+  } else if (sortByMedals.value === 'lacznie_desc') {
+    filtered.sort((a, b) => parseInt(b.lacznie) - parseInt(a.lacznie))
+  } else if (sortByMedals.value === 'lacznie_asc') {
+    filtered.sort((a, b) => parseInt(a.lacznie) - parseInt(b.lacznie))
+  } else if (sortByMedals.value === 'nazwa_asc') {
+    filtered.sort((a, b) => a.klub.localeCompare(b.klub))
+  } else if (sortByMedals.value === 'nazwa_desc') {
+    filtered.sort((a, b) => b.klub.localeCompare(a.klub))
+  }
+  
+  return filtered
 })
 
 const isEmpty = computed(() => {
@@ -387,59 +942,103 @@ const refreshRankings = async () => {
 }
 
 const fetchIndividualRanking = async () => {
-  try {
-    const response = await fetch(`/api/rankings/individual?season=${selectedSeason.value}`)
-    if (response.ok) {
-      individualRanking.value = await response.json()
-    }
-  } catch (error) {
-    console.log('Individual ranking endpoint not ready yet')
+  console.log('🔍 Pobieranie rankingu indywidualnego...')
+  const response = await fetch(`/api/rankings/individual?season=${selectedSeason.value}`)
+  console.log('📡 Individual response status:', response.status)
+  if (response.ok) {
+    const data = await response.json()
+    console.log('✅ Individual data received:', data.length, 'items')
+    individualRanking.value = data
+  } else {
+    console.error('❌ Individual ranking response not ok:', response.status, response.statusText)
     individualRanking.value = []
   }
 }
 
 const fetchGeneralRanking = async () => {
-  try {
-    const response = await fetch(`/api/rankings/general?season=${selectedSeason.value}`)
-    if (response.ok) {
-      generalRanking.value = await response.json()
-    }
-  } catch (error) {
-    console.log('General ranking endpoint not ready yet')
+  console.log('🔍 Pobieranie rankingu generalnego...')
+  const response = await fetch(`/api/rankings/general?season=${selectedSeason.value}`)
+  console.log('📡 General response status:', response.status)
+  if (response.ok) {
+    const data = await response.json()
+    console.log('✅ General data received:', data.length, 'items')
+    generalRanking.value = data
+  } else {
+    console.error('❌ General ranking response not ok:', response.status, response.statusText)
     generalRanking.value = []
   }
 }
 
 const fetchClubRankings = async () => {
-  try {
-    const [totalResponse, top3Response] = await Promise.all([
-      fetch(`/api/rankings/clubs/total?season=${selectedSeason.value}`),
-      fetch(`/api/rankings/clubs/top3?season=${selectedSeason.value}`)
-    ])
-    
-    if (totalResponse.ok) {
-      clubRankingTotal.value = await totalResponse.json()
-    }
-    if (top3Response.ok) {
-      clubRankingTop3.value = await top3Response.json()
-    }
-  } catch (error) {
-    console.log('Club rankings endpoints not ready yet')
+  console.log('🔍 Pobieranie rankingów klubowych...')
+  const [totalResponse, top3Response] = await Promise.all([
+    fetch(`/api/rankings/clubs/total?season=${selectedSeason.value}`),
+    fetch(`/api/rankings/clubs/top3?season=${selectedSeason.value}`)
+  ])
+  
+  console.log('📡 Club total response status:', totalResponse.status)
+  console.log('📡 Club top3 response status:', top3Response.status)
+  
+  if (totalResponse.ok) {
+    const data = await totalResponse.json()
+    console.log('✅ Club total data received:', data.length, 'items')
+    clubRankingTotal.value = data
+  } else {
+    console.error('❌ Club total ranking response not ok:', totalResponse.status, totalResponse.statusText)
     clubRankingTotal.value = []
+  }
+  
+  if (top3Response.ok) {
+    const data = await top3Response.json()
+    console.log('✅ Club top3 data received:', data.length, 'items')
+    clubRankingTop3.value = data
+  } else {
+    console.error('❌ Club top3 ranking response not ok:', top3Response.status, top3Response.statusText)
     clubRankingTop3.value = []
   }
 }
 
 const fetchMedalRanking = async () => {
-  try {
-    const response = await fetch(`/api/rankings/medals?season=${selectedSeason.value}`)
-    if (response.ok) {
-      medalRanking.value = await response.json()
-    }
-  } catch (error) {
-    console.log('Medal ranking endpoint not ready yet')
+  console.log('🔍 Pobieranie rankingu medalowego...')
+  const response = await fetch(`/api/rankings/medals?season=${selectedSeason.value}`)
+  console.log('📡 Medal response status:', response.status)
+  if (response.ok) {
+    const data = await response.json()
+    console.log('✅ Medal data received:', data.length, 'items')
+    medalRanking.value = data
+  } else {
+    console.error('❌ Medal ranking response not ok:', response.status, response.statusText)
     medalRanking.value = []
   }
+}
+
+const clearAllFilters = () => {
+  selectedCategory.value = ''
+  selectedClub.value = ''
+  selectedGender.value = ''
+  sortBy.value = 'pozycja_asc'
+}
+
+const clearGeneralFilters = () => {
+  selectedCategoryGeneral.value = ''
+  selectedClubGeneral.value = ''
+  selectedGenderGeneral.value = ''
+  sortByGeneral.value = 'punkty_desc'
+}
+
+const clearClubsTotalFilters = () => {
+  minZawodnikow.value = ''
+  sortByClubsTotal.value = 'punkty_desc'
+}
+
+const clearClubsTop3Filters = () => {
+  minKategorie.value = ''
+  sortByClubsTop3.value = 'punkty_desc'
+}
+
+const clearMedalsFilters = () => {
+  minZlote.value = ''
+  sortByMedals.value = 'zlote_desc'
 }
 
 // Lifecycle

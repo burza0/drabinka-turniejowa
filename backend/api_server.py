@@ -7,6 +7,7 @@ import math
 import re
 from psycopg2 import pool
 from cache import app_cache
+import atexit
 
 load_dotenv()
 app = Flask(__name__)
@@ -154,19 +155,6 @@ def execute_query(query, params=None):
     finally:
         if conn:
             return_db_connection(conn)
-
-# Zamykanie puli tylko przy faktycznym wyłączaniu aplikacji
-@app.teardown_appcontext
-def close_db_pool(error):
-    """Cleanup connection pool przy zamykaniu aplikacji"""
-    global connection_pool
-    if connection_pool is not None:
-        try:
-            connection_pool.closeall()
-            print("🧹 Connection pool zamknięty")
-        except Exception as e:
-            print(f"⚠️ Błąd zamykania connection pool: {e}")
-        connection_pool = None
 
 # Inicjalizacja puli przy starcie aplikacji
 init_db_pool()
@@ -2104,31 +2092,40 @@ def calculate_general_ranking_n2(season=None):
                 czas_przejazdu_s
             FROM wyniki_z_pozycjami
         ),
-        zawodnicy_z_punktami AS (
+        zawodnicy_statystyki AS (
             SELECT 
                 nr_startowy, imie, nazwisko, kategoria, plec, klub,
-                punkty,
-                ROW_NUMBER() OVER (
-                    PARTITION BY nr_startowy 
-                    ORDER BY punkty ASC
-                ) as ranking_najslabsze
+                COUNT(*) as uczestnictwa
             FROM punkty_zawodnikow
+            GROUP BY nr_startowy, imie, nazwisko, kategoria, plec, klub
+        ),
+        zawodnicy_z_punktami AS (
+            SELECT 
+                p.nr_startowy, p.imie, p.nazwisko, p.kategoria, p.plec, p.klub,
+                p.punkty,
+                s.uczestnictwa,
+                ROW_NUMBER() OVER (
+                    PARTITION BY p.nr_startowy 
+                    ORDER BY p.punkty ASC
+                ) as ranking_najslabsze
+            FROM punkty_zawodnikow p
+            JOIN zawodnicy_statystyki s ON p.nr_startowy = s.nr_startowy
         ),
         ranking_n2 AS (
             SELECT 
                 nr_startowy, imie, nazwisko, kategoria, plec, klub,
-                COUNT(*) as uczestnictwa,
+                uczestnictwa,
                 CASE 
-                    WHEN COUNT(*) > 2 THEN 
-                        SUM(CASE WHEN ranking_najslabsze <= COUNT(*) - 2 THEN punkty ELSE 0 END)
+                    WHEN uczestnictwa > 2 THEN 
+                        SUM(CASE WHEN ranking_najslabsze <= uczestnictwa - 2 THEN punkty ELSE 0 END)
                     ELSE SUM(punkty)
                 END as punkty_koncowe,
                 CASE 
-                    WHEN COUNT(*) > 2 THEN 2
+                    WHEN uczestnictwa > 2 THEN 2
                     ELSE 0
                 END as odrzucone
             FROM zawodnicy_z_punktami
-            GROUP BY nr_startowy, imie, nazwisko, kategoria, plec, klub
+            GROUP BY nr_startowy, imie, nazwisko, kategoria, plec, klub, uczestnictwa
         )
         SELECT *
         FROM ranking_n2
@@ -2434,6 +2431,20 @@ def get_rankings_summary():
     except Exception as e:
         print(f"Błąd w rankings summary: {e}")
         return jsonify({"error": str(e)}), 500
+
+def cleanup_db_pool():
+    """Czyści connection pool przy wyłączaniu aplikacji"""
+    global connection_pool
+    if connection_pool is not None:
+        try:
+            connection_pool.closeall()
+            print("🧹 Connection pool zamknięty przy shutdown")
+        except Exception as e:
+            print(f"⚠️ Błąd zamykania connection pool: {e}")
+        connection_pool = None
+
+# Zarejestruj cleanup funkcję przy shutdown aplikacji
+atexit.register(cleanup_db_pool)
 
 if __name__ == "__main__":
     # Inicjalizacja connection pool przed startem
