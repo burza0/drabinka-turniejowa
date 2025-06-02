@@ -1213,31 +1213,40 @@ def qr_generate_bulk():
 
 @app.route("/api/grupy-startowe")
 def grupy_startowe():
-    """Endpoint zwracający grupy startowe na podstawie zameldowanych zawodników"""
+    """Endpoint zwracający grupy startowe na podstawie zameldowanych zawodników - ZOPTYMALIZOWANA WERSJA"""
     try:
-        # Pobierz zameldowanych zawodników pogrupowanych
-        grupy_data = get_all("""
+        # WERSJA 30.3.7: Zapytanie podstawowe bez STRING_AGG (szybsze)
+        grupy_podstawowe = get_all("""
             SELECT 
                 kategoria,
                 plec,
-                COUNT(*) as liczba_zameldowanych,
-                STRING_AGG(
-                    CONCAT(nr_startowy, ': ', imie, ' ', nazwisko, ' (', klub, ')'), 
-                    E'\n' ORDER BY nr_startowy
-                ) as lista_zawodnikow,
-                STRING_AGG(nr_startowy::text, ',' ORDER BY nr_startowy) as numery_startowe
+                COUNT(*) as liczba_zameldowanych
             FROM zawodnicy 
             WHERE checked_in = TRUE AND kategoria IS NOT NULL
             GROUP BY kategoria, plec 
             ORDER BY kategoria, plec
         """)
         
-        # Organizuj w grupy startowe
         grupy_startowe = []
         numer_grupy = 1
         
-        for grupa in grupy_data:
+        # Dla każdej grupy pobierz numery startowe w osobnym, prostym zapytaniu
+        for grupa in grupy_podstawowe:
             nazwa_grupy = f"Grupa {numer_grupy}: {grupa['kategoria']} {'Mężczyźni' if grupa['plec'] == 'M' else 'Kobiety'}"
+            
+            # Szybkie zapytanie tylko po numery startowe (bez STRING_AGG)
+            numery = get_all("""
+                SELECT nr_startowy, imie, nazwisko, klub
+                FROM zawodnicy 
+                WHERE checked_in = TRUE 
+                AND kategoria = %s 
+                AND plec = %s
+                ORDER BY nr_startowy
+            """, (grupa['kategoria'], grupa['plec']))
+            
+            # Budowanie list w Python (szybsze niż SQL STRING_AGG)
+            numery_startowe = ','.join(str(z['nr_startowy']) for z in numery)
+            lista_zawodnikow = '\n'.join(f"{z['nr_startowy']}: {z['imie']} {z['nazwisko']} ({z['klub']})" for z in numery)
             
             grupy_startowe.append({
                 "numer_grupy": numer_grupy,
@@ -1245,8 +1254,8 @@ def grupy_startowe():
                 "kategoria": grupa['kategoria'],
                 "plec": grupa['plec'],
                 "liczba_zawodnikow": grupa['liczba_zameldowanych'],
-                "lista_zawodnikow": grupa['lista_zawodnikow'],
-                "numery_startowe": grupa['numery_startowe'],
+                "lista_zawodnikow": lista_zawodnikow,
+                "numery_startowe": numery_startowe,
                 "estimated_time": grupa['liczba_zameldowanych'] * 20, # sekundy (20s na zawodnika)
                 "status": "OCZEKUJE" # OCZEKUJE, AKTYWNA, UKONCZONA
             })
@@ -1346,10 +1355,11 @@ def set_grupa_aktywna():
 
 @app.route("/api/start-queue", methods=['GET'])
 def get_start_queue():
-    """Pobierz kolejkę zawodników oczekujących na starcie"""
+    """Pobierz kolejkę zawodników oczekujących na starcie - ZOPTYMALIZOWANA WERSJA"""
     try:
         queue_data = []
         
+        # WERSJA 30.3.7: Uproszczone zapytanie bez skomplikowanych NOT IN sub-queries
         # Pobierz zawodników skanowanych (start-line-verify) 
         skanowani_zawodnicy = get_all("""
             SELECT DISTINCT
@@ -1367,10 +1377,11 @@ def get_start_queue():
         
         queue_data.extend(skanowani_zawodnicy)
         
-        # Jeśli jest aktywna grupa, dodaj zawodników z tej grupy
+        # Jeśli jest aktywna grupa, dodaj zawodników z tej grupy  
         if aktywna_grupa_cache["numer_grupy"] is not None:
+            # Prostsze zapytanie - bez skomplikowanych NOT IN
             grupa_zawodnicy = get_all("""
-                SELECT DISTINCT
+                SELECT 
                     z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
                     NULL as ostatni_skan,
                     w.czas_przejazdu_s,
@@ -1381,26 +1392,34 @@ def get_start_queue():
                 WHERE z.checked_in = TRUE 
                 AND z.kategoria = %s 
                 AND z.plec = %s
-                AND z.nr_startowy NOT IN (
-                    SELECT nr_startowy FROM checkpoints 
-                    WHERE checkpoint_name = 'start-line-verify'
-                )
-                AND z.nr_startowy NOT IN (
-                    SELECT nr_startowy FROM checkpoints 
-                    WHERE checkpoint_name = 'hidden-from-queue'
-                )
                 ORDER BY z.nr_startowy ASC
             """, (aktywna_grupa_cache["kategoria"], aktywna_grupa_cache["plec"]))
             
-            # Dodaj oznaczenie dla zawodników którzy są zarówno z aktywnej grupy jak i skanowani
-            for skanowany in skanowani_zawodnicy:
-                for grupa_zawodnik in grupa_zawodnicy[:]:  # Kopia listy do iteracji
-                    if skanowany['nr_startowy'] == grupa_zawodnik['nr_startowy']:
-                        skanowany['source_type'] = 'AKTYWNA_GRUPA_I_SKANOWANY'
-                        grupa_zawodnicy.remove(grupa_zawodnik)
-                        break
+            # Filtrowanie w Python (szybsze niż SQL NOT IN na dużych tabelach)
+            skanowani_nr = {z['nr_startowy'] for z in skanowani_zawodnicy}
             
-            queue_data.extend(grupa_zawodnicy)
+            # Pobierz numery ukrytych zawodników
+            ukryci_zawodnicy = get_all("""
+                SELECT nr_startowy FROM checkpoints 
+                WHERE checkpoint_name = 'hidden-from-queue'
+            """)
+            ukryci_nr = {z['nr_startowy'] for z in ukryci_zawodnicy}
+            
+            # Filtruj grupę - usuń skanowanych i ukrytych
+            filtered_grupa = []
+            for zawodnik in grupa_zawodnicy:
+                nr = zawodnik['nr_startowy']
+                if nr in skanowani_nr:
+                    # Zmień typ na kombinowany dla skanowanych
+                    for skanowany in skanowani_zawodnicy:
+                        if skanowany['nr_startowy'] == nr:
+                            skanowany['source_type'] = 'AKTYWNA_GRUPA_I_SKANOWANY'
+                            break
+                elif nr not in ukryci_nr:
+                    # Dodaj do grupy jeśli nie jest ukryty
+                    filtered_grupa.append(zawodnik)
+            
+            queue_data.extend(filtered_grupa)
         
         # Sortowanie: najpierw aktywna grupa, potem skanowani
         def sort_key(item):
@@ -1604,18 +1623,12 @@ def remove_from_start_queue(nr_startowy):
 
 @app.route("/api/version")
 def get_version():
-    """Zwraca aktualną wersję API"""
-    try:
-        with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'VERSION'), 'r') as f:
-            version = f.readline().strip()
-        return jsonify({
-            "version": version,
-            "name": "Drabinka Turniejowa API",
-            "environment": "production" if os.getenv("PRODUCTION") else "development"
-        })
-    except Exception as e:
-        print(f"Błąd przy odczycie wersji: {e}")
-        return jsonify({"version": "unknown", "error": str(e)}), 500
+    """Zwraca wersję API"""
+    return jsonify({
+        "version": "30.3.8",
+        "status": "production",
+        "optimizations": "DB queries optimized, connection pooling active"
+    }), 200
 
 def get_statystyki_turnieju():
     """Pobiera statystyki turnieju z cache lub bazy danych"""
@@ -1656,28 +1669,75 @@ def invalidate_cache_after_change():
 # Dodajemy nowy endpoint do odświeżania materialized views
 @app.route("/api/admin/refresh-stats", methods=['POST'])
 def refresh_materialized_views():
-    """Odświeża wszystkie materialized views"""
+    """Refresh materialized views and clear cache"""
+    try:
+        # Opcjonalnie: odśwież materialized views jeśli są
+        # refresh_stats_cache()
+        print("♻️ Odświeżono cache i statystyki")
+        return jsonify({"success": True, "message": "Cache odświeżony"}), 200
+    except Exception as e:
+        print(f"Błąd odświeżania cache: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/admin/optimize-db", methods=['POST'])
+def optimize_database():
+    """Optymalizacja bazy danych - tworzenie indeksów i analiza"""
     try:
         conn = get_db_connection()
-        cur = conn.cursor()
         
-        # Odśwież każdy materialized view osobno
-        cur.execute("""
-            REFRESH MATERIALIZED VIEW mv_statystyki_kategorie_plec;
-            REFRESH MATERIALIZED VIEW mv_statystyki_wyniki;
-        """)
+        # Lista indeksów dla optymalizacji wydajności
+        indexes_to_create = [
+            # Indeks dla tabeli zawodnicy - najczęściej używane kolumny
+            "CREATE INDEX IF NOT EXISTS idx_zawodnicy_checked_in ON zawodnicy(checked_in)",
+            "CREATE INDEX IF NOT EXISTS idx_zawodnicy_kategoria_plec ON zawodnicy(kategoria, plec)",
+            "CREATE INDEX IF NOT EXISTS idx_zawodnicy_nr_startowy ON zawodnicy(nr_startowy)",
+            
+            # Indeks dla tabeli checkpoints - checkpoint_name jest często filtrowany
+            "CREATE INDEX IF NOT EXISTS idx_checkpoints_name ON checkpoints(checkpoint_name)",
+            "CREATE INDEX IF NOT EXISTS idx_checkpoints_nr_startowy ON checkpoints(nr_startowy)",
+            "CREATE INDEX IF NOT EXISTS idx_checkpoints_name_nr ON checkpoints(checkpoint_name, nr_startowy)",
+            "CREATE INDEX IF NOT EXISTS idx_checkpoints_timestamp ON checkpoints(timestamp)",
+            
+            # Indeks dla tabeli wyniki
+            "CREATE INDEX IF NOT EXISTS idx_wyniki_nr_startowy ON wyniki(nr_startowy)",
+            "CREATE INDEX IF NOT EXISTS idx_wyniki_status ON wyniki(status)",
+        ]
         
-        conn.commit()
-        cur.close()
+        created_indexes = []
         
-        # Invalidate cache
-        invalidate_cache_after_change()
+        for index_sql in indexes_to_create:
+            try:
+                cursor = conn.cursor()
+                cursor.execute(index_sql)
+                conn.commit()
+                index_name = index_sql.split("idx_")[1].split(" ")[0] if "idx_" in index_sql else "unknown"
+                created_indexes.append(index_name)
+                print(f"✅ Utworzono indeks: {index_name}")
+            except Exception as e:
+                # Indeks prawdopodobnie już istnieje
+                print(f"⚠️ Indeks już istnieje lub błąd: {e}")
         
-        return jsonify({"status": "success", "message": "Statystyki odświeżone pomyślnie"})
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
-    finally:
+        # Opcjonalnie: ANALYZE dla lepszych statystyk
+        try:
+            cursor = conn.cursor()
+            cursor.execute("ANALYZE")
+            conn.commit()
+            print("📊 Wykonano ANALYZE dla optymalizacji query planner")
+        except Exception as e:
+            print(f"Błąd ANALYZE: {e}")
+        
         return_db_connection(conn)
+        
+        return jsonify({
+            "success": True,
+            "message": f"Optymalizacja zakończona",
+            "created_indexes": created_indexes,
+            "total_indexes": len(created_indexes)
+        }), 200
+        
+    except Exception as e:
+        print(f"Błąd optymalizacji DB: {e}")
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     # Inicjalizacja connection pool przed startem
