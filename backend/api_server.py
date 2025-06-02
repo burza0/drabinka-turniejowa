@@ -1213,50 +1213,50 @@ def qr_generate_bulk():
 
 @app.route("/api/grupy-startowe")
 def grupy_startowe():
-    """Endpoint zwracający grupy startowe na podstawie zameldowanych zawodników - ZOPTYMALIZOWANA WERSJA"""
+    """Endpoint zwracający grupy startowe na podstawie zameldowanych zawodników - ULTRA ZOPTYMALIZOWANA WERSJA"""
     try:
-        # WERSJA 30.3.7: Zapytanie podstawowe bez STRING_AGG (szybsze)
-        grupy_podstawowe = get_all("""
+        # WERSJA 30.3.8b: Jedno zapytanie z agregacją w Python (najbardziej wydajne)
+        zawodnicy_data = get_all("""
             SELECT 
                 kategoria,
                 plec,
-                COUNT(*) as liczba_zameldowanych
+                nr_startowy,
+                imie, 
+                nazwisko,
+                klub
             FROM zawodnicy 
             WHERE checked_in = TRUE AND kategoria IS NOT NULL
-            GROUP BY kategoria, plec 
-            ORDER BY kategoria, plec
+            ORDER BY kategoria, plec, nr_startowy
         """)
         
+        # Grupowanie w Python (bardzo szybkie)
+        grupy_dict = {}
+        for zawodnik in zawodnicy_data:
+            key = (zawodnik['kategoria'], zawodnik['plec'])
+            if key not in grupy_dict:
+                grupy_dict[key] = []
+            grupy_dict[key].append(zawodnik)
+        
+        # Tworzenie grup startowych
         grupy_startowe = []
         numer_grupy = 1
         
-        # Dla każdej grupy pobierz numery startowe w osobnym, prostym zapytaniu
-        for grupa in grupy_podstawowe:
-            nazwa_grupy = f"Grupa {numer_grupy}: {grupa['kategoria']} {'Mężczyźni' if grupa['plec'] == 'M' else 'Kobiety'}"
+        for (kategoria, plec), zawodnicy in sorted(grupy_dict.items()):
+            nazwa_grupy = f"Grupa {numer_grupy}: {kategoria} {'Mężczyźni' if plec == 'M' else 'Kobiety'}"
             
-            # Szybkie zapytanie tylko po numery startowe (bez STRING_AGG)
-            numery = get_all("""
-                SELECT nr_startowy, imie, nazwisko, klub
-                FROM zawodnicy 
-                WHERE checked_in = TRUE 
-                AND kategoria = %s 
-                AND plec = %s
-                ORDER BY nr_startowy
-            """, (grupa['kategoria'], grupa['plec']))
-            
-            # Budowanie list w Python (szybsze niż SQL STRING_AGG)
-            numery_startowe = ','.join(str(z['nr_startowy']) for z in numery)
-            lista_zawodnikow = '\n'.join(f"{z['nr_startowy']}: {z['imie']} {z['nazwisko']} ({z['klub']})" for z in numery)
+            # Szybkie tworzenie list w Python
+            numery_startowe = ','.join(str(z['nr_startowy']) for z in zawodnicy)
+            lista_zawodnikow = '\n'.join(f"{z['nr_startowy']}: {z['imie']} {z['nazwisko']} ({z['klub']})" for z in zawodnicy)
             
             grupy_startowe.append({
                 "numer_grupy": numer_grupy,
                 "nazwa": nazwa_grupy,
-                "kategoria": grupa['kategoria'],
-                "plec": grupa['plec'],
-                "liczba_zawodnikow": grupa['liczba_zameldowanych'],
+                "kategoria": kategoria,
+                "plec": plec,
+                "liczba_zawodnikow": len(zawodnicy),
                 "lista_zawodnikow": lista_zawodnikow,
                 "numery_startowe": numery_startowe,
-                "estimated_time": grupa['liczba_zameldowanych'] * 20, # sekundy (20s na zawodnika)
+                "estimated_time": len(zawodnicy) * 20, # sekundy (20s na zawodnika)
                 "status": "OCZEKUJE" # OCZEKUJE, AKTYWNA, UKONCZONA
             })
             numer_grupy += 1
@@ -1625,9 +1625,9 @@ def remove_from_start_queue(nr_startowy):
 def get_version():
     """Zwraca wersję API"""
     return jsonify({
-        "version": "30.3.8",
+        "version": "30.3.9",
         "status": "production",
-        "optimizations": "DB queries optimized, connection pooling active"
+        "optimizations": "Ultra-optimized: Single DB query, Python aggregation, connection pooling active"
     }), 200
 
 def get_statystyki_turnieju():
