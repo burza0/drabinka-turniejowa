@@ -53,7 +53,7 @@
             </span>
           </label>
           <select v-model="selectedKategoria" class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg">
-            <option value="">Wszystkie kategorie</option>
+            <option value="">Wszystkie</option>
             <option v-for="kategoria in uniqueKategorie" :key="kategoria" :value="kategoria">
               {{ kategoria }} ({{ getKategoriaCount(kategoria) }})
             </option>
@@ -69,7 +69,7 @@
             </span>
           </label>
           <select v-model="selectedKlub" class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg">
-            <option value="">Wszystkie kluby</option>
+            <option value="">Wszystkie</option>
             <option v-for="klub in uniqueKluby" :key="klub" :value="klub">
               {{ klub }} ({{ getKlubCount(klub) }})
             </option>
@@ -85,7 +85,7 @@
             </span>
           </label>
           <select v-model="qrFilter" class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg">
-            <option value="">Wszyscy zawodnicy</option>
+            <option value="">Wszystkie</option>
             <option value="with_qr">✅ Z QR kodami ({{ countStats.withQr }})</option>
             <option value="without_qr">❌ Bez QR kodów ({{ countStats.total - countStats.withQr }})</option>
           </select>

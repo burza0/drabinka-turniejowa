@@ -4,218 +4,350 @@
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-4 sm:space-y-0">
       <div class="flex items-center space-x-3">
         <QrCodeIcon class="h-8 w-8 text-green-600" />
-        <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Linia Startu</h2>
+        <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Centrum Startu</h2>
+        <span class="text-sm bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded-full">
+          v{{ apiVersion }}
+        </span>
       </div>
       
       <div class="flex items-center space-x-3">
         <div class="text-sm text-gray-600 dark:text-gray-400">
-          Scanner status: 
-          <span :class="isScanning ? 'text-green-600' : 'text-red-600'">
-            {{ isScanning ? '🟢 Aktywny' : '🔴 Nieaktywny' }}
+          Scanner: 
+          <span class="text-green-600">
+            🟢 Aktywny
           </span>
         </div>
-      </div>
-    </div>
-
-    <!-- Aktywna grupa info -->
-    <div v-if="aktywnaCategoriaInfo" class="mb-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-      <div class="flex items-center space-x-3">
-        <UsersIcon class="h-6 w-6 text-blue-600 dark:text-blue-400" />
-        <div>
-          <h4 class="font-medium text-blue-800 dark:text-blue-200">
-            Oczekiwana grupa: {{ aktywnaCategoriaInfo }}
-          </h4>
-          <p class="text-sm text-blue-700 dark:text-blue-300">
-            Weryfikacja będzie sprawdzać czy zawodnik pasuje do tej grupy
-          </p>
-        </div>
         <button 
-          @click="clearAktywnaGrupa" 
-          class="ml-auto text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200"
+          @click="syncAllData('manual')"
+          :disabled="appState.loading"
+          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 text-sm font-medium transition-colors duration-200"
         >
-          ✕
+          <ArrowPathIcon class="h-5 w-5" :class="{ 'animate-spin': appState.loading }" />
+          <span>Odśwież wszystko</span>
         </button>
       </div>
     </div>
 
-    <!-- QR Scanner Area -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
-      <div class="text-center">
-        <div class="w-24 h-24 mx-auto mb-4 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center">
-          <QrCodeIcon class="h-12 w-12 text-green-600 dark:text-green-400" />
+    <!-- Stats Dashboard -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+        <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ totalGrup }}</div>
+        <div class="text-sm text-blue-700 dark:text-blue-300">Grup startowych</div>
+      </div>
+      
+      <div class="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
+        <div class="text-2xl font-bold text-green-600 dark:text-green-400">{{ zameldowaniZawodnicy }}</div>
+        <div class="text-sm text-green-700 dark:text-green-300">Zameldowanych</div>
+      </div>
+      
+      <div class="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg border border-orange-200 dark:border-orange-800">
+        <div class="flex items-center space-x-2">
+          <div class="text-2xl font-bold text-orange-600 dark:text-orange-400">{{ kolejkaStatus.total }}</div>
+          <div v-if="appState.loading" class="animate-spin">
+            <ArrowPathIcon class="h-4 w-4 text-orange-500" />
+          </div>
         </div>
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-          Zeskanuj QR kod zawodnika
-        </h3>
-        <p class="text-gray-600 dark:text-gray-400 mb-4">
-          Użyj czytnika QR kodów lub wpisz kod ręcznie
-        </p>
+        <div class="text-sm text-orange-700 dark:text-orange-300">W kolejce</div>
+      </div>
+      
+      <div class="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg border border-purple-200 dark:border-purple-800">
+        <div class="flex items-center space-x-2">
+          <div class="text-2xl font-bold text-purple-600 dark:text-purple-400">
+            {{ currentActiveGroup ? currentActiveGroup.numer_grupy : '-' }}
+          </div>
+          <div v-if="appState.activatingGroupId" class="animate-pulse">
+            <div class="w-2 h-2 bg-purple-500 rounded-full"></div>
+          </div>
+          <div v-else-if="appState.syncingData" class="animate-spin">
+            <ArrowPathIcon class="h-4 w-4 text-purple-500" />
+          </div>
+        </div>
+        <div class="text-sm text-purple-700 dark:text-purple-300">
+          Aktywna grupa
+          <span v-if="appState.activatingGroupId" class="text-xs text-orange-600">(aktywuję...)</span>
+          <span v-else-if="appState.syncingData" class="text-xs text-blue-600">(sync...)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Główny layout - dwie kolumny -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      
+      <!-- Lewa kolumna: Zarządzanie grupami -->
+      <div class="space-y-6">
         
-        <!-- Manual QR Input -->
-        <div class="max-w-md mx-auto">
-          <div class="flex space-x-2">
-            <input
-              v-model="manualQrCode"
-              @keyup.enter="verifyQrCode"
-              type="text"
-              placeholder="Wpisz kod QR lub zeskanuj..."
-              class="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
-            />
-            <button
-              @click="verifyQrCode"
-              :disabled="!manualQrCode || isVerifying"
-              class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+        <!-- Aktywna grupa -->
+        <div v-if="currentActiveGroup" class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+              <UsersIcon class="h-6 w-6 text-green-600 dark:text-green-400" />
+              <div>
+                <h4 class="font-medium text-green-800 dark:text-green-200">
+                  {{ currentActiveGroup.nazwa }}
+                  <span v-if="appState.activatingGroupId" class="text-xs text-orange-600">(aktywuję...)</span>
+                  <span v-else-if="appState.syncingData" class="text-xs text-blue-600">(sync...)</span>
+                </h4>
+                <p class="text-sm text-green-700 dark:text-green-300">
+                  {{ currentActiveGroup.liczba_zawodnikow }} zawodników
+                </p>
+              </div>
+            </div>
+            <button 
+              @click="clearAktywnaGrupa" 
+              :disabled="appState.activatingGroupId"
+              class="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200 p-1 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {{ isVerifying ? '⏳' : 'Sprawdź' }}
+              <XMarkIcon class="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+
+        <!-- Lista grup startowych -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+          <div class="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+              Grupy startowe ({{ totalGrup }})
+            </h3>
+          </div>
+          
+          <div v-if="appState.loading" class="p-8 text-center text-gray-500 dark:text-gray-400">
+            <ArrowPathIcon class="h-8 w-8 animate-spin mx-auto mb-2" />
+            <div>Ładowanie grup...</div>
+          </div>
+          
+          <div v-else-if="grupy.length === 0" class="p-8 text-center text-gray-500 dark:text-gray-400">
+            <div class="text-4xl mb-2">🏁</div>
+            <div class="text-lg font-medium mb-1">Brak grup startowych</div>
+            <div class="text-sm">Upewnij się że zawodnicy są zameldowani</div>
+          </div>
+          
+          <div v-else class="divide-y divide-gray-200 dark:divide-gray-700 max-h-96 overflow-y-auto">
+            <div v-for="grupa in grupy" :key="grupa.numer_grupy" 
+                 class="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
+              
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                  <div class="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+                    <span class="text-blue-600 dark:text-blue-400 font-bold text-sm">{{ grupa.numer_grupy }}</span>
+                  </div>
+                  <div>
+                    <h4 class="font-medium text-gray-900 dark:text-white text-sm">{{ grupa.nazwa }}</h4>
+                    <p class="text-xs text-gray-600 dark:text-gray-400">
+                      {{ grupa.liczba_zawodnikow }} zawodników • ~{{ Math.round(grupa.estimated_time / 60) }} min
+                    </p>
+                  </div>
+                </div>
+                
+                <button 
+                  @click="setAktywnaGrupa(grupa)"
+                  :disabled="getGroupButtonState(grupa).isDisabled"
+                  :class="[
+                    'inline-flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 shadow-sm border',
+                    getGroupButtonState(grupa).isActive
+                      ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200 cursor-not-allowed'
+                      : getGroupButtonState(grupa).isActivating
+                      ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800 text-orange-800 dark:text-orange-200 cursor-not-allowed'
+                      : 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700 hover:border-blue-700 hover:shadow-md active:transform active:scale-95'
+                  ]"
+                >
+                  <!-- Ikona stanu -->
+                  <CheckCircleIcon v-if="getGroupButtonState(grupa).isActive" class="h-4 w-4" />
+                  <ArrowPathIcon v-else-if="getGroupButtonState(grupa).isActivating" class="h-4 w-4 animate-spin" />
+                  <PlayIcon v-else class="h-4 w-4" />
+                  
+                  <span>{{ getGroupButtonState(grupa).text }}</span>
+                </button>
+              </div>
+              
+              <!-- Rozwijane szczegóły -->
+              <div v-if="selectedGrupa === grupa.numer_grupy" class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
+                <div class="text-xs text-gray-600 dark:text-gray-400">
+                  <strong>Zawodnicy:</strong> {{ grupa.numery_startowe }}
+                </div>
+              </div>
+              
+              <button 
+                @click="toggleGrupaDetails(grupa.numer_grupy)"
+                class="mt-2 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200"
+              >
+                {{ selectedGrupa === grupa.numer_grupy ? 'Ukryj szczegóły' : 'Pokaż szczegóły' }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Szybkie akcje -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+          <h4 class="font-medium text-gray-900 dark:text-white mb-3">Zarządzanie kolejką</h4>
+          <div class="flex flex-wrap gap-2">
+            <button 
+              @click="clearQueue('all')"
+              class="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium"
+            >
+              Wyczyść kolejkę
+            </button>
+            <button 
+              @click="clearQueue('scanned')"
+              class="px-3 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 text-sm font-medium"
+            >
+              Usuń skanowanych
             </button>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Verification Result -->
-    <div v-if="lastVerification" class="mb-6">
-      <div :class="getVerificationClass(lastVerification.action)" class="rounded-lg p-6">
-        <div class="flex items-start space-x-4">
-          <!-- Icon -->
-          <div class="flex-shrink-0">
-            <div :class="getIconClass(lastVerification.action)">
-              <component :is="getIconComponent(lastVerification.action)" class="h-8 w-8" />
+      <!-- Prawa kolumna: QR Scanner i kolejka -->
+      <div class="space-y-6">
+        
+        <!-- QR Scanner -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+          <div class="text-center">
+            <div class="w-16 h-16 mx-auto mb-4 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center">
+              <QrCodeIcon class="h-8 w-8 text-green-600 dark:text-green-400" />
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              QR Scanner
+            </h3>
+            <p class="text-gray-600 dark:text-gray-400 mb-4 text-sm">
+              Zeskanuj QR kod lub wpisz numer startowy
+            </p>
+            
+            <div class="max-w-md mx-auto">
+              <div class="flex space-x-2">
+                <input
+                  v-model="manualQrCode"
+                  @keyup.enter="handleQRCode"
+                  type="text"
+                  placeholder="QR kod lub nr startowy..."
+                  class="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                />
+                <button
+                  @click="handleQRCode"
+                  :disabled="!manualQrCode || appState.loading"
+                  class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm"
+                >
+                  {{ appState.loading ? '⏳' : 'Skanuj' }}
+                </button>
+              </div>
             </div>
           </div>
-          
-          <!-- Content -->
-          <div class="flex-1">
-            <h4 class="text-lg font-semibold mb-2" :class="getTextClass(lastVerification.action)">
-              {{ lastVerification.komunikat }}
-            </h4>
-            
-            <!-- Zawodnik info -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <p class="text-sm opacity-90">
-                  <strong>Nr:</strong> {{ lastVerification.zawodnik.nr_startowy }}
-                </p>
-                <p class="text-sm opacity-90">
+        </div>
+
+        <!-- Weryfikacja wyniku -->
+        <div v-if="lastVerification" class="mb-6">
+          <div :class="getVerificationClass(lastVerification.action)" class="rounded-lg p-4">
+            <div class="flex items-start space-x-3">
+              <div :class="getIconClass(lastVerification.action)">
+                <component :is="getIconComponent(lastVerification.action)" class="h-6 w-6" />
+              </div>
+              <div class="flex-1">
+                <h4 class="font-semibold mb-2" :class="getTextClass(lastVerification.action)">
+                  {{ lastVerification.komunikat }}
+                </h4>
+                <div class="text-sm opacity-90">
+                  <strong>Nr:</strong> {{ lastVerification.zawodnik.nr_startowy }} • 
                   <strong>Imię:</strong> {{ lastVerification.zawodnik.imie }} {{ lastVerification.zawodnik.nazwisko }}
-                </p>
+                </div>
+                <div class="flex space-x-2 mt-3">
+                  <button
+                    v-if="lastVerification.action === 'AKCEPTUJ'"
+                    @click="confirmStart"
+                    class="px-3 py-1 bg-white text-green-800 rounded-md hover:bg-green-50 text-sm font-medium border border-green-200"
+                  >
+                    ✅ Potwierdź
+                  </button>
+                  <button
+                    @click="clearVerification"
+                    class="px-3 py-1 bg-white/20 hover:bg-white/30 rounded-md text-sm font-medium border border-white/30"
+                  >
+                    Wyczyść
+                  </button>
+                </div>
               </div>
-              <div>
-                <p class="text-sm opacity-90">
-                  <strong>Kategoria:</strong> {{ lastVerification.zawodnik.kategoria }} {{ lastVerification.zawodnik.plec === 'M' ? 'M' : 'K' }}
-                </p>
-                <p class="text-sm opacity-90">
-                  <strong>Klub:</strong> {{ lastVerification.zawodnik.klub || '-' }}
-                </p>
-              </div>
-            </div>
-            
-            <!-- Issues -->
-            <div v-if="lastVerification.issues && lastVerification.issues.length > 0" class="mb-4">
-              <h5 class="font-medium mb-2" :class="getTextClass(lastVerification.action)">Uwagi:</h5>
-              <ul class="space-y-1">
-                <li v-for="issue in lastVerification.issues" :key="issue" class="text-sm opacity-90">
-                  {{ issue }}
-                </li>
-              </ul>
-            </div>
-            
-            <!-- Actions -->
-            <div class="flex space-x-3">
-              <button
-                v-if="lastVerification.action === 'AKCEPTUJ'"
-                @click="confirmStart"
-                class="px-4 py-2 bg-white text-green-800 rounded-lg hover:bg-green-50 font-medium border border-green-200"
-              >
-                ✅ Potwierdź start
-              </button>
-              <button
-                v-if="lastVerification.action === 'OSTRZEZENIE'"
-                @click="confirmStart"
-                class="px-4 py-2 bg-white text-orange-800 rounded-lg hover:bg-orange-50 font-medium border border-orange-200"
-              >
-                ⚠️ Pozwól startować
-              </button>
-              <button
-                @click="clearVerification"
-                class="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg font-medium border border-white/30"
-              >
-                Wyczyść
-              </button>
             </div>
           </div>
         </div>
-      </div>
-    </div>
 
-    <!-- Start Queue -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-      <div class="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 flex items-center justify-between">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-          Kolejka startowa ({{ startQueue.length }})
-        </h3>
-        <button
-          @click="loadStartQueue"
-          class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200"
-        >
-          🔄 Odśwież
-        </button>
-      </div>
-      
-      <div v-if="startQueue.length === 0" class="p-8 text-center text-gray-500 dark:text-gray-400">
-        <div class="text-4xl mb-2">🏁</div>
-        <div class="text-lg font-medium mb-1">Kolejka pusta</div>
-        <div class="text-sm">Zawodnicy pojawią się tutaj po zeskanowaniu QR</div>
-      </div>
-      
-      <div v-else class="divide-y divide-gray-200 dark:divide-gray-700">
-        <div v-for="(zawodnik, index) in startQueue" :key="zawodnik.nr_startowy"
-             class="p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700">
-          <div class="flex items-center space-x-4">
-            <div class="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-              <span class="text-blue-600 dark:text-blue-400 font-bold text-sm">{{ index + 1 }}</span>
-            </div>
+        <!-- Kolejka startowa -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+          <div class="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 flex items-center justify-between">
             <div>
-              <p class="font-medium text-gray-900 dark:text-white">
-                #{{ zawodnik.nr_startowy }} {{ zawodnik.imie }} {{ zawodnik.nazwisko }}
-                <!-- Badge for source type -->
-                <span v-if="zawodnik.source_type === 'AKTYWNA_GRUPA'"
-                      class="ml-2 px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                  Aktywna grupa
-                </span>
-                <span v-else-if="zawodnik.source_type === 'SKANOWANY'"
-                      class="ml-2 px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                  Skanowany
-                </span>
-                <span v-else-if="zawodnik.source_type === 'AKTYWNA_GRUPA_I_SKANOWANY'"
-                      class="ml-2 px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
-                  Grupa + Skan
-                </span>
-              </p>
-              <p class="text-sm text-gray-500 dark:text-gray-400">{{ zawodnik.kategoria }} {{ zawodnik.plec }} - {{ zawodnik.klub }}</p>
-              <p v-if="zawodnik.ostatni_skan" class="text-xs text-gray-400 dark:text-gray-500">
-                Skan: {{ formatDate(zawodnik.ostatni_skan) }}
-              </p>
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                Kolejka startowa ({{ currentActiveGroup ? currentActiveGroup.nazwa : `${kolejka_zawodnikow.length} zawodników` }})
+              </h3>
+              <div v-if="currentActiveGroup" class="text-sm text-gray-600 dark:text-gray-400">
+                {{ kolejka_zawodnikow.length }} zawodników w kolejce
+                <span v-if="appState.syncingQueue" class="text-blue-600 dark:text-blue-400">• synchronizuję...</span>
+                <span v-else-if="appState.syncingData" class="text-orange-600 dark:text-orange-400">• ładuję dane...</span>
+              </div>
+            </div>
+            <div class="flex items-center space-x-2">
+              <div v-if="appState.syncingQueue" class="text-xs text-blue-600 dark:text-blue-400 flex items-center space-x-1">
+                <ArrowPathIcon class="h-3 w-3 animate-spin" />
+                <span>Sync kolejki</span>
+              </div>
+              <div v-else-if="appState.syncingData" class="text-xs text-orange-600 dark:text-orange-400 flex items-center space-x-1">
+                <ArrowPathIcon class="h-3 w-3 animate-spin" />
+                <span>Sync danych</span>
+              </div>
+              <div v-else-if="appState.loading" class="text-xs text-orange-600 dark:text-orange-400 flex items-center space-x-1">
+                <ArrowPathIcon class="h-3 w-3 animate-spin" />
+                <span>Sync...</span>
+              </div>
             </div>
           </div>
           
-          <div class="flex items-center space-x-2">
-            <!-- Status badge -->
-            <span v-if="zawodnik.czas_przejazdu_s" 
-                  class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-              {{ zawodnik.czas_przejazdu_s }}s
-            </span>
-            
-            <!-- Remove button - dla wszystkich zawodników w kolejce -->
-            <button
-              @click="removeFromQueue(zawodnik.nr_startowy, zawodnik.imie, zawodnik.nazwisko, zawodnik.source_type)"
-              :class="getRemoveButtonClass(zawodnik.source_type)"
-              :title="getRemoveButtonTitle(zawodnik.source_type)"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-              </svg>
-            </button>
+          <div v-if="appState.syncingQueue || appState.syncingData" class="p-6 text-center text-gray-500 dark:text-gray-400">
+            <ArrowPathIcon class="h-8 w-8 animate-spin mx-auto mb-2 text-blue-500" />
+            <div class="text-lg font-medium mb-1">
+              <span v-if="appState.syncingQueue">Synchronizuję kolejkę...</span>
+              <span v-else>Ładuję dane...</span>
+            </div>
+            <div class="text-sm">Aktualny stan może się zmienić</div>
+          </div>
+          
+          <div v-else-if="kolejka_zawodnikow.length === 0" class="p-8 text-center text-gray-500 dark:text-gray-400">
+            <div class="text-4xl mb-2">🏁</div>
+            <div class="text-lg font-medium mb-1">Kolejka pusta</div>
+            <div class="text-sm">Zawodnicy pojawią się po skanowaniu lub aktywacji grupy</div>
+          </div>
+          
+          <div v-else class="divide-y divide-gray-200 dark:divide-gray-700 max-h-96 overflow-y-auto">
+            <div v-for="(zawodnik, index) in kolejka_zawodnikow" :key="zawodnik.nr_startowy"
+                 class="p-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700">
+              <div class="flex items-center space-x-3">
+                <div class="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+                  <span class="text-blue-600 dark:text-blue-400 font-bold text-xs">{{ index + 1 }}</span>
+                </div>
+                <div>
+                  <p class="font-medium text-gray-900 dark:text-white text-sm">
+                    #{{ zawodnik.nr_startowy }} {{ zawodnik.imie }} {{ zawodnik.nazwisko }}
+                    <span v-if="zawodnik.source_type === 'AKTYWNA_GRUPA'"
+                          class="ml-2 px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                      Grupa
+                    </span>
+                    <span v-else-if="zawodnik.source_type === 'SKANOWANY'"
+                          class="ml-2 px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                      Skan
+                    </span>
+                    <span v-else-if="zawodnik.source_type === 'AKTYWNA_GRUPA_I_SKANOWANY'"
+                          class="ml-2 px-2 py-0.5 text-xs rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                      Grupa+Skan
+                    </span>
+                  </p>
+                  <p class="text-xs text-gray-500 dark:text-gray-400">
+                    {{ zawodnik.kategoria }} {{ zawodnik.plec }} - {{ zawodnik.klub }}
+                  </p>
+                </div>
+              </div>
+              
+              <button
+                @click="removeFromQueue(zawodnik)"
+                class="p-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+              >
+                <TrashIcon class="h-4 w-4" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -224,16 +356,32 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { 
   QrCodeIcon, 
   UsersIcon,
+  ArrowPathIcon,
+  XMarkIcon,
+  TrashIcon,
   CheckCircleIcon,
   ExclamationTriangleIcon,
-  XCircleIcon
+  XCircleIcon,
+  PlayIcon
 } from '@heroicons/vue/24/outline'
 
 // Interfaces
+interface Grupa {
+  numer_grupy: number
+  nazwa: string
+  kategoria: string
+  plec: string
+  liczba_zawodnikow: number
+  lista_zawodnikow: string
+  numery_startowe: string
+  estimated_time: number
+  status: string
+}
+
 interface Zawodnik {
   nr_startowy: number
   imie: string
@@ -241,9 +389,9 @@ interface Zawodnik {
   kategoria: string
   plec: string
   klub: string
-  checked_in: boolean
-  ma_wynik: boolean
-  status: string
+  ostatni_skan?: string
+  czas_przejazdu_s?: number
+  status?: string
   source_type: string
 }
 
@@ -251,125 +399,381 @@ interface VerificationResult {
   success: boolean
   action: 'AKCEPTUJ' | 'OSTRZEZENIE' | 'ODRZUC'
   issues: string[]
-  zawodnik: Zawodnik
+  zawodnik: any
   komunikat: string
 }
 
-interface QueueItem {
-  nr_startowy: number
-  imie: string
-  nazwisko: string
-  kategoria: string
-  plec: string
-  klub: string
-  ostatni_skan: string
-  czas_przejazdu_s: number | null
-  status: string
-  source_type: string
+// State management - CENTRALIZED
+const appState = ref({
+  loading: false,
+  error: null,
+  lastUpdate: null,
+  optimisticActiveGroupId: null,
+  syncingData: false,
+  syncingQueue: false,
+  activatingGroupId: null
+})
+
+const grupy = ref<Grupa[]>([])
+const aktualna_grupa = ref<Grupa | null>(null)
+const kolejka_zawodnikow = ref<Zawodnik[]>([])
+const selectedGrupa = ref<number | null>(null)
+const manualQrCode = ref('')
+const lastVerification = ref<VerificationResult | null>(null)
+const apiVersion = ref('30.5.0')
+
+// Computed properties
+const totalZawodnikow = computed(() => {
+  return grupy.value.reduce((sum, g) => sum + g.liczba_zawodnikow, 0)
+})
+
+const totalGrup = computed(() => grupy.value.length)
+
+const zameldowaniZawodnicy = computed(() => {
+  return grupy.value.reduce((sum, g) => sum + g.liczba_zawodnikow, 0)
+})
+
+const kolejkaStatus = computed(() => {
+  const total = kolejka_zawodnikow.value.length
+  const skanowani = kolejka_zawodnikow.value.filter(z => z.source_type === 'SKANOWANY').length
+  const aktywnaGrupa = kolejka_zawodnikow.value.filter(z => z.source_type === 'AKTYWNA_GRUPA').length
+  
+  return { total, skanowani, aktywnaGrupa }
+})
+
+// IMPROVED: Optymistyczne aktualizacje dla aktywnej grupy
+const setAktywnaGrupa = async (grupa: Grupa) => {
+  if (!grupa || appState.value.activatingGroupId) return
+  
+  console.log('🎯 Aktywacja grupy:', grupa.nazwa)
+  
+  // OPTYMISTIC UPDATE: Zapisz ID aktywowanej grupy
+  appState.value.optimisticActiveGroupId = grupa.numer_grupy
+  appState.value.activatingGroupId = grupa.numer_grupy
+  appState.value.error = null
+  
+  try {
+    const response = await fetch('/api/grupa-aktywna', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        numer_grupy: grupa.numer_grupy,
+        kategoria: grupa.kategoria,
+        plec: grupa.plec,
+        nazwa: grupa.nazwa
+      })
+    })
+    
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`Backend error: ${response.status} - ${errorText}`)
+    }
+    
+    // Po sukcesie ustaw prawdziwą aktywną grupę
+    aktualna_grupa.value = grupa
+    
+    // SYNC: Po aktywacji synchronizuj dane w tle (z loading indicator)
+    console.log('✅ Grupa aktywowana, synchronizuję dane...')
+    setTimeout(async () => {
+      try {
+        appState.value.syncingData = true
+        await syncAllData('po aktywacji grupy')
+      } catch (error) {
+        console.error('❌ Błąd synchronizacji po aktywacji:', error)
+      } finally {
+        appState.value.syncingData = false
+      }
+    }, 500) // Krótsze opóźnienie
+    
+    showSuccess(`✅ Aktywowano grupę: ${grupa.nazwa}`)
+    
+  } catch (error) {
+    console.error('❌ Błąd aktywacji grupy:', error)
+    // ROLLBACK: W przypadku błędu, cofnij optymistyczną zmianę
+    appState.value.optimisticActiveGroupId = null
+    appState.value.error = error.message
+    showError(`Błąd aktywacji: ${error.message}`)
+  } finally {
+    appState.value.activatingGroupId = null
+  }
 }
 
-// State
-const manualQrCode = ref('')
-const isScanning = ref(false)
-const isVerifying = ref(false)
-const lastVerification = ref<VerificationResult | null>(null)
-const startQueue = ref<QueueItem[]>([])
-const aktywnaCategoriaInfo = ref<string | null>(null)
-
-// Methods
-const verifyQrCode = async () => {
-  if (!manualQrCode.value) return
+// IMPROVED: Clear z optymistyczną aktualizacją
+const clearAktywnaGrupa = async () => {
+  if (appState.value.activatingGroupId) return
   
-  isVerifying.value = true
+  console.log('🧹 Czyszczenie aktywnej grupy...')
+  
+  // OPTYMISTIC UPDATE
+  const previousGroup = aktualna_grupa.value
+  aktualna_grupa.value = null
+  appState.value.optimisticActiveGroupId = null
+  appState.value.activatingGroupId = -1  // Specjalna wartość dla czyszczenia
+  
+  try {
+    const response = await fetch('/api/grupa-aktywna', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clear: true })
+    })
+    
+    if (!response.ok) throw new Error('Błąd czyszczenia grupy')
+    
+    // Synchronizuj w tle
+    setTimeout(async () => {
+      appState.value.syncingData = true
+      try {
+        await syncAllData('po wyczyszczeniu grupy')
+      } finally {
+        appState.value.syncingData = false
+      }
+    }, 500)
+    
+    showSuccess('🧹 Wyczyszczono aktywną grupę')
+    
+  } catch (error) {
+    console.error('❌ Błąd czyszczenia grupy:', error)
+    // ROLLBACK
+    aktualna_grupa.value = previousGroup
+    appState.value.optimisticActiveGroupId = previousGroup?.numer_grupy || null
+    appState.value.error = error.message
+    showError(`Błąd: ${error.message}`)
+  } finally {
+    appState.value.activatingGroupId = null
+  }
+}
+
+// IMPROVED: Sync z lepszymi loading states
+const syncAllData = async (reason = 'manual') => {
+  console.log(`🔄 Synchronizacja danych: ${reason}`)
+  
+  // Różne loading states dla różnych powodów
+  if (reason === 'manual') {
+    if (appState.value.loading) return
+    appState.value.loading = true
+  } else if (reason.includes('kolejka') || reason.includes('queue')) {
+    appState.value.syncingQueue = true
+  } else {
+    appState.value.syncingData = true
+  }
+  
+  appState.value.error = null
+  
+  try {
+    // 1. API Version (tylko raz przy starcie)
+    if (!apiVersion.value || apiVersion.value === '30.5.0') {
+      try {
+        const versionResponse = await fetch('/api/version')
+        if (versionResponse.ok) {
+          const versionData = await versionResponse.json()
+          apiVersion.value = versionData.version || '30.4.0'
+        }
+      } catch (e) {
+        console.warn('⚠️ Nie można pobrać wersji API')
+      }
+    }
+    
+    // 2. Grupy startowe
+    const grupyResponse = await fetch('/api/grupy-startowe')
+    if (!grupyResponse.ok) throw new Error('Błąd ładowania grup')
+    const grupyData = await grupyResponse.json()
+    grupy.value = grupyData.grupy || []
+    
+    // 3. Aktywna grupa (tylko jeśli nie ma optymistycznej)
+    if (!appState.value.optimisticActiveGroupId) {
+      try {
+        const aktywnaResponse = await fetch('/api/grupa-aktywna')
+        if (aktywnaResponse.ok) {
+          const aktywnaData = await aktywnaResponse.json()
+          if (aktywnaData.success && aktywnaData.aktywna_grupa) {
+            const grupaData = aktywnaData.aktywna_grupa
+            aktualna_grupa.value = grupy.value.find(g => 
+              g.kategoria === grupaData.kategoria && g.plec === grupaData.plec
+            ) || null
+          } else {
+            aktualna_grupa.value = null
+          }
+        } else {
+          aktualna_grupa.value = null
+        }
+      } catch (e) {
+        console.warn('⚠️ Błąd ładowania aktywnej grupy:', e)
+        if (!appState.value.optimisticActiveGroupId) {
+          aktualna_grupa.value = null
+        }
+      }
+    }
+    
+    // 4. Kolejka startowa
+    const kolejkaResponse = await fetch('/api/start-queue')
+    if (!kolejkaResponse.ok) throw new Error('Błąd ładowania kolejki')
+    const kolejkaData = await kolejkaResponse.json()
+    kolejka_zawodnikow.value = kolejkaData.queue || []
+    
+    appState.value.lastUpdate = new Date()
+    console.log('✅ Synchronizacja zakończona:', {
+      grupy: grupy.value.length,
+      aktualna_grupa: aktualna_grupa.value?.nazwa || `ID:${appState.value.optimisticActiveGroupId}` || 'brak',
+      kolejka: kolejka_zawodnikow.value.length
+    })
+    
+  } catch (error) {
+    console.error('❌ Błąd synchronizacji:', error)
+    appState.value.error = error.message
+  } finally {
+    // Wyczyść wszystkie loading states
+    if (reason === 'manual') {
+      appState.value.loading = false
+    }
+    appState.value.syncingData = false
+    appState.value.syncingQueue = false
+  }
+}
+
+// SIMPLIFIED: QR Code handling
+const handleQRCode = async () => {
+  if (!manualQrCode.value || appState.value.loading) return
+  
+  appState.value.loading = true
   try {
     const response = await fetch('/api/start-line-verify', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         qr_code: manualQrCode.value,
-        kategoria: getAktywnaKategoria(),
-        plec: getAktywnaPlec(),
-        device_id: 'start-line-scanner'
+        kategoria: aktualna_grupa.value?.kategoria,
+        plec: aktualna_grupa.value?.plec,
+        device_id: 'start-line-scanner-v30.4'
       })
     })
     
     if (response.ok) {
       const data = await response.json()
       lastVerification.value = data
-      manualQrCode.value = '' // Clear input
-      await loadStartQueue() // Refresh queue
+      manualQrCode.value = ''
+      await syncAllData('po skanie QR')
     } else {
       const error = await response.json()
       lastVerification.value = {
         success: false,
         action: 'ODRZUC',
         issues: [error.error || 'Nieznany błąd'],
-        zawodnik: {} as Zawodnik,
+        zawodnik: {},
         komunikat: '❌ Błąd weryfikacji'
       }
     }
   } catch (error) {
-    console.error('Błąd:', error)
+    console.error('Błąd QR:', error)
     lastVerification.value = {
       success: false,
-      action: 'ODRZUC', 
+      action: 'ODRZUC',
       issues: ['Błąd połączenia z serwerem'],
-      zawodnik: {} as Zawodnik,
+      zawodnik: {},
       komunikat: '❌ Błąd połączenia'
     }
   } finally {
-    isVerifying.value = false
+    appState.value.loading = false
   }
 }
 
-const loadStartQueue = async () => {
+// IMPROVED: Remove z optymistyczną aktualizacją
+const removeFromQueue = async (zawodnik: Zawodnik) => {
+  const confirmMessage = `Czy na pewno chcesz usunąć zawodnika #${zawodnik.nr_startowy} ${zawodnik.imie} ${zawodnik.nazwisko} z kolejki?`
+  
+  if (!confirm(confirmMessage)) return
+  
+  // OPTYMISTIC UPDATE: Od razu usuń z lokalnej listy
+  const originalQueue = [...kolejka_zawodnikow.value]
+  kolejka_zawodnikow.value = kolejka_zawodnikow.value.filter(z => z.nr_startowy !== zawodnik.nr_startowy)
+  
   try {
-    const response = await fetch('/api/start-queue')
+    const response = await fetch(`/api/start-queue/remove/${zawodnik.nr_startowy}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' }
+    })
+    
     if (response.ok) {
-      const data = await response.json()
-      startQueue.value = data.queue || []
+      // Synchronizuj w tle dla pewności
+      setTimeout(async () => {
+        appState.value.syncingQueue = true
+        try {
+          const kolejkaResponse = await fetch('/api/start-queue')
+          if (kolejkaResponse.ok) {
+            const kolejkaData = await kolejkaResponse.json()
+            kolejka_zawodnikow.value = kolejkaData.queue || []
+          }
+        } finally {
+          appState.value.syncingQueue = false
+        }
+      }, 1000)
+      
+      showSuccess(`Usunięto zawodnika #${zawodnik.nr_startowy} z kolejki`)
+    } else {
+      const error = await response.json()
+      throw new Error(error.message || 'Błąd usuwania')
     }
   } catch (error) {
-    console.error('Błąd podczas ładowania kolejki:', error)
+    console.error('Błąd usuwania:', error)
+    // ROLLBACK: Przywróć oryginalną kolejkę
+    kolejka_zawodnikow.value = originalQueue
+    showError(`Błąd: ${error.message}`)
   }
+}
+
+// SIMPLIFIED: Clear queue
+const clearQueue = async (type: 'all' | 'scanned') => {
+  const confirmMessage = type === 'all' 
+    ? 'Czy na pewno chcesz wyczyścić całą kolejkę startową?'
+    : 'Czy na pewno chcesz usunąć wszystkich skanowanych zawodników z kolejki?'
+  
+  if (!confirm(confirmMessage)) return
+  
+  appState.value.loading = true
+  try {
+    const response = await fetch('/api/start-queue/clear', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type })
+    })
+    
+    if (response.ok) {
+      await syncAllData('po czyszczeniu kolejki')
+      showSuccess(`Wyczyszczono kolejkę: ${type}`)
+    } else {
+      throw new Error('Błąd czyszczenia kolejki')
+    }
+  } catch (error) {
+    console.error('Błąd czyszczenia kolejki:', error)
+    showError(`Błąd: ${error.message}`)
+  } finally {
+    appState.value.loading = false
+  }
+}
+
+// Helper functions
+const toggleGrupaDetails = (numer_grupy: number) => {
+  selectedGrupa.value = selectedGrupa.value === numer_grupy ? null : numer_grupy
 }
 
 const confirmStart = () => {
-  // Tutaj można dodać logikę potwierdzenia startu
-  // np. zapisanie do dodatkowej tabeli lub wysłanie sygnału do systemu pomiaru czasu
-  clearVerification()
+  lastVerification.value = null
 }
 
 const clearVerification = () => {
   lastVerification.value = null
 }
 
-const clearAktywnaGrupa = () => {
-  aktywnaCategoriaInfo.value = null
+const showSuccess = (message: string) => {
+  console.log(`✅ ${message}`)
+  // Tu można dodać toast notification
 }
 
-const getAktywnaKategoria = () => {
-  // Można rozszerzyć o pobieranie z localStorage lub API
-  return null
+const showError = (message: string) => {
+  console.error(`❌ ${message}`)
+  // Tu można dodać toast notification
 }
 
-const getAktywnaPlec = () => {
-  // Można rozszerzyć o pobieranie z localStorage lub API  
-  return null
-}
-
-const formatTime = (timestamp: string) => {
-  if (!timestamp) return ''
-  const date = new Date(timestamp)
-  return date.toLocaleTimeString('pl-PL', { 
-    hour: '2-digit', 
-    minute: '2-digit',
-    second: '2-digit'
-  })
-}
-
+// Verification UI helpers
 const getVerificationClass = (action: string) => {
   switch (action) {
     case 'AKCEPTUJ': return 'bg-green-100 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
@@ -381,10 +785,10 @@ const getVerificationClass = (action: string) => {
 
 const getIconClass = (action: string) => {
   switch (action) {
-    case 'AKCEPTUJ': return 'w-12 h-12 bg-green-600 rounded-full flex items-center justify-center text-white'
-    case 'OSTRZEZENIE': return 'w-12 h-12 bg-orange-600 rounded-full flex items-center justify-center text-white'
-    case 'ODRZUC': return 'w-12 h-12 bg-red-600 rounded-full flex items-center justify-center text-white'
-    default: return 'w-12 h-12 bg-gray-600 rounded-full flex items-center justify-center text-white'
+    case 'AKCEPTUJ': return 'w-8 h-8 bg-green-600 rounded-full flex items-center justify-center text-white'
+    case 'OSTRZEZENIE': return 'w-8 h-8 bg-orange-600 rounded-full flex items-center justify-center text-white'
+    case 'ODRZUC': return 'w-8 h-8 bg-red-600 rounded-full flex items-center justify-center text-white'
+    default: return 'w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center text-white'
   }
 }
 
@@ -406,90 +810,36 @@ const getIconComponent = (action: string) => {
   }
 }
 
-const removeFromQueue = async (nr_startowy: number, imie: string, nazwisko: string, source_type: string) => {
-  // Różne komunikaty w zależności od typu zawodnika
-  let confirmMessage = ''
-  let warningMessage = ''
-  
-  if (source_type === 'AKTYWNA_GRUPA') {
-    confirmMessage = `Zawodnik #${nr_startowy} ${imie} ${nazwisko} jest z aktywnej grupy.\nUsunięcie go może być tymczasowe - pojawi się ponownie przy odświeżeniu.\nCzy kontynuować?`
-    warningMessage = 'Uwaga: Zawodnik z aktywnej grupy'
-  } else if (source_type === 'AKTYWNA_GRUPA_I_SKANOWANY') {
-    confirmMessage = `Czy na pewno chcesz usunąć zawodnika #${nr_startowy} ${imie} ${nazwisko} z kolejki?\nZostanie usunięty checkpoint skanu, ale zawodnik pozostanie w aktywnej grupie.`
-    warningMessage = 'Usunięcie checkpointu skanowania'
-  } else {
-    confirmMessage = `Czy na pewno chcesz usunąć zawodnika #${nr_startowy} ${imie} ${nazwisko} z kolejki startowej?`
-    warningMessage = 'Usunięcie z kolejki'
+// Computed: Aktywna grupa z optymistyczną aktualizacją
+const currentActiveGroup = computed(() => {
+  // Jeśli mamy optymistyczną aktywną grupę, znajdź ją w liście grup
+  if (appState.value.optimisticActiveGroupId) {
+    return grupy.value.find(g => g.numer_grupy === appState.value.optimisticActiveGroupId) || aktualna_grupa.value
   }
+  return aktualna_grupa.value
+})
+
+// NOWE: Helper do sprawdzania stanu przycisku grupy
+const getGroupButtonState = (grupa: Grupa) => {
+  const isCurrentActive = currentActiveGroup.value?.numer_grupy === grupa.numer_grupy
+  const isActivating = appState.value.activatingGroupId === grupa.numer_grupy
+  const isAnyActivating = appState.value.activatingGroupId !== null
   
-  // Potwierdzenie
-  if (!confirm(confirmMessage)) {
-    return
-  }
-  
-  try {
-    const response = await fetch(`/api/start-queue/remove/${nr_startowy}`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      }
-    })
-    
-    if (response.ok) {
-      const data = await response.json()
-      
-      // Pokaż komunikat sukcesu
-      console.log(`✅ ${data.message}`)
-      // Tu można dodać toast notification
-      
-      // Odśwież kolejkę
-      await loadStartQueue()
-    } else {
-      const error = await response.json()
-      console.error('❌ Błąd podczas usuwania zawodnika:', error.message)
-      alert(`Błąd: ${error.message}`)
-    }
-  } catch (error) {
-    console.error('❌ Błąd sieci:', error)
-    alert('Błąd połączenia z serwerem')
+  return {
+    isActive: isCurrentActive,
+    isActivating: isActivating,
+    isDisabled: isCurrentActive || isAnyActivating,
+    text: isCurrentActive ? 'Aktywna' : isActivating ? 'Aktywuję...' : 'Aktywuj',
+    showSpinner: isActivating
   }
 }
 
-const getRemoveButtonClass = (source_type: string) => {
-  const baseClass = 'p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors'
-  
-  if (source_type === 'AKTYWNA_GRUPA') {
-    return `${baseClass} text-orange-600 hover:text-orange-800 dark:text-orange-400 dark:hover:text-orange-200`
-  } else if (source_type === 'AKTYWNA_GRUPA_I_SKANOWANY') {
-    return `${baseClass} text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-200`
-  } else {
-    return `${baseClass} text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200`
-  }
-}
-
-const getRemoveButtonTitle = (source_type: string) => {
-  if (source_type === 'AKTYWNA_GRUPA') {
-    return 'Ukryj zawodnika z aktywnej grupy (można przywrócić)'
-  } else if (source_type === 'AKTYWNA_GRUPA_I_SKANOWANY') {
-    return 'Usuń checkpoint skanowania (zostanie w aktywnej grupie)'
-  } else {
-    return 'Usuń zawodnika z kolejki startowej'
-  }
-}
-
-// Auto-refresh queue every 5 seconds
-let queueRefreshInterval: number
-
-onMounted(() => {
-  loadStartQueue()
-  queueRefreshInterval = setInterval(loadStartQueue, 5000)
-  isScanning.value = true
+// Lifecycle
+onMounted(async () => {
+  await syncAllData('inicjalizacja')
 })
 
 onUnmounted(() => {
-  if (queueRefreshInterval) {
-    clearInterval(queueRefreshInterval)
-  }
-  isScanning.value = false
+  // Cleanup jeśli potrzebny
 })
 </script> 
