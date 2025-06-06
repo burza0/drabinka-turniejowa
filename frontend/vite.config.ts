@@ -5,6 +5,39 @@ import vue from '@vitejs/plugin-vue'
 export default defineConfig(({ mode }) => {
   const config = {
     plugins: [vue()],
+    build: {
+      // OPTYMALIZACJA BUNDLE SIZE - v30.5.4
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            // Vendor chunks - oddzielne chunki dla dużych bibliotek
+            'vue-vendor': ['vue'],
+            'axios-vendor': ['axios'],
+            'heroicons': ['@heroicons/vue/24/outline'],
+            'qrcode': ['qrcode']
+          }
+        }
+      },
+      // Kompresja i minifikacja
+      minify: 'terser',
+      terserOptions: {
+        compress: {
+          drop_console: mode === 'production', // Usuń console.log w produkcji
+          drop_debugger: true
+        }
+      },
+      // Zwiększ limity dla analizy bundle size
+      chunkSizeWarningLimit: 500
+    },
+    // Optymalizacje dev server
+    optimizeDeps: {
+      include: [
+        'vue',
+        'axios',
+        '@heroicons/vue/24/outline',
+        'qrcode'
+      ]
+    }
   }
 
   // Proxy tylko w developmencie
