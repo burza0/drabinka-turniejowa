@@ -44,3 +44,18 @@
 16:51:19 [vite] (client) hmr update /src/components/DrabinkaPucharowa.vue, /src/style.css
 16:51:19 [vite] (client) hmr update /src/components/Rankingi.vue, /src/style.css
 16:51:19 [vite] (client) hmr update /src/components/StartLineScanner.vue, /src/style.css
+19:06:21 [vite] (client) hmr update /src/App.vue, /src/style.css
+19:06:34 [vite] (client) hmr update /src/App.vue, /src/style.css
+19:06:49 [vite] (client) hmr update /src/App.vue, /src/style.css
+19:07:11 [vite] (client) hmr update /src/App.vue, /src/style.css
+19:07:29 [vite] (client) hmr update /src/App.vue, /src/style.css
+19:07:38 [vite] (client) hmr update /src/App.vue, /src/style.css
+19:09:10 [vite] vite.config.ts changed, restarting server...
+19:09:11 [vite] server restarted.
+19:09:32 [vite] vite.config.ts changed, restarting server...
+failed to load config from /home/mariusz/projekty/drabinka-turniejowa/frontend/vite.config.ts
+19:09:32 [vite] config must export or return an object.
+19:09:32 [vite] server restart failed
+19:09:32 [vite] vite.config.ts changed, restarting server...
+19:09:32 [vite] (client) Re-optimizing dependencies because vite config has changed
+19:09:32 [vite] server restarted.
