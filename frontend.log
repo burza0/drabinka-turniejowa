@@ -3,11 +3,44 @@
 > vite
 
 
-  VITE v6.3.5  ready in 474 ms
+  VITE v6.3.5  ready in 520 ms
 
   ➜  Local:   http://localhost:5173/
   ➜  Network: use --host to expose
-08:50:58 [vite] (client) hmr update /src/components/StatsCard.vue, /src/style.css
-08:52:11 [vite] (client) hmr update /src/components/DrabinkaPucharowa.vue, /src/style.css
-08:52:33 [vite] (client) hmr update /src/components/DrabinkaPucharowa.vue, /src/style.css
-08:52:56 [vite] (client) hmr update /src/components/DrabinkaPucharowa.vue, /src/style.css
+13:28:13 [vite] (client) Pre-transform error: [vue/compiler-sfc] Unexpected token, expected "," (91:61)
+
+/home/mariusz/projekty/drabinka-turniejowa/frontend/src/App.vue
+568|    { id: 'rankingi', name: 'Rankingi', icon: ListBulletIcon, adminOnly: false },
+569|    { id: 'start-line', name: 'Centrum Startu', icon: QrCodeIcon, adminOnly: true },
+570|    { id: 'qr-print', name: 'Drukowanie QR', icon: PrinterIcon adminOnly: true },
+   |                                                               ^
+571|    { id: 'qr-dashboard', name: 'QR Dashboard', icon: QrCodeIcon, adminOnly: true },
+572|  ]
+  Plugin: vite:vue
+  File: /home/mariusz/projekty/drabinka-turniejowa/frontend/src/App.vue:91:61
+  41 |                  @click="toggleAdminMode"
+  42 |                  :class="[
+  43 |                    'relative inline-flex h-5 w-9 sm:h-6 sm:w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2',
+     |   ^
+  44 |                    isAdmin ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-600'
+  45 |                  ]"
+16:51:04 [vite] (client) page reload index.html
+16:51:04 [vite] (client) page reload src/main.ts
+16:51:04 [vite] (client) hmr update /src/App.vue, /src/style.css
+16:51:04 [vite] (client) hmr update /src/components/DrabinkaPucharowa.vue, /src/style.css
+16:51:04 [vite] (client) hmr update /src/components/Rankingi.vue, /src/style.css
+16:51:04 [vite] (client) hmr update /src/components/StartLineScanner.vue, /src/style.css
+16:51:04 [vite] (client) page reload src/components/QrPrintAdvanced.vue
+16:51:04 [vite] (client) page reload src/components/UniversalFilterSystem.vue
+16:51:04 [vite] (client) page reload src/components/UniversalFiltersDemo.vue
+16:51:04 [vite] (client) page reload src/composables/useUniversalFilters.ts
+16:51:19 [vite] (client) page reload index.html
+16:51:19 [vite] (client) page reload src/main.ts
+16:51:19 [vite] (client) page reload src/components/QrPrintAdvanced.vue
+16:51:19 [vite] (client) page reload src/components/UniversalFilterSystem.vue
+16:51:19 [vite] (client) page reload src/composables/useUniversalFilters.ts
+16:51:19 [vite] (client) page reload src/components/UniversalFiltersDemo.vue
+16:51:19 [vite] (client) hmr update /src/App.vue, /src/style.css
+16:51:19 [vite] (client) hmr update /src/components/DrabinkaPucharowa.vue, /src/style.css
+16:51:19 [vite] (client) hmr update /src/components/Rankingi.vue, /src/style.css
+16:51:19 [vite] (client) hmr update /src/components/StartLineScanner.vue, /src/style.css

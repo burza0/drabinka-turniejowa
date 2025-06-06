@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
+from flask_compress import Compress
 import psycopg2
 import os
 from dotenv import load_dotenv
@@ -12,6 +13,21 @@ import atexit
 load_dotenv()
 app = Flask(__name__)
 CORS(app)
+
+# WERSJA 30.5.1: COMPRESSION dla Heroku Performance
+compress = Compress()
+compress.init_app(app)
+
+# Cache headers dla statycznych plików
+@app.after_request
+def after_request(response):
+    # Gzip compression już obsługuje flask-compress
+    # Dodaj cache headers dla API
+    if request.path.startswith('/api/'):
+        response.headers['Cache-Control'] = 'public, max-age=60'  # 1 minuta cache
+    elif request.path.startswith('/assets/'):
+        response.headers['Cache-Control'] = 'public, max-age=86400'  # 24h cache dla statycznych plików
+    return response
 
 DB_URL = os.getenv("DATABASE_URL")
 
