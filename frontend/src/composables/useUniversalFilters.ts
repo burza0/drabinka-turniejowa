@@ -175,6 +175,17 @@ export const useUniversalFilters = () => {
     },
     customFilters: [
       {
+        id: 'status_qr',
+        type: 'select',
+        icon: '📱',
+        label: 'Status QR',
+        options: [
+          { value: '', label: 'Wszystkie' },
+          { value: 'z_qr', label: 'Z kodem QR' },
+          { value: 'bez_qr', label: 'Bez kodu QR' }
+        ]
+      },
+      {
         id: 'status',
         type: 'select',
         icon: '📊',
@@ -186,7 +197,43 @@ export const useUniversalFilters = () => {
           { value: 'DSQ', label: 'DSQ' }
         ]
       }
-    ]
+    ],
+    groupOperations: {
+      enabled: true,
+      operations: [
+        {
+          id: 'toggle_all',
+          label: 'Zaznacz wszystkie',
+          icon: '☐',
+          color: 'indigo',
+          condition: 'always',
+          dynamic: true
+        },
+        {
+          id: 'toggle_by_category',
+          label: 'Zaznacz kategorię',
+          icon: '🏆',
+          color: 'green',
+          condition: 'hasSelectedCategory',
+          dynamic: true
+        },
+        {
+          id: 'toggle_by_club', 
+          label: 'Zaznacz klub',
+          icon: '🏢',
+          color: 'purple',
+          condition: 'hasSelectedClub',
+          dynamic: true
+        },
+        {
+          id: 'toggle_without_qr',
+          label: 'Zaznacz bez QR',
+          icon: '📱',
+          color: 'orange',
+          condition: 'hasItemsWithoutQr'
+        }
+      ]
+    }
   }))
 
   // DrabinkaPucharowa.vue - Tournament-specific configuration

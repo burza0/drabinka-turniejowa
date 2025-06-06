@@ -80,17 +80,17 @@ def get_all(query, params=None):
             else:
                 print(f"🔍 Wykonuję zapytanie: {query}")
                 cur.execute(query)
-                
+                    
             rows = cur.fetchall()
             if not rows:
                 print("ℹ️ Zapytanie nie zwróciło żadnych wyników")
                 return []
-                
+                    
             columns = [desc[0] for desc in cur.description]
             result = [dict(zip(columns, row)) for row in rows]
             print(f"✅ Znaleziono {len(result)} wyników")
             return result
-            
+                
         except Exception as e:
             print(f"❌ Błąd podczas wykonywania zapytania: {str(e)}")
             return []
@@ -102,6 +102,7 @@ def get_all(query, params=None):
     finally:
         if conn:
             return_db_connection(conn)
+
 
 def get_one(query, params=None):
     """WERSJA 30.3.6: Pobiera pojedynczy rekord używając connection pool"""
