@@ -522,6 +522,7 @@ interface Zawodnik {
   kategoria: string
   plec: string
   klub: string
+  qr_code?: string
   czas_przejazdu_s: number | null
   status: string
 }
