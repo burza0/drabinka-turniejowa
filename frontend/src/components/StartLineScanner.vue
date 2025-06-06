@@ -79,28 +79,28 @@
         <!-- Aktywna grupa -->
         <div v-if="currentActiveGroup" class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
           <div class="flex items-center justify-between">
-            <div class="flex items-center space-x-3">
+      <div class="flex items-center space-x-3">
               <UsersIcon class="h-6 w-6 text-green-600 dark:text-green-400" />
-              <div>
+        <div>
                 <h4 class="font-medium text-green-800 dark:text-green-200">
                   {{ currentActiveGroup.nazwa }}
                   <span v-if="appState.activatingGroupId" class="text-xs text-orange-600">(aktywuję...)</span>
                   <span v-else-if="appState.syncingData" class="text-xs text-blue-600">(sync...)</span>
-                </h4>
+          </h4>
                 <p class="text-sm text-green-700 dark:text-green-300">
                   {{ currentActiveGroup.liczba_zawodnikow }} zawodników
-                </p>
+          </p>
               </div>
-            </div>
-            <button 
-              @click="clearAktywnaGrupa" 
+        </div>
+        <button 
+          @click="clearAktywnaGrupa" 
               :disabled="appState.activatingGroupId"
               class="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200 p-1 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+        >
               <XMarkIcon class="h-5 w-5" />
-            </button>
-          </div>
-        </div>
+        </button>
+      </div>
+    </div>
 
         <!-- Lista grup startowych -->
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
@@ -204,77 +204,77 @@
           <div class="text-center">
             <div class="w-16 h-16 mx-auto mb-4 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center">
               <QrCodeIcon class="h-8 w-8 text-green-600 dark:text-green-400" />
-            </div>
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+        </div>
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
               QR Scanner
-            </h3>
+        </h3>
             <p class="text-gray-600 dark:text-gray-400 mb-4 text-sm">
               Zeskanuj QR kod lub wpisz numer startowy
-            </p>
-            
-            <div class="max-w-md mx-auto">
-              <div class="flex space-x-2">
-                <input
-                  v-model="manualQrCode"
+        </p>
+        
+        <div class="max-w-md mx-auto">
+          <div class="flex space-x-2">
+            <input
+              v-model="manualQrCode"
                   @keyup.enter="handleQRCode"
-                  type="text"
+              type="text"
                   placeholder="QR kod lub nr startowy..."
                   class="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
-                />
-                <button
+            />
+            <button
                   @click="handleQRCode"
                   :disabled="!manualQrCode || appState.loading"
                   class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm"
                 >
                   {{ appState.loading ? '⏳' : 'Skanuj' }}
-                </button>
-              </div>
-            </div>
+            </button>
           </div>
         </div>
+      </div>
+    </div>
 
         <!-- Weryfikacja wyniku -->
-        <div v-if="lastVerification" class="mb-6">
+    <div v-if="lastVerification" class="mb-6">
           <div :class="getVerificationClass(lastVerification.action)" class="rounded-lg p-4">
             <div class="flex items-start space-x-3">
-              <div :class="getIconClass(lastVerification.action)">
+            <div :class="getIconClass(lastVerification.action)">
                 <component :is="getIconComponent(lastVerification.action)" class="h-6 w-6" />
-              </div>
-              <div class="flex-1">
+          </div>
+          <div class="flex-1">
                 <h4 class="font-semibold mb-2" :class="getTextClass(lastVerification.action)">
-                  {{ lastVerification.komunikat }}
-                </h4>
+              {{ lastVerification.komunikat }}
+            </h4>
                 <div class="text-sm opacity-90">
                   <strong>Nr:</strong> {{ lastVerification.zawodnik.nr_startowy }} • 
                   <strong>Imię:</strong> {{ lastVerification.zawodnik.imie }} {{ lastVerification.zawodnik.nazwisko }}
-                </div>
+              </div>
                 <div class="flex space-x-2 mt-3">
-                  <button
-                    v-if="lastVerification.action === 'AKCEPTUJ'"
-                    @click="confirmStart"
+              <button
+                v-if="lastVerification.action === 'AKCEPTUJ'"
+                @click="confirmStart"
                     class="px-3 py-1 bg-white text-green-800 rounded-md hover:bg-green-50 text-sm font-medium border border-green-200"
                   >
                     ✅ Potwierdź
-                  </button>
-                  <button
-                    @click="clearVerification"
+              </button>
+              <button
+                @click="clearVerification"
                     class="px-3 py-1 bg-white/20 hover:bg-white/30 rounded-md text-sm font-medium border border-white/30"
-                  >
-                    Wyczyść
-                  </button>
-                </div>
-              </div>
+              >
+                Wyczyść
+              </button>
             </div>
           </div>
         </div>
+      </div>
+    </div>
 
         <!-- Kolejka startowa -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-          <div class="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 flex items-center justify-between">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+      <div class="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 flex items-center justify-between">
             <div>
-              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
                 Kolejka startowa ({{ currentActiveGroup ? currentActiveGroup.nazwa : `${kolejka_zawodnikow.length} zawodników` }})
-              </h3>
+        </h3>
               <div v-if="currentActiveGroup" class="text-sm text-gray-600 dark:text-gray-400">
                 {{ kolejka_zawodnikow.length }} zawodników w kolejce
                 <span v-if="appState.syncingQueue" class="text-blue-600 dark:text-blue-400">• synchronizuję...</span>
@@ -304,24 +304,24 @@
               <span v-else>Ładuję dane...</span>
             </div>
             <div class="text-sm">Aktualny stan może się zmienić</div>
-          </div>
-          
+      </div>
+      
           <div v-else-if="kolejka_zawodnikow.length === 0" class="p-8 text-center text-gray-500 dark:text-gray-400">
-            <div class="text-4xl mb-2">🏁</div>
-            <div class="text-lg font-medium mb-1">Kolejka pusta</div>
+        <div class="text-4xl mb-2">🏁</div>
+        <div class="text-lg font-medium mb-1">Kolejka pusta</div>
             <div class="text-sm">Zawodnicy pojawią się po skanowaniu lub aktywacji grupy</div>
-          </div>
-          
+      </div>
+      
           <div v-else class="divide-y divide-gray-200 dark:divide-gray-700 max-h-96 overflow-y-auto">
             <div v-for="(zawodnik, index) in kolejka_zawodnikow" :key="zawodnik.nr_startowy"
                  class="p-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700">
               <div class="flex items-center space-x-3">
                 <div class="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
                   <span class="text-blue-600 dark:text-blue-400 font-bold text-xs">{{ index + 1 }}</span>
-                </div>
-                <div>
+            </div>
+            <div>
                   <p class="font-medium text-gray-900 dark:text-white text-sm">
-                    #{{ zawodnik.nr_startowy }} {{ zawodnik.imie }} {{ zawodnik.nazwisko }}
+                #{{ zawodnik.nr_startowy }} {{ zawodnik.imie }} {{ zawodnik.nazwisko }}
                     <span v-if="zawodnik.source_type === 'AKTYWNA_GRUPA'"
                           class="ml-2 px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                       Grupa
@@ -337,9 +337,9 @@
                   </p>
                   <p class="text-xs text-gray-500 dark:text-gray-400">
                     {{ zawodnik.kategoria }} {{ zawodnik.plec }} - {{ zawodnik.klub }}
-                  </p>
-                </div>
-              </div>
+              </p>
+            </div>
+          </div>
               
               <button
                 @click="removeFromQueue(zawodnik)"
@@ -666,7 +666,7 @@ const handleQRCode = async () => {
     console.error('Błąd QR:', error)
     lastVerification.value = {
       success: false,
-      action: 'ODRZUC',
+      action: 'ODRZUC', 
       issues: ['Błąd połączenia z serwerem'],
       zawodnik: {},
       komunikat: '❌ Błąd połączenia'

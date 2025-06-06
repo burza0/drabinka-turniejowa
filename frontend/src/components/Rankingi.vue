@@ -133,7 +133,7 @@
               <span>🗑️</span>
               <span>Wyczyść filtry</span>
             </button>
-          </div>
+              </div>
 
           <!-- Filtry w grid layout -->
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -169,7 +169,7 @@
                 <option value="">Wszystkie</option>
                 <option v-for="club in clubs" :key="club" :value="club">{{ club }}</option>
               </select>
-            </div>
+              </div>
 
             <!-- Filtr płci -->
             <div>
@@ -271,7 +271,7 @@
               <span>🗑️</span>
               <span>Wyczyść filtry</span>
             </button>
-          </div>
+              </div>
 
           <!-- Filtry w grid layout -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -414,10 +414,10 @@
                 <option value="nazwa_asc">Nazwa (A-Z)</option>
                 <option value="nazwa_desc">Nazwa (Z-A)</option>
               </select>
-            </div>
-          </div>
         </div>
-        
+      </div>
+    </div>
+
         <div class="flex items-center justify-between">
           <h3 class="text-lg font-medium text-gray-900 dark:text-white">Klasyfikacja Klubowa - Top 3</h3>
           <div class="text-sm text-gray-600 dark:text-gray-400">
@@ -533,14 +533,14 @@
                 <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">🥈 Srebrne</th>
                 <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">🥉 Brązowe</th>
                 <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Łącznie</th>
-              </tr>
-            </thead>
+            </tr>
+          </thead>
             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               <tr v-if="filteredMedalRanking.length === 0">
                 <td colspan="6" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                   Brak klubów spełniających wybrane kryteria
                 </td>
-              </tr>
+            </tr>
               <tr v-for="(club, index) in filteredMedalRanking" :key="club.klub" class="hover:bg-gray-50 dark:hover:bg-gray-700">
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{{ index + 1 }}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{{ club.klub }}</td>
@@ -548,10 +548,10 @@
                 <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-bold text-gray-400">{{ club.srebrne }}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-bold text-yellow-700">{{ club.brazowe }}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-bold text-purple-600">{{ club.lacznie }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+            </tr>
+          </tbody>
+        </table>
+      </div>
       </div>
     </div>
 

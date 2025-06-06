@@ -463,6 +463,7 @@
       <div v-if="activeTab === 'qr-print'">
         <QrPrint />
       </div>
+
     </main>
 
     <!-- Edit Modal -->
@@ -513,6 +514,7 @@ import Rankingi from './components/Rankingi.vue'
 import QrAdminDashboard from './components/QrAdminDashboard.vue'
 import QrPrint from './components/QrPrint.vue'
 import StartLineScanner from './components/StartLineScanner.vue'
+import QrPrintAdvanced from './components/QrPrintAdvanced.vue'
 
 // Types
 interface Zawodnik {
@@ -522,6 +524,7 @@ interface Zawodnik {
   kategoria: string
   plec: string
   klub: string
+  qr_code?: string
   czas_przejazdu_s: number | null
   status: string
 }
@@ -537,8 +540,8 @@ interface Stats {
 // Reactive variables
 const zawodnicy = ref<Zawodnik[]>([])
 const searchTerm = ref('')
-const isAdmin = ref(false)
-const isDarkMode = ref(false)
+const isAdmin = ref(true)
+const isDarkMode = ref(localStorage.getItem('darkMode') === 'true')
 const loading = ref(true)
 const error = ref<string | null>(null)
 const showEditModal = ref(false)
@@ -565,7 +568,7 @@ const tabs = [
   { id: 'rankingi', name: 'Rankingi', icon: ListBulletIcon, adminOnly: false },
   { id: 'start-line', name: 'Centrum Startu', icon: QrCodeIcon, adminOnly: true },
   { id: 'qr-print', name: 'Drukowanie QR', icon: PrinterIcon, adminOnly: true },
-  { id: 'qr-dashboard', name: 'QR Dashboard', icon: QrCodeIcon, adminOnly: true }
+  { id: 'qr-dashboard', name: 'QR Dashboard', icon: QrCodeIcon, adminOnly: true },
 ]
 
 // Computed
@@ -784,6 +787,8 @@ const toggleAdminMode = () => {
 
 const toggleDarkMode = () => {
   isDarkMode.value = !isDarkMode.value
+  // Zapisz preferencje w localStorage
+  localStorage.setItem("darkMode", isDarkMode.value.toString())
   // Aplikuj dark mode do dokumentu
   if (isDarkMode.value) {
     document.documentElement.classList.add('dark')
@@ -806,11 +811,23 @@ const closeEditModal = () => {
 const handleZawodnikUpdated = () => {
   // Refresh data after update
   fetchZawodnicy()
+  // Inicjalizacja dark mode na podstawie localStorage
+  if (isDarkMode.value) {
+    document.documentElement.classList.add("dark")
+  } else {
+    document.documentElement.classList.remove("dark")
+  }
 }
 
 const handleZawodnikDeleted = () => {
   // Refresh data after delete
   fetchZawodnicy()
+  // Inicjalizacja dark mode na podstawie localStorage
+  if (isDarkMode.value) {
+    document.documentElement.classList.add("dark")
+  } else {
+    document.documentElement.classList.remove("dark")
+  }
 }
 
 const openAddModal = () => {
@@ -900,6 +917,12 @@ const clearSelection = () => {
 // Lifecycle
 onMounted(() => {
   fetchZawodnicy()
+  // Inicjalizacja dark mode na podstawie localStorage
+  if (isDarkMode.value) {
+    document.documentElement.classList.add("dark")
+  } else {
+    document.documentElement.classList.remove("dark")
+  }
 })
 </script>
 

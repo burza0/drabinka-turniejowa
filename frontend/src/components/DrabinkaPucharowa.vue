@@ -1,14 +1,5 @@
 <template>
   <div class="space-y-6">
-    <!-- Debug info -->
-    <div class="bg-yellow-100 p-4 rounded mb-4 text-sm">
-      <strong>🐛 Debug Info:</strong><br>
-      Loading: {{ loading }}<br>
-      Error: {{ error }}<br>
-      Drabinka exists: {{ !!drabinka }}<br>
-      Drabinka keys: {{ drabinka ? Object.keys(drabinka).join(', ') : 'brak' }}<br>
-      Filtered keys: {{ Object.keys(filteredKategorieData).join(', ') }}
-    </div>
 
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-4 sm:space-y-0">
