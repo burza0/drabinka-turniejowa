@@ -1,0 +1,1045 @@
+✅ Connection pool zainicjalizowany (1-15 połączeń)
+ * Serving Flask app 'api_server'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.20.10.6:5000
+[33mPress CTRL+C to quit[0m
+127.0.0.1 - - [06/Jun/2025 08:47:28] "GET /api/version HTTP/1.1" 200 -
+127.0.0.1 - - [06/Jun/2025 08:47:30] "GET /api/version HTTP/1.1" 200 -
+127.0.0.1 - - [06/Jun/2025 08:50:15] "GET /api/version HTTP/1.1" 200 -
+127.0.0.1 - - [06/Jun/2025 08:50:22] "GET /api/zawodnicy HTTP/1.1" 200 -
+127.0.0.1 - - [06/Jun/2025 08:50:59] "GET /api/kluby HTTP/1.1" 200 -
+127.0.0.1 - - [06/Jun/2025 08:50:59] "GET /api/zawodnicy HTTP/1.1" 200 -
+127.0.0.1 - - [06/Jun/2025 08:51:03] "GET /api/drabinka HTTP/1.1" 200 -
+127.0.0.1 - - [06/Jun/2025 08:51:23] "GET /api/rankings/individual?season=2025 HTTP/1.1" 200 -
+🔍 Wykonuję zapytanie: 
+        SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub, z.qr_code,
+               w.czas_przejazdu_s, w.status
+        FROM zawodnicy z
+        LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+        ORDER BY z.nr_startowy
+    
+✅ Znaleziono 251 wyników
+🔍 Wykonuję zapytanie: 
+        SELECT k.id, k.nazwa, k.miasto, k.utworzony_date,
+               COUNT(z.nr_startowy) as liczba_zawodnikow,
+               SUM(CASE WHEN z.plec = 'M' THEN 1 ELSE 0 END) as mezczyzni,
+               SUM(CASE WHEN z.plec = 'K' THEN 1 ELSE 0 END) as kobiety
+        FROM kluby k
+        LEFT JOIN zawodnicy z ON k.nazwa = z.klub
+        GROUP BY k.id, k.nazwa, k.miasto, k.utworzony_date
+        ORDER BY liczba_zawodnikow DESC, k.nazwa
+    
+✅ Znaleziono 13 wyników
+🔍 Wykonuję zapytanie: SELECT DISTINCT nazwa FROM kluby ORDER BY nazwa
+✅ Znaleziono 13 wyników
+🔍 Wykonuję zapytanie: 
+        SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub, z.qr_code,
+               w.czas_przejazdu_s, w.status
+        FROM zawodnicy z
+        LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+        ORDER BY z.nr_startowy
+    
+✅ Znaleziono 251 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                   w.czas_przejazdu_s, w.status
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE z.kategoria IS NOT NULL AND z.plec IS NOT NULL
+            ORDER BY z.kategoria, z.plec, w.czas_przejazdu_s ASC NULLS LAST
+        
+✅ Znaleziono 251 wyników
+🔍 Wykonuję zapytanie: 
+        WITH wyniki_z_pozycjami AS (
+            SELECT 
+                w.nr_startowy,
+                z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                ROW_NUMBER() OVER (
+                    PARTITION BY z.kategoria, z.plec 
+                    ORDER BY w.czas_przejazdu_s ASC
+                ) as pozycja,
+                w.czas_przejazdu_s
+            FROM wyniki w
+            JOIN zawodnicy z ON w.nr_startowy = z.nr_startowy
+            WHERE w.status = 'FINISHED' 
+                AND w.czas_przejazdu_s IS NOT NULL
+        ),
+        punkty_zawodnikow AS (
+            SELECT 
+                nr_startowy, imie, nazwisko, kategoria, plec, klub,
+                pozycja,
+                CASE 
+                    WHEN pozycja <= 32 THEN 
+                        CASE pozycja
+                            WHEN 1 THEN 100 WHEN 2 THEN 80 WHEN 3 THEN 60 WHEN 4 THEN 50
+                            WHEN 5 THEN 45 WHEN 6 THEN 40 WHEN 7 THEN 36 WHEN 8 THEN 32
+                            WHEN 9 THEN 29 WHEN 10 THEN 26 WHEN 11 THEN 24 WHEN 12 THEN 22
+                            WHEN 13 THEN 20 WHEN 14 THEN 18 WHEN 15 THEN 16 WHEN 16 THEN 15
+                            WHEN 17 THEN 14 WHEN 18 THEN 13 WHEN 19 THEN 12 WHEN 20 THEN 11
+                            WHEN 21 THEN 10 WHEN 22 THEN 9 WHEN 23 THEN 8 WHEN 24 THEN 7
+                            WHEN 25 THEN 6 WHEN 26 THEN 5 WHEN 27 THEN 4 WHEN 28 THEN 3
+                            WHEN 29 THEN 2 WHEN 30 THEN 1 WHEN 31 THEN 1 WHEN 32 THEN 1
+                            ELSE 0
+                        END
+                    ELSE 0
+                END as punkty,
+                czas_przejazdu_s
+            FROM wyniki_z_pozycjami
+        )
+        SELECT 
+            nr_startowy, imie, nazwisko, kategoria, plec, klub,
+            SUM(punkty) as punkty,
+            COUNT(*) as liczba_zawodow,
+            MIN(czas_przejazdu_s) as najlepszy_czas
+        FROM punkty_zawodnikow
+        GROUP BY nr_startowy, imie, nazwisko, kategoria, plec, klub
+        ORDER BY punkty DESC, najlepszy_czas ASC
+    
+✅ Znaleziono 187 wyników
+🔍 Wykonuję zapytanie: 
+        WITH wyniki_z_pozycjami AS (
+            SELECT 
+                w.nr_startowy,
+                z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                ROW_NUMBER() OVER (
+                    PARTITION BY z.kategoria, z.plec 
+                    ORDER BY w.czas_przejazdu_s ASC
+                ) as pozycja,
+                w.czas_przejazdu_s
+            FROM wyniki w
+            JOIN zawodnicy z ON w.nr_startowy = z.nr_startowy
+            WHERE w.status = 'FINISHED' 
+                AND w.czas_przejazdu_s IS NOT NULL
+                AND z.klub IS NOT NULL
+        ),
+        punkty_zawodnikow AS (
+            SELECT 
+                klub,
+                CASE 
+                    WHEN pozycja <= 32 THEN 
+                        CASE pozycja
+                            WHEN 1 THEN 100 WHEN 2 THEN 80 WHEN 3 THEN 60 WHEN 4 THEN 50
+                            WHEN 5 THEN 45 WHEN 6 THEN 40 WHEN 7 THEN 36 WHEN 8 THEN 32
+                            WHEN 9 THEN 29 WHEN 10 THEN 26 WHEN 11 THEN 24 WHEN 12 THEN 22
+                            WHEN 13 THEN 20 WHEN 14 THEN 18 WHEN 15 THEN 16 WHEN 16 THEN 15
+                            WHEN 17 THEN 14 WHEN 18 THEN 13 WHEN 19 THEN 12 WHEN 20 THEN 11
+                            WHEN 21 THEN 10 WHEN 22 THEN 9 WHEN 23 THEN 8 WHEN 24 THEN 7
+                            WHEN 25 THEN 6 WHEN 26 THEN 5 WHEN 27 THEN 4 WHEN 28 THEN 3
+                            WHEN 29 THEN 2 WHEN 30 THEN 1 WHEN 31 THEN 1 WHEN 32 THEN 1
+                            ELSE 0
+                        END
+                    ELSE 0
+                END as punkty
+            FROM wyniki_z_pozycjami
+        )
+        SELECT 
+            klub,
+            SUM(punkty) as laczne_punkty,
+            COUNT(*) as liczba_zawodnikow,
+            ROUND(AVG(punkty), 1) as srednia
+        FROM punkty_zawodnikow
+        GROUP BY klub
+        ORDER BY laczne_punkty DESC, srednia DESC
+    
+🔍 Wykonuję zapytanie: 
+        WITH wyniki_z_pozycjami AS (
+            SELECT 
+                w.nr_startowy,
+                z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                ROW_NUMBER() OVER (
+                    PARTITION BY z.kategoria, z.plec 
+                    ORDER BY w.czas_przejazdu_s ASC
+                ) as pozycja,
+                w.czas_przejazdu_s
+            FROM wyniki w
+            JOIN zawodnicy z ON w.nr_startowy = z.nr_startowy
+            WHERE w.status = 'FINISHED' 
+                AND w.czas_przejazdu_s IS NOT NULL
+                AND z.klub IS NOT NULL
+        ),
+        punkty_zawodnikow AS (
+            SELECT 
+                klub, kategoria, plec, nr_startowy,
+                CASE 
+                    WHEN pozycja <= 32 THEN 
+                        CASE pozycja
+                            WHEN 1 THEN 100 WHEN 2 THEN 80 WHEN 3 THEN 60 WHEN 4 THEN 50
+                            WHEN 5 THEN 45 WHEN 6 THEN 40 WHEN 7 THEN 36 WHEN 8 THEN 32
+                            WHEN 9 THEN 29 WHEN 10 THEN 26 WHEN 11 THEN 24 WHEN 12 THEN 22
+                            WHEN 13 THEN 20 WHEN 14 THEN 18 WHEN 15 THEN 16 WHEN 16 THEN 15
+                            WHEN 17 THEN 14 WHEN 18 THEN 13 WHEN 19 THEN 12 WHEN 20 THEN 11
+                            WHEN 21 THEN 10 WHEN 22 THEN 9 WHEN 23 THEN 8 WHEN 24 THEN 7
+                            WHEN 25 THEN 6 WHEN 26 THEN 5 WHEN 27 THEN 4 WHEN 28 THEN 3
+                            WHEN 29 THEN 2 WHEN 30 THEN 1 WHEN 31 THEN 1 WHEN 32 THEN 1
+                            ELSE 0
+                        END
+                    ELSE 0
+                END as punkty,
+                ROW_NUMBER() OVER (
+                    PARTITION BY klub, kategoria, plec 
+                    ORDER BY pozycja ASC
+                ) as ranking_w_kategorii
+            FROM wyniki_z_pozycjami
+        ),
+        top3_per_category AS (
+            SELECT 
+                klub, kategoria, plec, punkty
+            FROM punkty_zawodnikow
+            WHERE ranking_w_kategorii <= 3
+        )
+        SELECT 
+            klub,
+            SUM(punkty) as punkty_top3,
+            COUNT(DISTINCT CONCAT(kategoria, '_', plec)) as aktywne_kategorie,
+            ROUND(AVG(punkty), 1) as balance
+        FROM top3_per_category
+        GROUP BY klub
+        ORDER BY punkty_top3 DESC, aktywne_kategorie DESC
+    
+127.0.0.1 - - [06/Jun/2025 08:51:23] "GET /api/rankings/clubs/total?season=2025 HTTP/1.1" 200 -
+127.0.0.1 - - [06/Jun/2025 08:51:23] "GET /api/rankings/clubs/top3?season=2025 HTTP/1.1" 200 -
+127.0.0.1 - - [06/Jun/2025 08:51:23] "GET /api/rankings/medals?season=2025 HTTP/1.1" 200 -
+127.0.0.1 - - [06/Jun/2025 08:51:23] "GET /api/rankings/general?season=2025 HTTP/1.1" 200 -
+127.0.0.1 - - [06/Jun/2025 08:51:29] "GET /api/drabinka HTTP/1.1" 200 -
+127.0.0.1 - - [06/Jun/2025 08:51:47] "GET /api/rankings/individual?season=2025 HTTP/1.1" 200 -
+🔍 Wykonuję zapytanie: 
+        WITH wyniki_z_pozycjami AS (
+            SELECT 
+                w.nr_startowy,
+                z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                ROW_NUMBER() OVER (
+                    PARTITION BY z.kategoria, z.plec 
+                    ORDER BY w.czas_przejazdu_s ASC
+                ) as pozycja,
+                w.czas_przejazdu_s
+            FROM wyniki w
+            JOIN zawodnicy z ON w.nr_startowy = z.nr_startowy
+            WHERE w.status = 'FINISHED' 
+                AND w.czas_przejazdu_s IS NOT NULL
+        ),
+        punkty_zawodnikow AS (
+            SELECT 
+                nr_startowy, imie, nazwisko, kategoria, plec, klub,
+                pozycja,
+                CASE 
+                    WHEN pozycja <= 32 THEN 
+                        CASE pozycja
+                            WHEN 1 THEN 100 WHEN 2 THEN 80 WHEN 3 THEN 60 WHEN 4 THEN 50
+                            WHEN 5 THEN 45 WHEN 6 THEN 40 WHEN 7 THEN 36 WHEN 8 THEN 32
+                            WHEN 9 THEN 29 WHEN 10 THEN 26 WHEN 11 THEN 24 WHEN 12 THEN 22
+                            WHEN 13 THEN 20 WHEN 14 THEN 18 WHEN 15 THEN 16 WHEN 16 THEN 15
+                            WHEN 17 THEN 14 WHEN 18 THEN 13 WHEN 19 THEN 12 WHEN 20 THEN 11
+                            WHEN 21 THEN 10 WHEN 22 THEN 9 WHEN 23 THEN 8 WHEN 24 THEN 7
+                            WHEN 25 THEN 6 WHEN 26 THEN 5 WHEN 27 THEN 4 WHEN 28 THEN 3
+                            WHEN 29 THEN 2 WHEN 30 THEN 1 WHEN 31 THEN 1 WHEN 32 THEN 1
+                            ELSE 0
+                        END
+                    ELSE 0
+                END as punkty,
+                czas_przejazdu_s
+            FROM wyniki_z_pozycjami
+        ),
+        zawodnicy_statystyki AS (
+            SELECT 
+                nr_startowy, imie, nazwisko, kategoria, plec, klub,
+                COUNT(*) as uczestnictwa
+            FROM punkty_zawodnikow
+            GROUP BY nr_startowy, imie, nazwisko, kategoria, plec, klub
+        ),
+        zawodnicy_z_punktami AS (
+            SELECT 
+                p.nr_startowy, p.imie, p.nazwisko, p.kategoria, p.plec, p.klub,
+                p.punkty,
+                s.uczestnictwa,
+                ROW_NUMBER() OVER (
+                    PARTITION BY p.nr_startowy 
+                    ORDER BY p.punkty ASC
+                ) as ranking_najslabsze
+            FROM punkty_zawodnikow p
+            JOIN zawodnicy_statystyki s ON p.nr_startowy = s.nr_startowy
+        ),
+        ranking_n2 AS (
+            SELECT 
+                nr_startowy, imie, nazwisko, kategoria, plec, klub,
+                uczestnictwa,
+                CASE 
+                    WHEN uczestnictwa > 2 THEN 
+                        SUM(CASE WHEN ranking_najslabsze <= uczestnictwa - 2 THEN punkty ELSE 0 END)
+                    ELSE SUM(punkty)
+                END as punkty_koncowe,
+                CASE 
+                    WHEN uczestnictwa > 2 THEN 2
+                    ELSE 0
+                END as odrzucone
+            FROM zawodnicy_z_punktami
+            GROUP BY nr_startowy, imie, nazwisko, kategoria, plec, klub, uczestnictwa
+        )
+        SELECT *
+        FROM ranking_n2
+        ORDER BY punkty_koncowe DESC, uczestnictwa DESC
+    
+🔍 Wykonuję zapytanie: 
+        WITH wyniki_z_pozycjami AS (
+            SELECT 
+                w.nr_startowy,
+                z.klub,
+                ROW_NUMBER() OVER (
+                    PARTITION BY z.kategoria, z.plec 
+                    ORDER BY w.czas_przejazdu_s ASC
+                ) as pozycja
+            FROM wyniki w
+            JOIN zawodnicy z ON w.nr_startowy = z.nr_startowy
+            WHERE w.status = 'FINISHED' 
+                AND w.czas_przejazdu_s IS NOT NULL
+                AND z.klub IS NOT NULL
+        ),
+        medale AS (
+            SELECT 
+                klub,
+                SUM(CASE WHEN pozycja = 1 THEN 1 ELSE 0 END) as zlote,
+                SUM(CASE WHEN pozycja = 2 THEN 1 ELSE 0 END) as srebrne,
+                SUM(CASE WHEN pozycja = 3 THEN 1 ELSE 0 END) as brazowe
+            FROM wyniki_z_pozycjami
+            WHERE pozycja <= 3
+            GROUP BY klub
+        )
+        SELECT 
+            klub,
+            zlote,
+            srebrne,
+            brazowe,
+            (zlote + srebrne + brazowe) as lacznie
+        FROM medale
+        ORDER BY zlote DESC, srebrne DESC, brazowe DESC
+    
+✅ Znaleziono 13 wyników
+✅ Znaleziono 13 wyników
+✅ Znaleziono 13 wyników
+✅ Znaleziono 187 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                   w.czas_przejazdu_s, w.status
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE z.kategoria IS NOT NULL AND z.plec IS NOT NULL
+            ORDER BY z.kategoria, z.plec, w.czas_przejazdu_s ASC NULLS LAST
+        
+✅ Znaleziono 251 wyników
+🔍 Wykonuję zapytanie: 
+        WITH wyniki_z_pozycjami AS (
+            SELECT 
+                w.nr_startowy,
+                z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                ROW_NUMBER() OVER (
+                    PARTITION BY z.kategoria, z.plec 
+                    ORDER BY w.czas_przejazdu_s ASC
+                ) as pozycja,
+                w.czas_przejazdu_s
+            FROM wyniki w
+            JOIN zawodnicy z ON w.nr_startowy = z.nr_startowy
+            WHERE w.status = 'FINISHED' 
+                AND w.czas_przejazdu_s IS NOT NULL
+        ),
+        punkty_zawodnikow AS (
+            SELECT 
+                nr_startowy, imie, nazwisko, kategoria, plec, klub,
+                pozycja,
+                CASE 
+                    WHEN pozycja <= 32 THEN 
+                        CASE pozycja
+                            WHEN 1 THEN 100 WHEN 2 THEN 80 WHEN 3 THEN 60 WHEN 4 THEN 50
+                            WHEN 5 THEN 45 WHEN 6 THEN 40 WHEN 7 THEN 36 WHEN 8 THEN 32
+                            WHEN 9 THEN 29 WHEN 10 THEN 26 WHEN 11 THEN 24 WHEN 12 THEN 22
+                            WHEN 13 THEN 20 WHEN 14 THEN 18 WHEN 15 THEN 16 WHEN 16 THEN 15
+                            WHEN 17 THEN 14 WHEN 18 THEN 13 WHEN 19 THEN 12 WHEN 20 THEN 11
+                            WHEN 21 THEN 10 WHEN 22 THEN 9 WHEN 23 THEN 8 WHEN 24 THEN 7
+                            WHEN 25 THEN 6 WHEN 26 THEN 5 WHEN 27 THEN 4 WHEN 28 THEN 3
+                            WHEN 29 THEN 2 WHEN 30 THEN 1 WHEN 31 THEN 1 WHEN 32 THEN 1
+                            ELSE 0
+                        END
+                    ELSE 0
+                END as punkty,
+                czas_przejazdu_s
+            FROM wyniki_z_pozycjami
+        )
+        SELECT 
+            nr_startowy, imie, nazwisko, kategoria, plec, klub,
+            SUM(punkty) as punkty,
+            COUNT(*) as liczba_zawodow,
+            MIN(czas_przejazdu_s) as najlepszy_czas
+        FROM punkty_zawodnikow
+        GROUP BY nr_startowy, imie, nazwisko, kategoria, plec, klub
+        ORDER BY punkty DESC, najlepszy_czas ASC
+    
+✅ Znaleziono 187 wyników
+🔍 Wykonuję zapytanie: 
+        WITH wyniki_z_pozycjami AS (
+            SELECT 
+                w.nr_startowy,
+                z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                ROW_NUMBER() OVER (
+                    PARTITION BY z.kategoria, z.plec 
+                    ORDER BY w.czas_przejazdu_s ASC
+                ) as pozycja,
+                w.czas_przejazdu_s
+            FROM wyniki w
+            JOIN zawodnicy z ON w.nr_startowy = z.nr_startowy
+            WHERE w.status = 'FINISHED' 
+                AND w.czas_przejazdu_s IS NOT NULL
+                AND z.klub IS NOT NULL
+        ),
+        punkty_zawodnikow AS (
+            SELECT 
+                klub,
+                CASE 
+                    WHEN pozycja <= 32 THEN 
+                        CASE pozycja
+                            WHEN 1 THEN 100 WHEN 2 THEN 80 WHEN 3 THEN 60 WHEN 4 THEN 50
+                            WHEN 5 THEN 45 WHEN 6 THEN 40 WHEN 7 THEN 36 WHEN 8 THEN 32
+                            WHEN 9 THEN 29 WHEN 10 THEN 26 WHEN 11 THEN 24 WHEN 12 THEN 22
+                            WHEN 13 THEN 20 WHEN 14 THEN 18 WHEN 15 THEN 16 WHEN 16 THEN 15
+                            WHEN 17 THEN 14 WHEN 18 THEN 13 WHEN 19 THEN 12 WHEN 20 THEN 11
+                            WHEN 21 THEN 10 WHEN 22 THEN 9 WHEN 23 THEN 8 WHEN 24 THEN 7
+                            WHEN 25 THEN 6 WHEN 26 THEN 5 WHEN 27 THEN 4 WHEN 28 THEN 3
+                            WHEN 29 THEN 2 WHEN 30 THEN 1 WHEN 31 THEN 1 WHEN 32 THEN 1
+                            ELSE 0
+                        END
+                    ELSE 0
+                END as punkty
+            FROM wyniki_z_pozycjami
+        )
+        SELECT 
+            klub,
+            SUM(punkty) as laczne_punkty,
+            COUNT(*) as liczba_zawodnikow,
+            ROUND(AVG(punkty), 1) as srednia
+        FROM punkty_zawodnikow
+        GROUP BY klub
+        ORDER BY laczne_punkty DESC, srednia DESC
+    
+🔍 Wykonuję zapytanie: 
+        WITH wyniki_z_pozycjami AS (
+            SELECT 
+                w.nr_startowy,
+                z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                ROW_NUMBER() OVER (
+                    PARTITION BY z.kategoria, z.plec 
+                    ORDER BY w.czas_przejazdu_s ASC
+                ) as pozycja,
+                w.czas_przejazdu_s
+            FROM wyniki w
+            JOIN zawodnicy z ON w.nr_startowy = z.nr_startowy
+            WHERE w.status = 'FINISHED' 
+                AND w.czas_przejazdu_s IS NOT NULL
+                AND z.klub IS NOT NULL
+        ),
+        punkty_zawodnikow AS (
+            SELECT 
+                klub, kategoria, plec, nr_startowy,
+                CASE 
+                    WHEN pozycja <= 32 THEN 
+                        CASE pozycja
+                            WHEN 1 THEN 100 WHEN 2 THEN 80 WHEN 3 THEN 60 WHEN 4 THEN 50
+                            WHEN 5 THEN 45 WHEN 6 THEN 40 WHEN 7 THEN 36 WHEN 8 THEN 32
+                            WHEN 9 THEN 29 WHEN 10 THEN 26 WHEN 11 THEN 24 WHEN 12 THEN 22
+                            WHEN 13 THEN 20 WHEN 14 THEN 18 WHEN 15 THEN 16 WHEN 16 THEN 15
+                            WHEN 17 THEN 14 WHEN 18 THEN 13 WHEN 19 THEN 12 WHEN 20 THEN 11
+                            WHEN 21 THEN 10 WHEN 22 THEN 9 WHEN 23 THEN 8 WHEN 24 THEN 7
+                            WHEN 25 THEN 6 WHEN 26 THEN 5 WHEN 27 THEN 4 WHEN 28 THEN 3
+                            WHEN 29 THEN 2 WHEN 30 THEN 1 WHEN 31 THEN 1 WHEN 32 THEN 1
+                            ELSE 0
+                        END
+                    ELSE 0
+                END as punkty,
+                ROW_NUMBER() OVER (
+                    PARTITION BY klub, kategoria, plec 
+                    ORDER BY pozycja ASC
+                ) as ranking_w_kategorii
+            FROM wyniki_z_pozycjami
+        ),
+        top3_per_category AS (
+            SELECT 
+                klub, kategoria, plec, punkty
+            FROM punkty_zawodnikow
+            WHERE ranking_w_kategorii <= 3
+        )
+        SELECT 
+            klub,
+            SUM(punkty) as punkty_top3,
+            COUNT(DISTINCT CONCAT(kategoria, '_', plec)) as aktywne_kategorie,
+            ROUND(AVG(punkty), 1) as balance
+        FROM top3_per_category
+        GROUP BY klub
+        ORDER BY punkty_top3 DESC, aktywne_kategorie DESC
+    
+🔍 Wykonuję zapytanie: 
+        WITH wyniki_z_pozycjami AS (
+            SELECT 
+                w.nr_startowy,
+                z.klub,
+                ROW_NUMBER() OVER (
+                    PARTITION BY z.kategoria, z.plec 
+                    ORDER BY w.czas_przejazdu_s ASC
+                ) as pozycja
+            FROM wyniki w
+            JOIN zawodnicy z ON w.nr_startowy = z.nr_startowy
+            WHERE w.status = 'FINISHED' 
+                AND w.czas_przejazdu_s IS NOT NULL
+                AND z.klub IS NOT NULL
+        ),
+        medale AS (
+            SELECT 
+                klub,
+                SUM(CASE WHEN pozycja = 1 THEN 1 ELSE 0 END) as zlote,
+                SUM(CASE WHEN pozycja = 2 THEN 1 ELSE 0 END) as srebrne,
+                SUM(CASE WHEN pozycja = 3 THEN 1 ELSE 0 END) as brazowe
+            FROM wyniki_z_pozycjami
+            WHERE pozycja <= 3
+            GROUP BY klub
+        )
+        SELECT 
+            klub,
+            zlote,
+            srebrne,
+            brazowe,
+            (zlote + srebrne + brazowe) as lacznie
+        FROM medale
+        ORDER BY zlote DESC, srebrne DESC, brazowe DESC
+    
+127.0.0.1 - - [06/Jun/2025 08:51:47] "GET /api/rankings/clubs/total?season=2025 HTTP/1.1" 200 -
+127.0.0.1 - - [06/Jun/2025 08:51:47] "GET /api/rankings/clubs/top3?season=2025 HTTP/1.1" 200 -
+127.0.0.1 - - [06/Jun/2025 08:51:47] "GET /api/rankings/medals?season=2025 HTTP/1.1" 200 -
+127.0.0.1 - - [06/Jun/2025 08:51:47] "GET /api/rankings/general?season=2025 HTTP/1.1" 200 -
+127.0.0.1 - - [06/Jun/2025 08:52:09] "GET /api/drabinka HTTP/1.1" 200 -
+127.0.0.1 - - [06/Jun/2025 08:52:12] "GET /api/rankings/medals?season=2025 HTTP/1.1" 200 -
+127.0.0.1 - - [06/Jun/2025 08:52:12] "GET /api/version HTTP/1.1" 200 -
+🔍 Wykonuję zapytanie: 
+        WITH wyniki_z_pozycjami AS (
+            SELECT 
+                w.nr_startowy,
+                z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                ROW_NUMBER() OVER (
+                    PARTITION BY z.kategoria, z.plec 
+                    ORDER BY w.czas_przejazdu_s ASC
+                ) as pozycja,
+                w.czas_przejazdu_s
+            FROM wyniki w
+            JOIN zawodnicy z ON w.nr_startowy = z.nr_startowy
+            WHERE w.status = 'FINISHED' 
+                AND w.czas_przejazdu_s IS NOT NULL
+        ),
+        punkty_zawodnikow AS (
+            SELECT 
+                nr_startowy, imie, nazwisko, kategoria, plec, klub,
+                pozycja,
+                CASE 
+                    WHEN pozycja <= 32 THEN 
+                        CASE pozycja
+                            WHEN 1 THEN 100 WHEN 2 THEN 80 WHEN 3 THEN 60 WHEN 4 THEN 50
+                            WHEN 5 THEN 45 WHEN 6 THEN 40 WHEN 7 THEN 36 WHEN 8 THEN 32
+                            WHEN 9 THEN 29 WHEN 10 THEN 26 WHEN 11 THEN 24 WHEN 12 THEN 22
+                            WHEN 13 THEN 20 WHEN 14 THEN 18 WHEN 15 THEN 16 WHEN 16 THEN 15
+                            WHEN 17 THEN 14 WHEN 18 THEN 13 WHEN 19 THEN 12 WHEN 20 THEN 11
+                            WHEN 21 THEN 10 WHEN 22 THEN 9 WHEN 23 THEN 8 WHEN 24 THEN 7
+                            WHEN 25 THEN 6 WHEN 26 THEN 5 WHEN 27 THEN 4 WHEN 28 THEN 3
+                            WHEN 29 THEN 2 WHEN 30 THEN 1 WHEN 31 THEN 1 WHEN 32 THEN 1
+                            ELSE 0
+                        END
+                    ELSE 0
+                END as punkty,
+                czas_przejazdu_s
+            FROM wyniki_z_pozycjami
+        ),
+        zawodnicy_statystyki AS (
+            SELECT 
+                nr_startowy, imie, nazwisko, kategoria, plec, klub,
+                COUNT(*) as uczestnictwa
+            FROM punkty_zawodnikow
+            GROUP BY nr_startowy, imie, nazwisko, kategoria, plec, klub
+        ),
+        zawodnicy_z_punktami AS (
+            SELECT 
+                p.nr_startowy, p.imie, p.nazwisko, p.kategoria, p.plec, p.klub,
+                p.punkty,
+                s.uczestnictwa,
+                ROW_NUMBER() OVER (
+                    PARTITION BY p.nr_startowy 
+                    ORDER BY p.punkty ASC
+                ) as ranking_najslabsze
+            FROM punkty_zawodnikow p
+            JOIN zawodnicy_statystyki s ON p.nr_startowy = s.nr_startowy
+        ),
+        ranking_n2 AS (
+            SELECT 
+                nr_startowy, imie, nazwisko, kategoria, plec, klub,
+                uczestnictwa,
+                CASE 
+                    WHEN uczestnictwa > 2 THEN 
+                        SUM(CASE WHEN ranking_najslabsze <= uczestnictwa - 2 THEN punkty ELSE 0 END)
+                    ELSE SUM(punkty)
+                END as punkty_koncowe,
+                CASE 
+                    WHEN uczestnictwa > 2 THEN 2
+                    ELSE 0
+                END as odrzucone
+            FROM zawodnicy_z_punktami
+            GROUP BY nr_startowy, imie, nazwisko, kategoria, plec, klub, uczestnictwa
+        )
+        SELECT *
+        FROM ranking_n2
+        ORDER BY punkty_koncowe DESC, uczestnictwa DESC
+    
+✅ Znaleziono 13 wyników
+✅ Znaleziono 13 wyników
+✅ Znaleziono 13 wyników
+✅ Znaleziono 187 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                   w.czas_przejazdu_s, w.status
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE z.kategoria IS NOT NULL AND z.plec IS NOT NULL
+            ORDER BY z.kategoria, z.plec, w.czas_przejazdu_s ASC NULLS LAST
+        
+✅ Znaleziono 251 wyników
+🔍 Wykonuję zapytanie: 
+        WITH wyniki_z_pozycjami AS (
+            SELECT 
+                w.nr_startowy,
+                z.klub,
+                ROW_NUMBER() OVER (
+                    PARTITION BY z.kategoria, z.plec 
+                    ORDER BY w.czas_przejazdu_s ASC
+                ) as pozycja
+            FROM wyniki w
+            JOIN zawodnicy z ON w.nr_startowy = z.nr_startowy
+            WHERE w.status = 'FINISHED' 
+                AND w.czas_przejazdu_s IS NOT NULL
+                AND z.klub IS NOT NULL
+        ),
+        medale AS (
+            SELECT 
+                klub,
+                SUM(CASE WHEN pozycja = 1 THEN 1 ELSE 0 END) as zlote,
+                SUM(CASE WHEN pozycja = 2 THEN 1 ELSE 0 END) as srebrne,
+                SUM(CASE WHEN pozycja = 3 THEN 1 ELSE 0 END) as brazowe
+            FROM wyniki_z_pozycjami
+            WHERE pozycja <= 3
+            GROUP BY klub
+        )
+        SELECT 
+            klub,
+            zlote,
+            srebrne,
+            brazowe,
+            (zlote + srebrne + brazowe) as lacznie
+        FROM medale
+        ORDER BY zlote DESC, srebrne DESC, brazowe DESC
+    
+✅ Znaleziono 13 wyników
+🔍 Wykonuję zapytanie: 
+        WITH wyniki_z_pozycjami AS (
+            SELECT 
+                w.nr_startowy,
+                z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                ROW_NUMBER() OVER (
+                    PARTITION BY z.kategoria, z.plec 
+                    ORDER BY w.czas_przejazdu_s ASC
+                ) as pozycja,
+                w.czas_przejazdu_s
+            FROM wyniki w
+            JOIN zawodnicy z ON w.nr_startowy = z.nr_startowy
+            WHERE w.status = 'FINISHED' 
+                AND w.czas_przejazdu_s IS NOT NULL
+                AND z.klub IS NOT NULL
+        ),
+        punkty_zawodnikow AS (
+            SELECT 
+                klub,
+                CASE 
+                    WHEN pozycja <= 32 THEN 
+                        CASE pozycja
+                            WHEN 1 THEN 100 WHEN 2 THEN 80 WHEN 3 THEN 60 WHEN 4 THEN 50
+                            WHEN 5 THEN 45 WHEN 6 THEN 40 WHEN 7 THEN 36 WHEN 8 THEN 32
+                            WHEN 9 THEN 29 WHEN 10 THEN 26 WHEN 11 THEN 24 WHEN 12 THEN 22
+                            WHEN 13 THEN 20 WHEN 14 THEN 18 WHEN 15 THEN 16 WHEN 16 THEN 15
+                            WHEN 17 THEN 14 WHEN 18 THEN 13 WHEN 19 THEN 12 WHEN 20 THEN 11
+                            WHEN 21 THEN 10 WHEN 22 THEN 9 WHEN 23 THEN 8 WHEN 24 THEN 7
+                            WHEN 25 THEN 6 WHEN 26 THEN 5 WHEN 27 THEN 4 WHEN 28 THEN 3
+                            WHEN 29 THEN 2 WHEN 30 THEN 1 WHEN 31 THEN 1 WHEN 32 THEN 1
+                            ELSE 0
+                        END
+                    ELSE 0
+                END as punkty
+            FROM wyniki_z_pozycjami
+        )
+        SELECT 
+            klub,
+            SUM(punkty) as laczne_punkty,
+            COUNT(*) as liczba_zawodnikow,
+            ROUND(AVG(punkty), 1) as srednia
+        FROM punkty_zawodnikow
+        GROUP BY klub
+        ORDER BY laczne_punkty DESC, srednia DESC
+    
+🔍 Wykonuję zapytanie: 
+        WITH wyniki_z_pozycjami AS (
+            SELECT 
+                w.nr_startowy,
+                z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                ROW_NUMBER() OVER (
+                    PARTITION BY z.kategoria, z.plec 
+                    ORDER BY w.czas_przejazdu_s ASC
+                ) as pozycja,
+                w.czas_przejazdu_s
+            FROM wyniki w
+            JOIN zawodnicy z ON w.nr_startowy = z.nr_startowy
+            WHERE w.status = 'FINISHED' 
+                AND w.czas_przejazdu_s IS NOT NULL
+        ),
+        punkty_zawodnikow AS (
+            SELECT 
+                nr_startowy, imie, nazwisko, kategoria, plec, klub,
+                pozycja,
+                CASE 
+                    WHEN pozycja <= 32 THEN 
+                        CASE pozycja
+                            WHEN 1 THEN 100 WHEN 2 THEN 80 WHEN 3 THEN 60 WHEN 4 THEN 50
+                            WHEN 5 THEN 45 WHEN 6 THEN 40 WHEN 7 THEN 36 WHEN 8 THEN 32
+                            WHEN 9 THEN 29 WHEN 10 THEN 26 WHEN 11 THEN 24 WHEN 12 THEN 22
+                            WHEN 13 THEN 20 WHEN 14 THEN 18 WHEN 15 THEN 16 WHEN 16 THEN 15
+                            WHEN 17 THEN 14 WHEN 18 THEN 13 WHEN 19 THEN 12 WHEN 20 THEN 11
+                            WHEN 21 THEN 10 WHEN 22 THEN 9 WHEN 23 THEN 8 WHEN 24 THEN 7
+                            WHEN 25 THEN 6 WHEN 26 THEN 5 WHEN 27 THEN 4 WHEN 28 THEN 3
+                            WHEN 29 THEN 2 WHEN 30 THEN 1 WHEN 31 THEN 1 WHEN 32 THEN 1
+                            ELSE 0
+                        END
+                    ELSE 0
+                END as punkty,
+                czas_przejazdu_s
+            FROM wyniki_z_pozycjami
+        )
+        SELECT 
+            nr_startowy, imie, nazwisko, kategoria, plec, klub,
+            SUM(punkty) as punkty,
+            COUNT(*) as liczba_zawodow,
+            MIN(czas_przejazdu_s) as najlepszy_czas
+        FROM punkty_zawodnikow
+        GROUP BY nr_startowy, imie, nazwisko, kategoria, plec, klub
+        ORDER BY punkty DESC, najlepszy_czas ASC
+    
+🔍 Wykonuję zapytanie: 
+        WITH wyniki_z_pozycjami AS (
+            SELECT 
+                w.nr_startowy,
+                z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                ROW_NUMBER() OVER (
+                    PARTITION BY z.kategoria, z.plec 
+                    ORDER BY w.czas_przejazdu_s ASC
+                ) as pozycja,
+                w.czas_przejazdu_s
+            FROM wyniki w
+            JOIN zawodnicy z ON w.nr_startowy = z.nr_startowy
+            WHERE w.status = 'FINISHED' 
+                AND w.czas_przejazdu_s IS NOT NULL
+                AND z.klub IS NOT NULL
+        ),
+        punkty_zawodnikow AS (
+            SELECT 
+                klub, kategoria, plec, nr_startowy,
+                CASE 
+                    WHEN pozycja <= 32 THEN 
+                        CASE pozycja
+                            WHEN 1 THEN 100 WHEN 2 THEN 80 WHEN 3 THEN 60 WHEN 4 THEN 50
+                            WHEN 5 THEN 45 WHEN 6 THEN 40 WHEN 7 THEN 36 WHEN 8 THEN 32
+                            WHEN 9 THEN 29 WHEN 10 THEN 26 WHEN 11 THEN 24 WHEN 12 THEN 22
+                            WHEN 13 THEN 20 WHEN 14 THEN 18 WHEN 15 THEN 16 WHEN 16 THEN 15
+                            WHEN 17 THEN 14 WHEN 18 THEN 13 WHEN 19 THEN 12 WHEN 20 THEN 11
+                            WHEN 21 THEN 10 WHEN 22 THEN 9 WHEN 23 THEN 8 WHEN 24 THEN 7
+                            WHEN 25 THEN 6 WHEN 26 THEN 5 WHEN 27 THEN 4 WHEN 28 THEN 3
+                            WHEN 29 THEN 2 WHEN 30 THEN 1 WHEN 31 THEN 1 WHEN 32 THEN 1
+                            ELSE 0
+                        END
+                    ELSE 0
+                END as punkty,
+                ROW_NUMBER() OVER (
+                    PARTITION BY klub, kategoria, plec 
+                    ORDER BY pozycja ASC
+                ) as ranking_w_kategorii
+            FROM wyniki_z_pozycjami
+        ),
+        top3_per_category AS (
+            SELECT 
+                klub, kategoria, plec, punkty
+            FROM punkty_zawodnikow
+            WHERE ranking_w_kategorii <= 3
+        )
+        SELECT 
+            klub,
+            SUM(punkty) as punkty_top3,
+            COUNT(DISTINCT CONCAT(kategoria, '_', plec)) as aktywne_kategorie,
+            ROUND(AVG(punkty), 1) as balance
+        FROM top3_per_category
+        GROUP BY klub
+        ORDER BY punkty_top3 DESC, aktywne_kategorie DESC
+    
+🔍 Wykonuję zapytanie: 
+        WITH wyniki_z_pozycjami AS (
+            SELECT 
+                w.nr_startowy,
+                z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                ROW_NUMBER() OVER (
+                    PARTITION BY z.kategoria, z.plec 
+                    ORDER BY w.czas_przejazdu_s ASC
+                ) as pozycja,
+                w.czas_przejazdu_s
+            FROM wyniki w
+            JOIN zawodnicy z ON w.nr_startowy = z.nr_startowy
+            WHERE w.status = 'FINISHED' 
+                AND w.czas_przejazdu_s IS NOT NULL
+        ),
+        punkty_zawodnikow AS (
+            SELECT 
+                nr_startowy, imie, nazwisko, kategoria, plec, klub,
+                pozycja,
+                CASE 
+                    WHEN pozycja <= 32 THEN 
+                        CASE pozycja
+                            WHEN 1 THEN 100 WHEN 2 THEN 80 WHEN 3 THEN 60 WHEN 4 THEN 50
+                            WHEN 5 THEN 45 WHEN 6 THEN 40 WHEN 7 THEN 36 WHEN 8 THEN 32
+                            WHEN 9 THEN 29 WHEN 10 THEN 26 WHEN 11 THEN 24 WHEN 12 THEN 22
+                            WHEN 13 THEN 20 WHEN 14 THEN 18 WHEN 15 THEN 16 WHEN 16 THEN 15
+                            WHEN 17 THEN 14 WHEN 18 THEN 13 WHEN 19 THEN 12 WHEN 20 THEN 11
+                            WHEN 21 THEN 10 WHEN 22 THEN 9 WHEN 23 THEN 8 WHEN 24 THEN 7
+                            WHEN 25 THEN 6 WHEN 26 THEN 5 WHEN 27 THEN 4 WHEN 28 THEN 3
+                            WHEN 29 THEN 2 WHEN 30 THEN 1 WHEN 31 THEN 1 WHEN 32 THEN 1
+                            ELSE 0
+                        END
+                    ELSE 0
+                END as punkty,
+                czas_przejazdu_s
+            FROM wyniki_z_pozycjami
+        ),
+        zawodnicy_statystyki AS (
+            SELECT 
+                nr_startowy, imie, nazwisko, kategoria, plec, klub,
+                COUNT(*) as uczestnictwa
+            FROM punkty_zawodnikow
+            GROUP BY nr_startowy, imie, nazwisko, kategoria, plec, klub
+        ),
+        zawodnicy_z_punktami AS (
+            SELECT 
+                p.nr_startowy, p.imie, p.nazwisko, p.kategoria, p.plec, p.klub,
+                p.punkty,
+                s.uczestnictwa,
+                ROW_NUMBER() OVER (
+                    PARTITION BY p.nr_startowy 
+                    ORDER BY p.punkty ASC
+                ) as ranking_najslabsze
+            FROM punkty_zawodnikow p
+            JOIN zawodnicy_statystyki s ON p.nr_startowy = s.nr_startowy
+        ),
+        ranking_n2 AS (
+            SELECT 
+                nr_startowy, imie, nazwisko, kategoria, plec, klub,
+                uczestnictwa,
+                CASE 
+                    WHEN uczestnictwa > 2 THEN 
+                        SUM(CASE WHEN ranking_najslabsze <= uczestnictwa - 2 THEN punkty ELSE 0 END)
+                    ELSE SUM(punkty)
+                END as punkty_koncowe,
+                CASE 
+                    WHEN uczestnictwa > 2 THEN 2
+                    ELSE 0
+                END as odrzucone
+            FROM zawodnicy_z_punktami
+            GROUP BY nr_startowy, imie, nazwisko, kategoria, plec, klub, uczestnictwa
+        )
+        SELECT *
+        FROM ranking_n2
+        ORDER BY punkty_koncowe DESC, uczestnictwa DESC
+    
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                kategoria,
+                plec,
+                nr_startowy,
+                imie, 
+                nazwisko,
+                klub
+            FROM zawodnicy 
+            WHERE checked_in = TRUE AND kategoria IS NOT NULL
+            ORDER BY kategoria, plec, nr_startowy
+        
+✅ Znaleziono 13 wyników
+✅ Znaleziono 13 wyników
+✅ Znaleziono 39 wyników
+127.0.0.1 - - [06/Jun/2025 08:52:12] "GET /api/rankings/clubs/total?season=2025 HTTP/1.1" 200 -
+127.0.0.1 - - [06/Jun/2025 08:52:12] "GET /api/rankings/clubs/top3?season=2025 HTTP/1.1" 200 -
+127.0.0.1 - - [06/Jun/2025 08:52:12] "GET /api/rankings/general?season=2025 HTTP/1.1" 200 -
+127.0.0.1 - - [06/Jun/2025 08:52:12] "GET /api/grupy-startowe HTTP/1.1" 200 -
+127.0.0.1 - - [06/Jun/2025 08:52:12] "GET /api/rankings/individual?season=2025 HTTP/1.1" 200 -
+127.0.0.1 - - [06/Jun/2025 08:52:12] "GET /api/grupa-aktywna HTTP/1.1" 200 -
+127.0.0.1 - - [06/Jun/2025 08:52:12] "GET /api/start-queue HTTP/1.1" 200 -
+127.0.0.1 - - [06/Jun/2025 08:52:13] "GET /api/rankings/individual?season=2025 HTTP/1.1" 200 -
+✅ Znaleziono 187 wyników
+✅ Znaleziono 187 wyników
+📖 Czytam aktywną grupę z DB: Grupa 2: Junior A Mężczyźni (Junior A M)
+🚀 === START QUEUE REQUEST ===
+🔍 KROK 1: Szukam skanowanych zawodników...
+🔍 Wykonuję zapytanie: 
+            SELECT DISTINCT
+                z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                c.timestamp as ostatni_skan,
+                w.czas_przejazdu_s,
+                w.status,
+                'SKANOWANY' as source_type
+            FROM zawodnicy z
+            JOIN checkpoints c ON z.nr_startowy = c.nr_startowy 
+                AND c.checkpoint_name = 'start-line-verify'
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            ORDER BY c.timestamp ASC
+        
+ℹ️ Zapytanie nie zwróciło żadnych wyników
+✅ Znaleziono 0 skanowanych zawodników
+🔍 KROK 2: Czytam aktywną grupę z bazy danych...
+✅ AKTYWNA GRUPA: Grupa 2: Junior A Mężczyźni (kategoria=Junior A, plec=M)
+🔍 KROK 3: Szukam zawodników z aktywnej grupy: Junior A M
+🔍 Wykonuję zapytanie: 
+                SELECT 
+                    z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                    NULL as ostatni_skan,
+                    w.czas_przejazdu_s,
+                    w.status,
+                    'AKTYWNA_GRUPA' as source_type
+                FROM zawodnicy z
+                LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+                WHERE z.checked_in = TRUE 
+                AND z.kategoria = %s 
+                AND z.plec = %s
+                ORDER BY z.nr_startowy ASC
+             z parametrami: ('Junior A', 'M')
+✅ Znaleziono 4 wyników
+✅ Znaleziono 4 zawodników z aktywnej grupy:
+   - #5 Norbert Pawłowski (Junior A M)
+   - #13 Hubert Walczak (Junior A M)
+   - #77 Fabian Olszewski (Junior A M)
+   - #163 Leszek Ostrowski (Junior A M)
+🔍 KROK 4: Filtruję zawodników...
+   - Skanowani numery: set()
+🔍 Wykonuję zapytanie: 
+                SELECT nr_startowy FROM checkpoints 
+                WHERE checkpoint_name = 'hidden-from-queue'
+            
+✅ Znaleziono 1 wyników
+   - Ukryci numery: {5}
+   ❌ #5 pominięty (ukryty)
+   ✅ #13 dodany do kolejki z aktywnej grupy
+   ✅ #77 dodany do kolejki z aktywnej grupy
+   ✅ #163 dodany do kolejki z aktywnej grupy
+✅ Dodano 3 zawodników z aktywnej grupy do kolejki
+🔍 KROK 5: Sortuję kolejkę...
+✅ FINALNA KOLEJKA (3 zawodników):
+   1. #13 Hubert Walczak (Junior A M) - AKTYWNA_GRUPA
+   2. #77 Fabian Olszewski (Junior A M) - AKTYWNA_GRUPA
+   3. #163 Leszek Ostrowski (Junior A M) - AKTYWNA_GRUPA
+🏁 === KONIEC START QUEUE REQUEST ===
+🔍 Wykonuję zapytanie: 
+        WITH wyniki_z_pozycjami AS (
+            SELECT 
+                w.nr_startowy,
+                z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                ROW_NUMBER() OVER (
+                    PARTITION BY z.kategoria, z.plec 
+                    ORDER BY w.czas_przejazdu_s ASC
+                ) as pozycja,
+                w.czas_przejazdu_s
+            FROM wyniki w
+            JOIN zawodnicy z ON w.nr_startowy = z.nr_startowy
+            WHERE w.status = 'FINISHED' 
+                AND w.czas_przejazdu_s IS NOT NULL
+        ),
+        punkty_zawodnikow AS (
+            SELECT 
+                nr_startowy, imie, nazwisko, kategoria, plec, klub,
+                pozycja,
+                CASE 
+                    WHEN pozycja <= 32 THEN 
+                        CASE pozycja
+                            WHEN 1 THEN 100 WHEN 2 THEN 80 WHEN 3 THEN 60 WHEN 4 THEN 50
+                            WHEN 5 THEN 45 WHEN 6 THEN 40 WHEN 7 THEN 36 WHEN 8 THEN 32
+                            WHEN 9 THEN 29 WHEN 10 THEN 26 WHEN 11 THEN 24 WHEN 12 THEN 22
+                            WHEN 13 THEN 20 WHEN 14 THEN 18 WHEN 15 THEN 16 WHEN 16 THEN 15
+                            WHEN 17 THEN 14 WHEN 18 THEN 13 WHEN 19 THEN 12 WHEN 20 THEN 11
+                            WHEN 21 THEN 10 WHEN 22 THEN 9 WHEN 23 THEN 8 WHEN 24 THEN 7
+                            WHEN 25 THEN 6 WHEN 26 THEN 5 WHEN 27 THEN 4 WHEN 28 THEN 3
+                            WHEN 29 THEN 2 WHEN 30 THEN 1 WHEN 31 THEN 1 WHEN 32 THEN 1
+                            ELSE 0
+                        END
+                    ELSE 0
+                END as punkty,
+                czas_przejazdu_s
+            FROM wyniki_z_pozycjami
+        )
+        SELECT 
+            nr_startowy, imie, nazwisko, kategoria, plec, klub,
+            SUM(punkty) as punkty,
+            COUNT(*) as liczba_zawodow,
+            MIN(czas_przejazdu_s) as najlepszy_czas
+        FROM punkty_zawodnikow
+        GROUP BY nr_startowy, imie, nazwisko, kategoria, plec, klub
+        ORDER BY punkty DESC, najlepszy_czas ASC
+    
+✅ Znaleziono 187 wyników
+🔍 Wykonuję zapytanie: 
+        WITH wyniki_z_pozycjami AS (
+            SELECT 
+                w.nr_startowy,
+                z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                ROW_NUMBER() OVER (
+                    PARTITION BY z.kategoria, z.plec 
+                    ORDER BY w.czas_przejazdu_s ASC
+                ) as pozycja,
+                w.czas_przejazdu_s
+            FROM wyniki w
+            JOIN zawodnicy z ON w.nr_startowy = z.nr_startowy
+            WHERE w.status = 'FINISHED' 
+                AND w.czas_przejazdu_s IS NOT NULL
+                AND z.klub IS NOT NULL
+        ),
+        punkty_zawodnikow AS (
+            SELECT 
+                klub,
+                CASE 
+                    WHEN pozycja <= 32 THEN 
+                        CASE pozycja
+                            WHEN 1 THEN 100 WHEN 2 THEN 80 WHEN 3 THEN 60 WHEN 4 THEN 50
+                            WHEN 5 THEN 45 WHEN 6 THEN 40 WHEN 7 THEN 36 WHEN 8 THEN 32
+                            WHEN 9 THEN 29 WHEN 10 THEN 26 WHEN 11 THEN 24 WHEN 12 THEN 22
+                            WHEN 13 THEN 20 WHEN 14 THEN 18 WHEN 15 THEN 16 WHEN 16 THEN 15
+                            WHEN 17 THEN 14 WHEN 18 THEN 13 WHEN 19 THEN 12 WHEN 20 THEN 11
+                            WHEN 21 THEN 10 WHEN 22 THEN 9 WHEN 23 THEN 8 WHEN 24 THEN 7
+                            WHEN 25 THEN 6 WHEN 26 THEN 5 WHEN 27 THEN 4 WHEN 28 THEN 3
+                            WHEN 29 THEN 2 WHEN 30 THEN 1 WHEN 31 THEN 1 WHEN 32 THEN 1
+                            ELSE 0
+                        END
+                    ELSE 0
+                END as punkty
+            FROM wyniki_z_pozycjami
+        )
+        SELECT 
+            klub,
+            SUM(punkty) as laczne_punkty,
+            COUNT(*) as liczba_zawodnikow,
+            ROUND(AVG(punkty), 1) as srednia
+        FROM punkty_zawodnikow
+        GROUP BY klub
+        ORDER BY laczne_punkty DESC, srednia DESC
+    
+127.0.0.1 - - [06/Jun/2025 08:52:13] "GET /api/rankings/medals?season=2025 HTTP/1.1" 200 -
+127.0.0.1 - - [06/Jun/2025 08:52:13] "GET /api/rankings/clubs/top3?season=2025 HTTP/1.1" 200 -
+127.0.0.1 - - [06/Jun/2025 08:52:13] "GET /api/rankings/clubs/total?season=2025 HTTP/1.1" 200 -
+127.0.0.1 - - [06/Jun/2025 08:52:13] "GET /api/rankings/general?season=2025 HTTP/1.1" 200 -

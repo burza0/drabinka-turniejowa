@@ -60,135 +60,62 @@
     <div v-else>
       <!-- Klasyfikacja Indywidualna -->
       <div v-if="activeTab === 'individual'" class="space-y-6">
-        <!-- Filtry i sortowanie -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6 transition-colors duration-200">
-          <!-- Nagłówek sekcji -->
-          <div class="flex items-center justify-between mb-6">
-            <h3 class="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Filtry i sortowanie</h3>
-            <button 
-              @click="clearAllFilters" 
-              class="text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 flex items-center space-x-1 transition-colors duration-200"
-            >
-              <span>🗑️</span>
-              <span>Wyczyść filtry</span>
-            </button>
+        <!-- Uniwersalny system filtrów -->
+        <FilterSection 
+          :config="individualFilterConfig"
+          :filters="individualFilters"
+          :data="{ categories: uniqueCategories, clubs: uniqueClubs }"
+          @filtersChange="handleIndividualFiltersChange"
+          @clearFilters="clearAllFilters"
+          @quickAction="handleQuickAction"
+        />
+
+        <!-- Tabela rankingu indywidualnego -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 transition-colors duration-200">
+          <div class="p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900 dark:to-indigo-900 transition-colors duration-200">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+              <span class="mr-2">🏆</span>
+              Klasyfikacja Indywidualna
+              <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">({{ filteredIndividualRanking.length }} pozycji)</span>
+            </h3>
           </div>
-
-          <!-- Filtry w grid layout -->
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <!-- Filtr kategorii -->
-            <div>
-              <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
-                <span class="flex items-center space-x-2">
-                  <span>🏆</span>
-                  <span>Kategoria</span>
-                </span>
-              </label>
-              <select 
-                v-model="selectedCategory" 
-                class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg"
-              >
-                <option value="">Wszystkie</option>
-                <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
-              </select>
-            </div>
-
-            <!-- Filtr klubu -->
-            <div>
-              <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
-                <span class="flex items-center space-x-2">
-                  <span>🏢</span>
-                  <span>Klub</span>
-                </span>
-              </label>
-              <select 
-                v-model="selectedClub" 
-                class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg"
-              >
-                <option value="">Wszystkie</option>
-                <option v-for="club in clubs" :key="club" :value="club">{{ club }}</option>
-              </select>
-            </div>
-
-            <!-- Filtr płci -->
-            <div>
-              <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
-                <span class="flex items-center space-x-2">
-                  <span>👥</span>
-                  <span>Płeć</span>
-                </span>
-              </label>
-              <select 
-                v-model="selectedGender" 
-                class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg"
-              >
-                <option value="">Wszystkie</option>
-                <option value="M">Mężczyźni</option>
-                <option value="K">Kobiety</option>
-              </select>
-            </div>
-
-            <!-- Sortowanie -->
-            <div>
-              <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
-                <span class="flex items-center space-x-2">
-                  <span>🔄</span>
-                  <span>Sortowanie</span>
-                </span>
-              </label>
-              <select 
-                v-model="sortBy" 
-                class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg"
-              >
-                <option value="pozycja_asc">Pozycja (najlepsi)</option>
-                <option value="pozycja_desc">Pozycja (najgorsi)</option>
-                <option value="punkty_desc">Punkty (malejąco)</option>
-                <option value="punkty_asc">Punkty (rosnąco)</option>
-                <option value="nazwisko_asc">Nazwisko (A-Z)</option>
-                <option value="nazwisko_desc">Nazwisko (Z-A)</option>
-                <option value="klub_asc">Klub (A-Z)</option>
-                <option value="kategoria_asc">Kategoria (A-Z)</option>
-                <option value="starty_desc">Starty (malejąco)</option>
-              </select>
-            </div>
+          
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead class="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Pozycja</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Zawodnik</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Klub</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Kategoria</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Punkty</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Starty</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                <tr v-if="filteredIndividualRanking.length === 0">
+                  <td colspan="6" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                    Brak zawodników spełniających wybrane kryteria
+                  </td>
+                </tr>
+                <tr v-for="(rider, index) in filteredIndividualRanking" :key="rider.id" class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                    <span v-if="index === 0">🥇</span>
+                    <span v-else-if="index === 1">🥈</span>
+                    <span v-else-if="index === 2">🥉</span>
+                    <span v-else>{{ index + 1 }}</span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-medium text-gray-900 dark:text-white">{{ rider.imie }} {{ rider.nazwisko }}</div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ rider.klub }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ rider.kategoria }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-purple-600 dark:text-purple-400">{{ rider.punkty }} pkt</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ rider.liczba_zawodow }}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-        </div>
-        
-        <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
-          <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead class="bg-gray-50 dark:bg-gray-700">
-              <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Pozycja</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Zawodnik</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Klub</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Kategoria</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Punkty</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Starty</th>
-              </tr>
-            </thead>
-            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              <tr v-if="filteredIndividualRanking.length === 0">
-                <td colspan="6" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-                  Brak zawodników spełniających wybrane kryteria
-                </td>
-              </tr>
-              <tr v-for="(rider, index) in filteredIndividualRanking" :key="rider.id" class="hover:bg-gray-50 dark:hover:bg-gray-700">
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                  <span v-if="index === 0">🥇</span>
-                  <span v-else-if="index === 1">🥈</span>
-                  <span v-else-if="index === 2">🥉</span>
-                  <span v-else>{{ index + 1 }}</span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm font-medium text-gray-900 dark:text-white">{{ rider.imie }} {{ rider.nazwisko }}</div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ rider.klub }}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ rider.kategoria }}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-purple-600 dark:text-purple-400">{{ rider.punkty }} pkt</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ rider.liczba_zawodow }}</td>
-              </tr>
-            </tbody>
-          </table>
         </div>
       </div>
 
@@ -226,7 +153,7 @@
                 <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
               </select>
             </div>
-
+            
             <!-- Filtr klubu -->
             <div>
               <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
@@ -261,7 +188,7 @@
                 <option value="K">Kobiety</option>
               </select>
             </div>
-
+            
             <!-- Sortowanie -->
             <div>
               <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
@@ -364,7 +291,7 @@
                 class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg"
               />
             </div>
-
+            
             <!-- Sortowanie -->
             <div>
               <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
@@ -497,7 +424,7 @@
             3 najlepszych zawodników z każdej kategorii
           </div>
         </div>
-        
+
         <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
           <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead class="bg-gray-50 dark:bg-gray-700">
@@ -526,7 +453,7 @@
           </table>
         </div>
       </div>
-
+      
       <!-- Klasyfikacja Medalowa -->
       <div v-if="activeTab === 'medals'" class="space-y-6">
         <!-- Filtry i sortowanie dla Medalowej -->
@@ -648,6 +575,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import axios from 'axios'
 import { 
   ChartBarIcon, 
   TrophyIcon, 
@@ -657,78 +585,57 @@ import {
   ArrowPathIcon,
   StarIcon
 } from '@heroicons/vue/24/outline'
+// Uniwersalny system filtrów v30.6
+import FilterSection from './FilterSection.vue'
+import { useFilterConfigs } from '../composables/useFilterConfigs'
 
 // State
 const loading = ref(false)
 const selectedSeason = ref('2025')
+const activeTab = ref('general')
 
-// Filtry dla zakładki Individual
-const selectedCategory = ref('')
-const selectedClub = ref('')
-const selectedGender = ref('')
-const sortBy = ref('pozycja_asc')
-
-// Filtry dla zakładki General
-const selectedCategoryGeneral = ref('')
-const selectedClubGeneral = ref('')
-const selectedGenderGeneral = ref('')
-const sortByGeneral = ref('punkty_desc')
-
-// Filtry dla zakładki Clubs Total
-const minZawodnikow = ref('')
-const sortByClubsTotal = ref('punkty_desc')
-
-// Filtry dla zakładki Clubs Top3
-const minKategorie = ref('')
-const sortByClubsTop3 = ref('punkty_desc')
-
-// Filtry dla zakładki Medals
-const minZlote = ref('')
-const sortByMedals = ref('zlote_desc')
-
-const activeTab = ref('individual')
-
-// Data
+// Rankings data
 const individualRanking = ref([])
 const generalRanking = ref([])
 const clubRankingTotal = ref([])
 const clubRankingTop3 = ref([])
 const medalRanking = ref([])
-const categories = ref(['Junior D', 'Junior C', 'Junior B', 'Junior A', 'Senior', 'Master'])
+
+// Filters - Individual
+const selectedCategory = ref('')
+const selectedClub = ref('')
+const selectedGender = ref('')
+const sortBy = ref('pozycja_asc')
+
+// Filters - General
+const selectedCategoryGeneral = ref('')
+const selectedClubGeneral = ref('')
+const selectedGenderGeneral = ref('')
+const sortByGeneral = ref('punkty_desc')
+
+// Filters - Clubs Total
+const minZawodnikow = ref(null)
+const sortByClubsTotal = ref('punkty_desc')
+
+// Filters - Clubs Top3
+const minKategorie = ref(null)
+const sortByClubsTop3 = ref('punkty_desc')
+
+// Filters - Medals
+const minZlote = ref(null)
+const sortByMedals = ref('zlote_desc')
 
 // Tabs configuration
-const tabs = computed(() => [
-  {
-    id: 'individual',
-    name: 'Indywidualna',
-    icon: UsersIcon,
-    count: individualRanking.value.length
-  },
-  {
-    id: 'general',
-    name: 'Generalna (n-2)',
-    icon: TrophyIcon,
-    count: generalRanking.value.length
-  },
-  {
-    id: 'clubs-total',
-    name: 'Klubowa - Suma',
-    icon: BuildingOfficeIcon,
-    count: clubRankingTotal.value.length
-  },
-  {
-    id: 'clubs-top3',
-    name: 'Klubowa - Top 3',
-    icon: BuildingOfficeIcon,
-    count: clubRankingTop3.value.length
-  },
-  {
-    id: 'medals',
-    name: 'Medalowa',
-    icon: StarIcon,
-    count: medalRanking.value.length
-  }
-])
+const tabs = [
+  { id: 'general', name: 'Generalna', icon: TrophyIcon },
+  { id: 'individual', name: 'Indywidualna', icon: UsersIcon },
+  { id: 'clubs-total', name: 'Klubowa - Suma', icon: BuildingOfficeIcon },
+  { id: 'clubs-top3', name: 'Klubowa - TOP3', icon: BuildingOfficeIcon },
+  { id: 'medals', name: 'Medale', icon: TrophyIcon }
+]
+
+// Data
+const categories = ref(['Junior D', 'Junior C', 'Junior B', 'Junior A', 'Senior', 'Master'])
 
 // Computed
 const clubs = computed(() => {
@@ -1027,19 +934,52 @@ const clearGeneralFilters = () => {
 }
 
 const clearClubsTotalFilters = () => {
-  minZawodnikow.value = ''
+  minZawodnikow.value = null
   sortByClubsTotal.value = 'punkty_desc'
 }
 
 const clearClubsTop3Filters = () => {
-  minKategorie.value = ''
+  minKategorie.value = null
   sortByClubsTop3.value = 'punkty_desc'
 }
 
 const clearMedalsFilters = () => {
-  minZlote.value = ''
+  minZlote.value = null
   sortByMedals.value = 'zlote_desc'
 }
+
+// Setup uniwersalnego systemu filtrów v30.6
+const { rankingConfig } = useFilterConfigs()
+
+// Unified filters dla każdej zakładki
+const individualFilters = ref({
+  kategoria: '',
+  klub: '',
+  plec: '',
+  sortowanie: 'pozycja_asc'
+})
+
+const generalFilters = ref({
+  kategoria: '',
+  klub: '',
+  plec: '',
+  sortowanie: 'punkty_desc'
+})
+
+const clubsTotalFilters = ref({
+  minZawodnikow: '',
+  sortowanie: 'punkty_desc'
+})
+
+const clubsTop3Filters = ref({
+  minKategorie: '',
+  sortowanie: 'punkty_desc'
+})
+
+const medalsFilters = ref({
+  minZlote: '',
+  sortowanie: 'zlote_desc'
+})
 
 // Lifecycle
 onMounted(() => {

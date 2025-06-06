@@ -113,40 +113,35 @@
 
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-      <!-- Lista Zawodników -->
-      <div v-if="activeTab === 'zawodnicy'">
-        <!-- Header -->
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-4 sm:space-y-0">
-          <div class="flex items-center space-x-3">
-            <ListBulletIcon class="h-8 w-8 text-blue-600" />
-            <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Lista zawodników</h2>
-          </div>
-        </div>
-        
-        <!-- Stats Cards -->
-        <div class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-6">
+      <!-- Zawodnicy -->
+      <div v-if="activeTab === 'zawodnicy'" class="space-y-6">
+        <!-- Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
           <StatsCard 
-            title="Wszyscy zawodnicy" 
-            :value="stats.total"
-            :icon="UsersIcon"
+            title="Łącznie zawodników" 
+            :value="stats.total.toString()"
+            icon="👥"
             color="blue"
+            subtitle="Wszyscy zawodnicy"
           />
           <StatsCard 
-            title="Ukończyli" 
-            :value="stats.finished"
-            :icon="CheckCircleIcon"
+            title="Ukończyli trasę" 
+            :value="stats.finished.toString()"
+            icon="✅"
             color="green"
+            subtitle="Status FINISHED"
           />
           <StatsCard 
             title="DNF/DSQ" 
-            :value="stats.dnfDsq"
-            :icon="XCircleIcon"
-            color="red"
+            :value="stats.dnfDsq.toString()"
+            icon="⚠️"
+            color="yellow"
+            subtitle="Nie ukończyli"
           />
           <StatsCard 
-            title="Rekord toru" 
+            title="Najlepszy czas" 
             :value="stats.recordTime"
-            :icon="ClockIcon"
+            icon="🏆"
             color="purple"
             :subtitle="stats.recordHolder !== '-' ? `Rekord: ${stats.recordHolder}` : ''"
           />
@@ -154,147 +149,205 @@
 
         <!-- Table -->
         <div class="bg-white dark:bg-gray-800 shadow rounded-lg transition-colors duration-200">
-          <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-            <!-- Filtry -->
-            <div class="space-y-4">
-              <!-- Filtr Kluby -->
-              <div class="mb-6 border-b border-gray-200 dark:border-gray-700 pb-4">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                  Kluby <span class="text-xs text-gray-500">({{ filters.kluby.length }} wybranych)</span>
+          <!-- Filtry i sortowanie -->
+          <div class="px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Filtry i sortowanie</h3>
+              <button 
+                @click="clearAllFilters"
+                class="mt-2 sm:mt-0 px-3 py-1 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded-md hover:bg-red-200 dark:hover:bg-red-800 transition-colors duration-200 flex items-center"
+              >
+                🗑️ Wyczyść filtry
+              </button>
+            </div>
+
+            <!-- Filtry w grid layout -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <!-- Kategoria -->
+              <div>
+                <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                  <span class="flex items-center space-x-2">
+                    <span>🏆</span>
+                    <span>Kategoria</span>
+                  </span>
                 </label>
-                <div class="flex flex-wrap gap-2">
-                  <button
-                    v-for="klub in uniqueKluby"
-                    :key="klub"
-                    @click="toggleFilter('kluby', klub)"
-                    :class="[
-                      'px-3 py-2 rounded-full text-sm font-medium transition-colors duration-200',
-                      filters.kluby.includes(klub)
-                        ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 border-2 border-blue-300 dark:border-blue-600'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-2 border-transparent hover:bg-gray-200 dark:hover:bg-gray-600'
-                    ]"
-                  >
-                    {{ klub }}
-                  </button>
-                </div>
+                <select 
+                  v-model="zawodnicyFilters.kategoria"
+                  class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg"
+                >
+                  <option value="">Wszystkie</option>
+                  <option v-for="kategoria in uniqueKategorie" :key="kategoria" :value="kategoria">
+                    {{ kategoria }}
+                  </option>
+                </select>
               </div>
-              <!-- Wrapper filtrów -->
-              <div class="border-b border-gray-200 dark:border-gray-700 pb-2 mb-4">
-                <!-- Kategorie w jednym rzędzie -->
-                <div class="flex flex-col items-start w-full mb-4">
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                    Kategorie <span class="text-xs text-gray-500">({{ filters.kategorie.length }} wybranych)</span>
-                  </label>
-                  <div class="flex flex-wrap gap-2 w-full">
-                    <button
-                      v-for="kategoria in uniqueKategorie"
-                      :key="kategoria"
-                      @click="toggleFilter('kategorie', kategoria)"
-                      class="px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200 text-center"
-                      :class="[
-                        filters.kategorie.includes(kategoria)
-                          ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 border-2 border-green-300 dark:border-green-600'
-                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-2 border-transparent hover:bg-gray-200 dark:hover:bg-gray-600'
-                      ]"
-                    >
-                      {{ kategoria }}
-                    </button>
-                  </div>
-                </div>
-                <!-- Płeć i statusy w jednym rzędzie -->
-                <div class="flex flex-wrap gap-2 w-full">
-                  <button
-                    @click="toggleFilter('plcie', 'M')"
-                    class="px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200 text-center"
-                    :class="[
-                      filters.plcie.includes('M')
-                        ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 border-2 border-indigo-300 dark:border-indigo-600'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-2 border-transparent hover:bg-gray-200 dark:hover:bg-gray-600'
-                    ]"
-                  >
-                    👨 Mężczyźni
-                  </button>
-                  <button
-                    @click="toggleFilter('plcie', 'K')"
-                    class="px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200 text-center"
-                    :class="[
-                      filters.plcie.includes('K')
-                        ? 'bg-pink-100 dark:bg-pink-900 text-pink-800 dark:text-pink-200 border-2 border-pink-300 dark:border-pink-600'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-2 border-transparent hover:bg-gray-200 dark:hover:bg-gray-600'
-                    ]"
-                  >
-                    👩 Kobiety
-                  </button>
-                  <button
-                    @click="toggleFilter('statusy', 'FINISHED')"
-                    class="px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200 text-center"
-                    :class="[
-                      filters.statusy.includes('FINISHED')
-                        ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200 border-2 border-emerald-300 dark:border-emerald-600'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-2 border-transparent hover:bg-gray-200 dark:hover:bg-gray-600'
-                    ]"
-                  >
-                    ✅ Ukończone
-                  </button>
-                  <button
-                    @click="toggleFilter('statusy', 'DNF')"
-                    class="px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200 text-center"
-                    :class="[
-                      filters.statusy.includes('DNF')
-                        ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 border-2 border-yellow-300 dark:border-yellow-600'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-2 border-transparent hover:bg-gray-200 dark:hover:bg-gray-600'
-                    ]"
-                  >
-                    ⚠️ DNF
-                  </button>
-                  <button
-                    @click="toggleFilter('statusy', 'DSQ')"
-                    class="px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200 text-center"
-                    :class="[
-                      filters.statusy.includes('DSQ')
-                        ? 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 border-2 border-red-300 dark:border-red-600'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-2 border-transparent hover:bg-gray-200 dark:hover:bg-gray-600'
-                    ]"
-                  >
-                    ❌ DSQ
-                  </button>
-                </div>
+
+              <!-- Klub -->
+              <div>
+                <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                  <span class="flex items-center space-x-2">
+                    <span>🏢</span>
+                    <span>Klub</span>
+                  </span>
+                </label>
+                <select 
+                  v-model="zawodnicyFilters.klub"
+                  class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg"
+                >
+                  <option value="">Wszystkie</option>
+                  <option v-for="klub in uniqueKluby" :key="klub" :value="klub">
+                    {{ klub }}
+                  </option>
+                </select>
+              </div>
+
+              <!-- Status QR -->
+              <div>
+                <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                  <span class="flex items-center space-x-2">
+                    <span>📱</span>
+                    <span>Status QR</span>
+                  </span>
+                </label>
+                <select 
+                  v-model="zawodnicyFilters.statusQr"
+                  class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg"
+                >
+                  <option value="">Wszystkie</option>
+                  <option value="z_qr">Z kodem QR</option>
+                  <option value="bez_qr">Bez kodu QR</option>
+                </select>
+              </div>
+
+              <!-- Sortowanie -->
+              <div>
+                <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                  <span class="flex items-center space-x-2">
+                    <span>🔄</span>
+                    <span>Sortowanie</span>
+                  </span>
+                </label>
+                <select 
+                  v-model="zawodnicyFilters.sortowanie"
+                  class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg"
+                >
+                  <option value="nr_startowy_asc">Nr startowy (rosnąco)</option>
+                  <option value="nr_startowy_desc">Nr startowy (malejąco)</option>
+                  <option value="nazwisko_asc">Nazwisko (A-Z)</option>
+                  <option value="nazwisko_desc">Nazwisko (Z-A)</option>
+                  <option value="kategoria_asc">Kategoria (A-Z)</option>
+                  <option value="klub_asc">Klub (A-Z)</option>
+                  <option value="czas_asc">Czas (najlepszy)</option>
+                  <option value="czas_desc">Czas (najgorszy)</option>
+                </select>
               </div>
             </div>
-            
-            <!-- Szybkie akcje filtrowania -->
-            <div class="flex flex-wrap gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
-              <button 
-                @click="selectAllClubs"
-                class="px-4 py-2 text-sm bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors duration-200"
-              >
-                Wszystkie kluby
-              </button>
-              <button 
-                @click="selectAllCategories"
-                class="px-4 py-2 text-sm bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors duration-200"
-              >
-                Wszystkie kategorie
-              </button>
-              <button 
-                @click="selectFinishedOnly"
-                class="px-4 py-2 text-sm bg-emerald-500 text-white rounded-full hover:bg-emerald-600 transition-colors duration-200"
-              >
-                Tylko ukończone
-              </button>
-              <button 
-                @click="clearFilters"
-                class="px-4 py-2 text-sm bg-gray-500 text-white rounded-full hover:bg-gray-600 transition-colors duration-200"
-              >
-                🗑️ Wyczyść wszystko
-              </button>
+
+            <!-- Operacje grupowe -->
+            <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
+              <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">
+                <span class="flex items-center space-x-2">
+                  <span>⚡</span>
+                  <span>Operacje grupowe</span>
+                </span>
+              </label>
+              <div class="flex flex-wrap gap-3">
+                <button 
+                  @click="toggleAllZawodnicy"
+                  :class="[
+                    'px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 flex items-center space-x-2 border-2',
+                    allSelected 
+                      ? 'bg-indigo-700 text-white shadow-inner border-indigo-800' 
+                      : 'bg-indigo-600 text-white hover:bg-indigo-700 border-transparent'
+                  ]"
+                >
+                  <span>{{ allSelected ? '✅' : '☐' }}</span>
+                  <span>{{ allSelected ? 'Odznacz wszystkie' : 'Zaznacz wszystkie' }} ({{ filteredZawodnicyNew.length }})</span>
+                </button>
+                
+                <button 
+                  @click="toggleByCategory"
+                  :disabled="!zawodnicyFilters.kategoria"
+                  :class="[
+                    'px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 flex items-center space-x-2 border-2',
+                    !zawodnicyFilters.kategoria 
+                      ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed border-transparent'
+                      : categorySelected
+                        ? 'bg-green-700 text-white shadow-inner border-green-800'
+                        : 'bg-green-600 text-white hover:bg-green-700 border-transparent'
+                  ]"
+                >
+                  <span>{{ !zawodnicyFilters.kategoria ? '🏆' : categorySelected ? '✅' : '☐' }}</span>
+                  <span>
+                    {{ !zawodnicyFilters.kategoria 
+                      ? 'Wybierz kategorię' 
+                      : categorySelected 
+                        ? `Odznacz: ${zawodnicyFilters.kategoria}` 
+                        : `Zaznacz: ${zawodnicyFilters.kategoria}` 
+                    }}
+                  </span>
+                </button>
+                
+                <button 
+                  @click="toggleByClub"
+                  :disabled="!zawodnicyFilters.klub"
+                  :class="[
+                    'px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 flex items-center space-x-2 border-2',
+                    !zawodnicyFilters.klub 
+                      ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed border-transparent'
+                      : clubSelected
+                        ? 'bg-purple-700 text-white shadow-inner border-purple-800'
+                        : 'bg-purple-600 text-white hover:bg-purple-700 border-transparent'
+                  ]"
+                >
+                  <span>{{ !zawodnicyFilters.klub ? '🏢' : clubSelected ? '✅' : '☐' }}</span>
+                  <span>
+                    {{ !zawodnicyFilters.klub 
+                      ? 'Wybierz klub' 
+                      : clubSelected 
+                        ? `Odznacz: ${zawodnicyFilters.klub}` 
+                        : `Zaznacz: ${zawodnicyFilters.klub}` 
+                    }}
+                  </span>
+                </button>
+                
+                <button 
+                  @click="toggleWithoutQr"
+                  :class="[
+                    'px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 flex items-center space-x-2 border-2',
+                    countWithoutQr === 0
+                      ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed border-transparent'
+                      : withoutQrSelected
+                        ? 'bg-orange-700 text-white shadow-inner border-orange-800'
+                        : 'bg-orange-600 text-white hover:bg-orange-700 border-transparent'
+                  ]"
+                  :disabled="countWithoutQr === 0"
+                >
+                  <span>{{ withoutQrSelected ? '✅' : '☐' }}</span>
+                  <span>{{ withoutQrSelected ? 'Odznacz bez QR' : 'Zaznacz bez QR' }} ({{ countWithoutQr }})</span>
+                </button>
+                
+                <button 
+                  @click="clearSelection"
+                  :disabled="selectedZawodnicy.length === 0"
+                  :class="[
+                    'px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 flex items-center space-x-2 border-2 border-transparent',
+                    selectedZawodnicy.length > 0
+                      ? 'bg-gray-600 text-white hover:bg-gray-700'
+                      : 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                  ]"
+                >
+                  <span>🗑️</span>
+                  <span>Wyczyść zaznaczenia ({{ selectedZawodnicy.length }})</span>
+                </button>
+              </div>
             </div>
           </div>
           
           <!-- Card Layout for Mobile -->
           <div class="md:hidden p-4 space-y-4">
             <ZawodnikCard 
-              v-for="zawodnik in filteredZawodnicy" 
+              v-for="zawodnik in filteredZawodnicyNew" 
               :key="zawodnik.nr_startowy"
               :zawodnik="zawodnik"
               :isAdmin="isAdmin"
@@ -307,6 +360,14 @@
             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead class="bg-gray-50 dark:bg-gray-700">
                 <tr>
+                  <th class="px-6 py-3 text-left text-sm font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <input 
+                      type="checkbox" 
+                      :checked="allSelected"
+                      @change="toggleAllZawodnicy"
+                      class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 dark:border-gray-600 rounded"
+                    />
+                  </th>
                   <th class="px-6 py-3 text-left text-sm font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Nr startowy
                   </th>
@@ -331,7 +392,15 @@
                 </tr>
               </thead>
               <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                <tr v-for="zawodnik in filteredZawodnicy" :key="zawodnik.nr_startowy">
+                <tr v-for="zawodnik in filteredZawodnicyNew" :key="zawodnik.nr_startowy">
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <input 
+                      type="checkbox" 
+                      :checked="selectedZawodnicy.includes(zawodnik.nr_startowy)"
+                      @change="toggleZawodnik(zawodnik.nr_startowy)"
+                      class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 dark:border-gray-600 rounded"
+                    />
+                  </td>
                   <td class="px-6 py-4 whitespace-nowrap text-base font-medium text-gray-900 dark:text-white">
                     {{ zawodnik.nr_startowy }}
                   </td>
@@ -481,6 +550,13 @@ const filters = ref({
   plcie: [],
   statusy: []
 })
+const zawodnicyFilters = ref({
+  kategoria: '',
+  klub: '',
+  statusQr: '',
+  sortowanie: 'nr_startowy_asc'
+})
+const selectedZawodnicy = ref<number[]>([])
 
 // Tabs configuration
 const tabs = [
@@ -493,7 +569,7 @@ const tabs = [
 ]
 
 // Computed
-const filteredZawodnicy = computed(() => {
+const filteredZawodnicyNew = computed(() => {
   let result = zawodnicy.value
   
   // Filtrowanie tekstowe
@@ -508,24 +584,50 @@ const filteredZawodnicy = computed(() => {
     )
   }
   
-  // Filtrowanie po klubie
-  if (filters.value.kluby.length > 0) {
-    result = result.filter(z => filters.value.kluby.includes(z.klub))
-  }
-  
   // Filtrowanie po kategorii
-  if (filters.value.kategorie.length > 0) {
-    result = result.filter(z => filters.value.kategorie.includes(z.kategoria))
+  if (zawodnicyFilters.value.kategoria) {
+    result = result.filter(z => z.kategoria === zawodnicyFilters.value.kategoria)
   }
   
-  // Filtrowanie po płci
-  if (filters.value.plcie.length > 0) {
-    result = result.filter(z => filters.value.plcie.includes(z.plec))
+  // Filtrowanie po klubie
+  if (zawodnicyFilters.value.klub) {
+    result = result.filter(z => z.klub === zawodnicyFilters.value.klub)
   }
   
-  // Filtrowanie po statusie
-  if (filters.value.statusy.length > 0) {
-    result = result.filter(z => filters.value.statusy.includes(z.status))
+  // Filtrowanie po statusie QR
+  if (zawodnicyFilters.value.statusQr === 'z_qr') {
+    result = result.filter(z => z.qr_code)
+  } else if (zawodnicyFilters.value.statusQr === 'bez_qr') {
+    result = result.filter(z => !z.qr_code)
+  }
+  
+  // Sortowanie
+  if (zawodnicyFilters.value.sortowanie === 'nr_startowy_asc') {
+    result.sort((a, b) => a.nr_startowy - b.nr_startowy)
+  } else if (zawodnicyFilters.value.sortowanie === 'nr_startowy_desc') {
+    result.sort((a, b) => b.nr_startowy - a.nr_startowy)
+  } else if (zawodnicyFilters.value.sortowanie === 'nazwisko_asc') {
+    result.sort((a, b) => `${a.nazwisko} ${a.imie}`.localeCompare(`${b.nazwisko} ${b.imie}`))
+  } else if (zawodnicyFilters.value.sortowanie === 'nazwisko_desc') {
+    result.sort((a, b) => `${b.nazwisko} ${b.imie}`.localeCompare(`${a.nazwisko} ${a.imie}`))
+  } else if (zawodnicyFilters.value.sortowanie === 'kategoria_asc') {
+    result.sort((a, b) => a.kategoria.localeCompare(b.kategoria))
+  } else if (zawodnicyFilters.value.sortowanie === 'klub_asc') {
+    result.sort((a, b) => a.klub.localeCompare(b.klub))
+  } else if (zawodnicyFilters.value.sortowanie === 'czas_asc') {
+    result.sort((a, b) => {
+      if (!a.czas_przejazdu_s && !b.czas_przejazdu_s) return 0
+      if (!a.czas_przejazdu_s) return 1
+      if (!b.czas_przejazdu_s) return -1
+      return a.czas_przejazdu_s - b.czas_przejazdu_s
+    })
+  } else if (zawodnicyFilters.value.sortowanie === 'czas_desc') {
+    result.sort((a, b) => {
+      if (!a.czas_przejazdu_s && !b.czas_przejazdu_s) return 0
+      if (!a.czas_przejazdu_s) return 1
+      if (!b.czas_przejazdu_s) return -1
+      return b.czas_przejazdu_s - a.czas_przejazdu_s
+    })
   }
   
   return result
@@ -562,6 +664,69 @@ const uniqueKategorie = computed(() => {
 
 const filteredTabs = computed(() => {
   return tabs.filter(tab => !tab.adminOnly || isAdmin.value)
+})
+
+// Computed properties dla operacji grupowych
+const allSelected = computed(() => 
+  filteredZawodnicyNew.value.length > 0 && 
+  filteredZawodnicyNew.value.every(z => selectedZawodnicy.value.includes(z.nr_startowy))
+)
+
+const categorySelected = computed(() => {
+  if (!zawodnicyFilters.value.kategoria) return false
+  const categoryMembers = filteredZawodnicyNew.value.filter(z => z.kategoria === zawodnicyFilters.value.kategoria)
+  return categoryMembers.length > 0 && categoryMembers.every(z => selectedZawodnicy.value.includes(z.nr_startowy))
+})
+
+const clubSelected = computed(() => {
+  if (!zawodnicyFilters.value.klub) return false
+  const clubMembers = filteredZawodnicyNew.value.filter(z => z.klub === zawodnicyFilters.value.klub)
+  return clubMembers.length > 0 && clubMembers.every(z => selectedZawodnicy.value.includes(z.nr_startowy))
+})
+
+const withoutQrSelected = computed(() => {
+  const withoutQrMembers = filteredZawodnicyNew.value.filter(z => !z.qr_code)
+  return withoutQrMembers.length > 0 && withoutQrMembers.every(z => selectedZawodnicy.value.includes(z.nr_startowy))
+})
+
+const countWithoutQr = computed(() => filteredZawodnicyNew.value.filter(z => !z.qr_code).length)
+
+const filteredZawodnicy = computed(() => {
+  let result = zawodnicy.value
+  
+  // Filtrowanie tekstowe
+  if (searchTerm.value) {
+    const term = searchTerm.value.toLowerCase()
+    result = result.filter(z => 
+      z.imie.toLowerCase().includes(term) ||
+      z.nazwisko.toLowerCase().includes(term) ||
+      z.kategoria.toLowerCase().includes(term) ||
+      z.nr_startowy.toString().includes(term) ||
+      z.klub.toLowerCase().includes(term)
+    )
+  }
+  
+  // Filtrowanie po klubie
+  if (filters.value.kluby.length > 0) {
+    result = result.filter(z => filters.value.kluby.includes(z.klub))
+  }
+  
+  // Filtrowanie po kategorii
+  if (filters.value.kategorie.length > 0) {
+    result = result.filter(z => filters.value.kategorie.includes(z.kategoria))
+  }
+  
+  // Filtrowanie po płci
+  if (filters.value.plcie.length > 0) {
+    result = result.filter(z => filters.value.plcie.includes(z.plec))
+  }
+  
+  // Filtrowanie po statusie
+  if (filters.value.statusy.length > 0) {
+    result = result.filter(z => filters.value.statusy.includes(z.status))
+  }
+  
+  return result
 })
 
 // Methods
@@ -651,6 +816,85 @@ const handleZawodnikDeleted = () => {
 const openAddModal = () => {
   selectedZawodnik.value = null
   showEditModal.value = true
+}
+
+const clearAllFilters = () => {
+  zawodnicyFilters.value = {
+    kategoria: '',
+    klub: '',
+    statusQr: '',
+    sortowanie: 'nr_startowy_asc'
+  }
+  selectedZawodnicy.value = []
+}
+
+const toggleZawodnik = (nrStartowy: number) => {
+  const index = selectedZawodnicy.value.indexOf(nrStartowy)
+  if (index > -1) {
+    selectedZawodnicy.value.splice(index, 1)
+  } else {
+    selectedZawodnicy.value.push(nrStartowy)
+  }
+}
+
+const toggleAllZawodnicy = () => {
+  if (allSelected.value) {
+    // Odznacz wszystkich z filtrowanych
+    const filteredNumbers = filteredZawodnicyNew.value.map(z => z.nr_startowy)
+    selectedZawodnicy.value = selectedZawodnicy.value.filter(nr => !filteredNumbers.includes(nr))
+  } else {
+    // Zaznacz wszystkich z filtrowanych
+    const filteredNumbers = filteredZawodnicyNew.value.map(z => z.nr_startowy)
+    const uniqueNumbers = [...new Set([...selectedZawodnicy.value, ...filteredNumbers])]
+    selectedZawodnicy.value = uniqueNumbers
+  }
+}
+
+const toggleByCategory = () => {
+  if (!zawodnicyFilters.value.kategoria) return
+  
+  const categoryMembers = filteredZawodnicyNew.value
+    .filter(z => z.kategoria === zawodnicyFilters.value.kategoria)
+    .map(z => z.nr_startowy)
+  
+  if (categorySelected.value) {
+    selectedZawodnicy.value = selectedZawodnicy.value.filter(nr => !categoryMembers.includes(nr))
+  } else {
+    const uniqueNumbers = [...new Set([...selectedZawodnicy.value, ...categoryMembers])]
+    selectedZawodnicy.value = uniqueNumbers
+  }
+}
+
+const toggleByClub = () => {
+  if (!zawodnicyFilters.value.klub) return
+  
+  const clubMembers = filteredZawodnicyNew.value
+    .filter(z => z.klub === zawodnicyFilters.value.klub)
+    .map(z => z.nr_startowy)
+  
+  if (clubSelected.value) {
+    selectedZawodnicy.value = selectedZawodnicy.value.filter(nr => !clubMembers.includes(nr))
+  } else {
+    const uniqueNumbers = [...new Set([...selectedZawodnicy.value, ...clubMembers])]
+    selectedZawodnicy.value = uniqueNumbers
+  }
+}
+
+const toggleWithoutQr = () => {
+  const withoutQrMembers = filteredZawodnicyNew.value
+    .filter(z => !z.qr_code)
+    .map(z => z.nr_startowy)
+  
+  if (withoutQrSelected.value) {
+    selectedZawodnicy.value = selectedZawodnicy.value.filter(nr => !withoutQrMembers.includes(nr))
+  } else {
+    const uniqueNumbers = [...new Set([...selectedZawodnicy.value, ...withoutQrMembers])]
+    selectedZawodnicy.value = uniqueNumbers
+  }
+}
+
+const clearSelection = () => {
+  selectedZawodnicy.value = []
 }
 
 // Lifecycle
