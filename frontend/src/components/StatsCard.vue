@@ -4,10 +4,18 @@
       <div class="flex items-center">
         <div class="flex-shrink-0">
           <component 
+            v-if="typeof icon !== 'string'" 
             :is="icon" 
             :class="iconClass"
             class="h-5 w-5 sm:h-6 sm:w-6" 
           />
+          <span 
+            v-else 
+            :class="iconClass"
+            class="text-lg sm:text-xl"
+          >
+            {{ icon }}
+          </span>
         </div>
         <div class="ml-3 sm:ml-5 w-0 flex-1">
           <dl>
@@ -28,7 +36,7 @@ interface Props {
   title: string
   value: string | number
   icon: any
-  color: 'blue' | 'green' | 'red' | 'purple'
+  color: 'blue' | 'green' | 'red' | 'purple' | 'yellow'
   subtitle?: string
 }
 
@@ -39,7 +47,8 @@ const iconClass = computed(() => {
     blue: 'text-blue-400',
     green: 'text-green-400',
     red: 'text-red-400',
-    purple: 'text-purple-400'
+    purple: 'text-purple-400',
+    yellow: 'text-yellow-400'
   }
   return colors[props.color]
 })

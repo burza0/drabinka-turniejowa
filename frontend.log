@@ -1,0 +1,13 @@
+
+> frontend@0.0.0 dev
+> vite
+
+
+  VITE v6.3.5  ready in 474 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+08:50:58 [vite] (client) hmr update /src/components/StatsCard.vue, /src/style.css
+08:52:11 [vite] (client) hmr update /src/components/DrabinkaPucharowa.vue, /src/style.css
+08:52:33 [vite] (client) hmr update /src/components/DrabinkaPucharowa.vue, /src/style.css
+08:52:56 [vite] (client) hmr update /src/components/DrabinkaPucharowa.vue, /src/style.css

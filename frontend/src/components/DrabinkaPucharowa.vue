@@ -1,5 +1,15 @@
 <template>
-  <div>
+  <div class="space-y-6">
+    <!-- Debug info -->
+    <div class="bg-yellow-100 p-4 rounded mb-4 text-sm">
+      <strong>🐛 Debug Info:</strong><br>
+      Loading: {{ loading }}<br>
+      Error: {{ error }}<br>
+      Drabinka exists: {{ !!drabinka }}<br>
+      Drabinka keys: {{ drabinka ? Object.keys(drabinka).join(', ') : 'brak' }}<br>
+      Filtered keys: {{ Object.keys(filteredKategorieData).join(', ') }}
+    </div>
+
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-4 sm:space-y-0">
       <div class="flex items-center space-x-3">
@@ -28,7 +38,7 @@
     </div>
 
     <!-- Drabinka Content -->
-    <div v-else-if="drabinka">
+    <div v-else>
       <!-- Stats Cards -->
       <div class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-6">
         <StatsCard 
@@ -57,134 +67,202 @@
         />
       </div>
 
-      <!-- Filtry -->
-      <div class="bg-white shadow rounded-lg p-4 mb-6">
-        <h3 class="text-lg font-medium text-gray-900 mb-4">🔍 Filtry</h3>
-        
-        <div class="space-y-4">
-          <!-- Filtry w formie chip/tag buttons -->
-          
-          <!-- Filtr Kategorie -->
+      <!-- Filtry i sortowanie -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6 transition-colors duration-200 mb-6">
+        <!-- Nagłówek sekcji -->
+        <div class="flex items-center justify-between mb-6">
+          <h3 class="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Filtry i sortowanie</h3>
+          <button 
+            @click="clearAllFilters" 
+            class="text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 flex items-center space-x-1 transition-colors duration-200"
+          >
+            <span>🗑️</span>
+            <span>Wyczyść filtry</span>
+          </button>
+        </div>
+
+        <!-- Filtry w grid layout -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <!-- Filtr kategorii -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-              Kategorie <span class="text-xs text-gray-500">({{ selectedKategorie.length }} wybranych)</span>
+            <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+              <span class="flex items-center space-x-2">
+                <span>🏆</span>
+                <span>Kategoria</span>
+              </span>
             </label>
-            <div class="flex flex-wrap gap-2">
-              <button
-                v-for="kategoria in uniqueKategorie"
-                :key="kategoria"
-                @click="toggleKategoria(kategoria)"
-                :class="[
-                  'px-3 py-2 rounded-full text-sm font-medium transition-colors duration-200',
-                  selectedKategorie.includes(kategoria)
-                    ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 border-2 border-green-300 dark:border-green-600'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-2 border-transparent hover:bg-gray-200 dark:hover:bg-gray-600'
-                ]"
-              >
-                {{ kategoria }}
-              </button>
-            </div>
+            <select 
+              v-model="drabinkaFilters.kategoria" 
+              class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg"
+            >
+              <option value="">Wszystkie</option>
+              <option v-for="kategoria in uniqueKategorie" :key="kategoria" :value="kategoria">{{ kategoria }}</option>
+            </select>
           </div>
           
-          <!-- Filtr Płeć -->
+          <!-- Filtr płci -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-              Płeć <span class="text-xs text-gray-500">({{ selectedPlcie.length }} wybranych)</span>
+            <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+              <span class="flex items-center space-x-2">
+                <span>👥</span>
+                <span>Płeć</span>
+              </span>
             </label>
-            <div class="flex flex-wrap gap-2">
-              <button
-                @click="togglePlec('Mężczyźni')"
-                :class="[
-                  'px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200',
-                  selectedPlcie.includes('Mężczyźni')
-                    ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 border-2 border-indigo-300 dark:border-indigo-600'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-2 border-transparent hover:bg-gray-200 dark:hover:bg-gray-600'
-                ]"
-              >
-                👨 Mężczyźni
-              </button>
-              <button
-                @click="togglePlec('Kobiety')"
-                :class="[
-                  'px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200',
-                  selectedPlcie.includes('Kobiety')
-                    ? 'bg-pink-100 dark:bg-pink-900 text-pink-800 dark:text-pink-200 border-2 border-pink-300 dark:border-pink-600'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-2 border-transparent hover:bg-gray-200 dark:hover:bg-gray-600'
-                ]"
-              >
-                👩 Kobiety
-              </button>
-            </div>
+            <select 
+              v-model="drabinkaFilters.plec" 
+              class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg"
+            >
+              <option value="">Wszystkie</option>
+              <option value="Mężczyźni">Mężczyźni</option>
+              <option value="Kobiety">Kobiety</option>
+            </select>
+          </div>
+
+          <!-- Filtr fazy turnieju -->
+          <div>
+            <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+              <span class="flex items-center space-x-2">
+                <span>🎯</span>
+                <span>Faza turnieju</span>
+              </span>
+            </label>
+            <select 
+              v-model="drabinkaFilters.faza" 
+              class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg"
+            >
+              <option value="">Wszystkie fazy</option>
+              <option value="ćwierćfinały">Ćwierćfinały</option>
+              <option value="półfinały">Półfinały</option>
+              <option value="finał">Finał</option>
+            </select>
           </div>
           
-          <!-- Szybkie akcje filtrowania -->
-          <div class="flex flex-wrap gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <button 
-              @click="selectAllCategories"
-              class="px-4 py-2 text-sm bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors duration-200"
+          <!-- Sortowanie -->
+          <div>
+            <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+              <span class="flex items-center space-x-2">
+                <span>🔄</span>
+                <span>Sortowanie</span>
+              </span>
+            </label>
+            <select 
+              v-model="drabinkaFilters.sortowanie" 
+              class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg"
             >
-              Wszystkie kategorie
+              <option value="kategoria_asc">Kategoria (A-Z)</option>
+              <option value="kategoria_desc">Kategoria (Z-A)</option>
+              <option value="zawodnikow_desc">Liczba zawodników (malejąco)</option>
+              <option value="zawodnikow_asc">Liczba zawodników (rosnąco)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Operacje grupowe -->
+        <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
+          <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">
+            <span class="flex items-center space-x-2">
+              <span>⚡</span>
+              <span>Operacje grupowe</span>
+            </span>
+          </label>
+          <div class="flex flex-wrap gap-3">
+            <button 
+              @click="toggleAllCategories"
+              :class="[
+                'px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 flex items-center space-x-2 border-2',
+                allCategoriesSelected 
+                  ? 'bg-indigo-700 text-white shadow-inner border-indigo-800' 
+                  : 'bg-indigo-600 text-white hover:bg-indigo-700 border-transparent'
+              ]"
+            >
+              <span>{{ allCategoriesSelected ? '✅' : '☐' }}</span>
+              <span>{{ allCategoriesSelected ? 'Odznacz wszystkie' : 'Zaznacz wszystkie' }} kategorie ({{ uniqueKategorie.length }})</span>
             </button>
+            
             <button 
-              @click="selectAllGenders"
-              class="px-4 py-2 text-sm bg-indigo-500 text-white rounded-full hover:bg-indigo-600 transition-colors duration-200"
+              @click="toggleGenders"
+              :class="[
+                'px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 flex items-center space-x-2 border-2',
+                bothGendersSelected 
+                  ? 'bg-green-700 text-white shadow-inner border-green-800'
+                  : 'bg-green-600 text-white hover:bg-green-700 border-transparent'
+              ]"
             >
-              Obie płcie
+              <span>{{ bothGendersSelected ? '✅' : '☐' }}</span>
+              <span>{{ bothGendersSelected ? 'Tylko jedna płeć' : 'Obie płcie' }}</span>
             </button>
+            
             <button 
-              @click="clearFilters"
-              class="px-4 py-2 text-sm bg-gray-500 text-white rounded-full hover:bg-gray-600 transition-colors duration-200"
+              @click="showFinalsOnly"
+              :class="[
+                'px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 flex items-center space-x-2 border-2',
+                drabinkaFilters.faza === 'finał'
+                  ? 'bg-yellow-700 text-white shadow-inner border-yellow-800'
+                  : 'bg-yellow-600 text-white hover:bg-yellow-700 border-transparent'
+              ]"
             >
-              🗑️ Wyczyść wszystko
+              <span>🏆</span>
+              <span>{{ drabinkaFilters.faza === 'finał' ? 'Pokaż wszystkie' : 'Tylko finały' }}</span>
+            </button>
+            
+            <button 
+              @click="clearAllFilters"
+              class="px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 flex items-center space-x-2 border-2 border-transparent bg-gray-600 text-white hover:bg-gray-700"
+            >
+              <span>🗑️</span>
+              <span>Wyczyść filtry</span>
             </button>
           </div>
         </div>
-        
-        <!-- Licznik przefiltrowanych wyników -->
-        <div class="mt-4 flex justify-between items-center text-sm text-gray-500 dark:text-gray-400">
+
+        <!-- Statystyki filtrów -->
+        <div class="mt-4 flex justify-between items-center text-sm text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 pt-4">
           <div>
             Wyświetlane kategorie: {{ Object.keys(filteredKategorieData).length }} z {{ Object.keys(kategorieData).length }}
+          </div>
+          <div>
+            Łączna liczba zawodników: {{ totalContestants }}
           </div>
         </div>
       </div>
 
       <!-- Kategorie -->
       <div class="space-y-8">
-        <div v-for="(kategoria, kategoriaName) in filteredKategorieData" :key="kategoriaName" class="bg-white shadow rounded-lg p-6">
-          <h3 class="text-xl font-semibold text-gray-900 mb-6">🏆 {{ kategoriaName }}</h3>
+        <div v-for="(kategoria, kategoriaName) in filteredKategorieData" :key="kategoriaName" class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+          <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-6">🏆 {{ kategoriaName }}</h3>
           
           <!-- Płcie w kategorii -->
           <div class="space-y-8">
             <div v-for="(plecData, plecName) in kategoria" :key="plecName" 
-                 v-show="selectedPlcie.length === 0 || selectedPlcie.includes(String(plecName))"
+                 v-show="selectedPlcie.length === 0 || selectedPlcie.includes(String(plecName)) || drabinkaFilters.plec === '' || drabinkaFilters.plec === String(plecName)"
                  class="border-l-4 border-indigo-500 pl-4">
-              <h4 class="text-lg font-medium text-gray-800 mb-4">{{ String(plecName) === 'Mężczyźni' ? '👨 Mężczyźni' : '👩 Kobiety' }}</h4>
+              <h4 class="text-lg font-medium text-gray-800 dark:text-gray-200 mb-4">{{ String(plecName) === 'Mężczyźni' ? '👨 Mężczyźni' : '👩 Kobiety' }}</h4>
               
               <!-- Statystyki -->
-              <div v-if="plecData.statystyki" class="bg-gray-50 rounded-lg p-4 mb-4">
+              <div v-if="plecData.statystyki" class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-4">
                 <div class="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span class="font-medium">Łącznie:</span>
-                    <span class="ml-1">{{ plecData.statystyki.łącznie_zawodników }}</span>
+                    <span class="font-medium text-gray-700 dark:text-gray-300">Łącznie:</span>
+                    <span class="ml-1 text-gray-900 dark:text-white">{{ plecData.statystyki.łącznie_zawodników }}</span>
                   </div>
                   <div>
-                    <span class="font-medium">W ćwierćfinałach:</span>
-                    <span class="ml-1">{{ plecData.statystyki.w_ćwierćfinałach }}</span>
+                    <span class="font-medium text-gray-700 dark:text-gray-300">W ćwierćfinałach:</span>
+                    <span class="ml-1 text-gray-900 dark:text-white">{{ plecData.statystyki.w_ćwierćfinałach }}</span>
                   </div>
                 </div>
               </div>
 
               <!-- Ćwierćfinały -->
-              <div v-if="plecData.ćwierćfinały?.length > 0" class="mb-6">
-                <h5 class="font-medium text-gray-700 mb-3">🥇 Ćwierćfinały</h5>
+              <div v-if="plecData.ćwierćfinały?.length > 0 && (!drabinkaFilters.faza || drabinkaFilters.faza === 'ćwierćfinały')" class="mb-6">
+                <h5 class="font-medium text-gray-700 dark:text-gray-300 mb-3">🥇 Ćwierćfinały</h5>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div v-for="grupa in plecData.ćwierćfinały" :key="grupa.grupa" class="border border-gray-200 rounded-lg p-3">
-                    <div class="text-xs font-medium text-gray-500 mb-2">Grupa {{ grupa.grupa }} (awansuje {{ grupa.awansują }})</div>
+                  <div v-for="grupa in plecData.ćwierćfinały" :key="grupa.grupa" class="border border-gray-200 dark:border-gray-600 rounded-lg p-3">
+                    <div class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Grupa {{ grupa.grupa }} (awansuje {{ grupa.awansują }})</div>
                     <div class="space-y-1">
                       <div v-for="(zawodnik, index) in grupa.zawodnicy" :key="zawodnik.nr_startowy" 
                            :class="[
                              'text-sm p-2 rounded',
-                             index < grupa.awansują ? 'bg-green-50 text-green-800 font-medium' : 'bg-gray-50 text-gray-600'
+                             index < grupa.awansują ? 'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200 font-medium' : 'bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
                            ]">
                         {{ zawodnik.nr_startowy }}. {{ zawodnik.imie }} {{ zawodnik.nazwisko }}
                         <div class="text-xs">{{ formatTime(zawodnik.czas_przejazdu_s) }}</div>
@@ -195,16 +273,16 @@
               </div>
 
               <!-- Półfinały -->
-              <div v-if="plecData.półfinały?.length > 0" class="mb-6">
-                <h5 class="font-medium text-gray-700 mb-3">🥈 Półfinały</h5>
+              <div v-if="plecData.półfinały?.length > 0 && (!drabinkaFilters.faza || drabinkaFilters.faza === 'półfinały')" class="mb-6">
+                <h5 class="font-medium text-gray-700 dark:text-gray-300 mb-3">🥈 Półfinały</h5>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div v-for="grupa in plecData.półfinały" :key="grupa.grupa" class="border border-gray-200 rounded-lg p-3">
-                    <div class="text-xs font-medium text-gray-500 mb-2">Grupa {{ grupa.grupa }} (awansuje {{ grupa.awansują }})</div>
+                  <div v-for="grupa in plecData.półfinały" :key="grupa.grupa" class="border border-gray-200 dark:border-gray-600 rounded-lg p-3">
+                    <div class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Grupa {{ grupa.grupa }} (awansuje {{ grupa.awansują }})</div>
                     <div class="space-y-1">
                       <div v-for="(zawodnik, index) in grupa.zawodnicy" :key="zawodnik.nr_startowy" 
                            :class="[
                              'text-sm p-2 rounded',
-                             index < grupa.awansują ? 'bg-yellow-50 text-yellow-800 font-medium' : 'bg-gray-50 text-gray-600'
+                             index < grupa.awansują ? 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 font-medium' : 'bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
                            ]">
                         {{ zawodnik.nr_startowy }}. {{ zawodnik.imie }} {{ zawodnik.nazwisko }}
                         <div class="text-xs">{{ formatTime(zawodnik.czas_przejazdu_s) }}</div>
@@ -215,15 +293,15 @@
               </div>
 
               <!-- Finał -->
-              <div v-if="plecData.finał?.length > 0" class="mb-6">
-                <h5 class="font-medium text-gray-700 mb-3">🏆 Finał</h5>
-                <div class="border-2 border-yellow-300 rounded-lg p-4 bg-yellow-50">
+              <div v-if="plecData.finał?.length > 0 && (!drabinkaFilters.faza || drabinkaFilters.faza === 'finał')" class="mb-6">
+                <h5 class="font-medium text-gray-700 dark:text-gray-300 mb-3">🏆 Finał</h5>
+                <div class="border-2 border-yellow-300 dark:border-yellow-600 rounded-lg p-4 bg-yellow-50 dark:bg-yellow-900/20">
                   <div v-for="grupa in plecData.finał" :key="grupa.grupa">
                     <div class="space-y-2">
                       <div v-for="(zawodnik, index) in grupa.zawodnicy" :key="zawodnik.nr_startowy" 
                            :class="[
                              'text-sm p-3 rounded font-medium',
-                             index === 0 ? 'bg-yellow-200 text-yellow-900' : 'bg-gray-100 text-gray-700'
+                             index === 0 ? 'bg-yellow-200 dark:bg-yellow-800 text-yellow-900 dark:text-yellow-100' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
                            ]">
                         <span v-if="index === 0">🥇</span>
                         <span v-else-if="index === 1">🥈</span>
@@ -239,8 +317,8 @@
 
               <!-- Brak zawodników -->
               <div v-if="!plecData.ćwierćfinały?.length && !plecData.półfinały?.length && !plecData.finał?.length" 
-                   class="text-center py-8 text-gray-500">
-                <TrophyIcon class="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                   class="text-center py-8 text-gray-500 dark:text-gray-400">
+                <TrophyIcon class="h-12 w-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
                 <p>Brak zawodników w tej kategorii</p>
               </div>
             </div>
@@ -267,7 +345,15 @@ const drabinka = ref<DrabinkaResponse | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
 
-// Filtry - domyślnie odznaczone (puste) - tak jak w Lista zawodników
+// Nowy system filtrów z dropdown'ami
+const drabinkaFilters = ref({
+  kategoria: '',
+  plec: '',
+  faza: '',
+  sortowanie: 'kategoria_asc'
+})
+
+// Stary system filtrów - zachowuję dla kompatybilności
 const selectedKategorie = ref<string[]>([])
 const selectedPlcie = ref<string[]>([])
 
@@ -279,28 +365,145 @@ const kategorieData = computed(() => {
   return kategorie
 })
 
-const allKategorie = computed(() => {
+const uniqueKategorie = computed(() => {
   return Object.keys(kategorieData.value).sort()
 })
 
 const filteredKategorieData = computed(() => {
-  if (!drabinka.value) return {}
+  if (!drabinka.value) {
+    return {}
+  }
   
   const { podsumowanie, ...kategorie } = drabinka.value
-  const filtered: any = {}
+  let filtered: any = {}
   
-  for (const [kategoriaName, kategoria] of Object.entries(kategorie)) {
-    if (selectedKategorie.value.length === 0 || selectedKategorie.value.includes(kategoriaName)) {
-      filtered[kategoriaName] = kategoria
+  // Filtrowanie po kategorii (nowy system)
+  if (drabinkaFilters.value.kategoria) {
+    if (kategorie[drabinkaFilters.value.kategoria]) {
+      filtered[drabinkaFilters.value.kategoria] = kategorie[drabinkaFilters.value.kategoria]
+    }
+  } else {
+    // Stary system filtrów - kategorie
+    for (const [kategoriaName, kategoria] of Object.entries(kategorie)) {
+      if (selectedKategorie.value.length === 0 || selectedKategorie.value.includes(kategoriaName)) {
+        filtered[kategoriaName] = kategoria
+      }
     }
   }
   
-  return filtered
+  // Filtrowanie po płci
+  if (drabinkaFilters.value.plec || selectedPlcie.value.length > 0) {
+    const targetGender = drabinkaFilters.value.plec || (selectedPlcie.value.length === 1 ? selectedPlcie.value[0] : '')
+    
+    if (targetGender) {
+      const newFiltered: any = {}
+      for (const [kategoriaName, kategoria] of Object.entries(filtered)) {
+        const filteredKategoria: any = {}
+        for (const [plecName, plecData] of Object.entries(kategoria as any)) {
+          if (plecName === targetGender) {
+            filteredKategoria[plecName] = plecData
+          }
+        }
+        if (Object.keys(filteredKategoria).length > 0) {
+          newFiltered[kategoriaName] = filteredKategoria
+        }
+      }
+      filtered = newFiltered
+    }
+  }
+  
+  // Filtrowanie po fazie turnieju
+  if (drabinkaFilters.value.faza) {
+    const targetPhase = drabinkaFilters.value.faza
+    const newFiltered: any = {}
+    
+    for (const [kategoriaName, kategoria] of Object.entries(filtered)) {
+      const filteredKategoria: any = {}
+      for (const [plecName, plecData] of Object.entries(kategoria as any)) {
+        const filteredPlecData: any = { ...plecData }
+        
+        // Usuwanie niewłaściwych faz
+        if (targetPhase === 'ćwierćfinały') {
+          delete filteredPlecData.półfinały
+          delete filteredPlecData.finał
+        } else if (targetPhase === 'półfinały') {
+          delete filteredPlecData.ćwierćfinały
+          delete filteredPlecData.finał
+        } else if (targetPhase === 'finał') {
+          delete filteredPlecData.ćwierćfinały
+          delete filteredPlecData.półfinały
+        }
+        
+        // Sprawdzanie czy zostały jakieś dane
+        const hasData = filteredPlecData[targetPhase]?.length > 0
+        if (hasData) {
+          filteredKategoria[plecName] = filteredPlecData
+        }
+      }
+      if (Object.keys(filteredKategoria).length > 0) {
+        newFiltered[kategoriaName] = filteredKategoria
+      }
+    }
+    filtered = newFiltered
+  }
+  
+  // Sortowanie
+  const sortedKeys = Object.keys(filtered).sort((a, b) => {
+    switch (drabinkaFilters.value.sortowanie) {
+      case 'kategoria_desc':
+        return b.localeCompare(a)
+      case 'zawodnikow_desc':
+        return getTotalContestants(filtered[b]) - getTotalContestants(filtered[a])
+      case 'zawodnikow_asc':
+        return getTotalContestants(filtered[a]) - getTotalContestants(filtered[b])
+      default: // kategoria_asc
+        return a.localeCompare(b)
+    }
+  })
+  
+  const sortedFiltered: any = {}
+  sortedKeys.forEach(key => {
+    sortedFiltered[key] = filtered[key]
+  })
+  
+  return sortedFiltered
 })
 
-const uniqueKategorie = computed(() => {
-  return Object.keys(kategorieData.value).sort()
+// Computed properties dla operacji grupowych
+const allCategoriesSelected = computed(() => 
+  selectedKategorie.value.length === uniqueKategorie.value.length
+)
+
+const bothGendersSelected = computed(() => 
+  selectedPlcie.value.length === 2 || drabinkaFilters.value.plec === ''
+)
+
+const totalContestants = computed(() => {
+  let total = 0
+  for (const kategoria of Object.values(filteredKategorieData.value)) {
+    total += getTotalContestants(kategoria)
+  }
+  return total
 })
+
+// Helper function
+const getTotalContestants = (kategoria: any): number => {
+  let count = 0
+  for (const plecData of Object.values(kategoria)) {
+    if (typeof plecData === 'object' && plecData !== null) {
+      // Sprawdzamy wszystkie fazy
+      const phases = ['ćwierćfinały', 'półfinały', 'finał']
+      for (const phase of phases) {
+        if ((plecData as any)[phase]?.length > 0) {
+          for (const grupa of (plecData as any)[phase]) {
+            count += grupa.zawodnicy?.length || 0
+          }
+        }
+      }
+    }
+  }
+  return count
+}
 
 // Methods
 const formatTime = (seconds: number | null): string => {
@@ -310,7 +513,47 @@ const formatTime = (seconds: number | null): string => {
   return `${mins}:${secs.padStart(5, '0')}`
 }
 
-// Filter methods
+// Nowe metody dla nowego systemu filtrów
+const clearAllFilters = () => {
+  drabinkaFilters.value = {
+    kategoria: '',
+    plec: '',
+    faza: '',
+    sortowanie: 'kategoria_asc'
+  }
+  selectedKategorie.value = []
+  selectedPlcie.value = []
+}
+
+const toggleAllCategories = () => {
+  if (allCategoriesSelected.value) {
+    selectedKategorie.value = []
+    drabinkaFilters.value.kategoria = ''
+  } else {
+    selectedKategorie.value = [...uniqueKategorie.value]
+    drabinkaFilters.value.kategoria = ''
+  }
+}
+
+const toggleGenders = () => {
+  if (bothGendersSelected.value) {
+    selectedPlcie.value = ['Mężczyźni']
+    drabinkaFilters.value.plec = 'Mężczyźni'
+  } else {
+    selectedPlcie.value = ['Mężczyźni', 'Kobiety']
+    drabinkaFilters.value.plec = ''
+  }
+}
+
+const showFinalsOnly = () => {
+  if (drabinkaFilters.value.faza === 'finał') {
+    drabinkaFilters.value.faza = ''
+  } else {
+    drabinkaFilters.value.faza = 'finał'
+  }
+}
+
+// Stare metody dla kompatybilności
 const toggleKategoria = (kategoria: string) => {
   const index = selectedKategorie.value.indexOf(kategoria)
   if (index > -1) {
@@ -318,6 +561,8 @@ const toggleKategoria = (kategoria: string) => {
   } else {
     selectedKategorie.value.push(kategoria)
   }
+  // Resetuj nowy filtr gdy używamy starego
+  drabinkaFilters.value.kategoria = ''
 }
 
 const togglePlec = (plec: string) => {
@@ -327,19 +572,24 @@ const togglePlec = (plec: string) => {
   } else {
     selectedPlcie.value.push(plec)
   }
+  // Resetuj nowy filtr gdy używamy starego
+  drabinkaFilters.value.plec = ''
 }
 
 const selectAllCategories = () => {
-  selectedKategorie.value = allKategorie.value
+  selectedKategorie.value = uniqueKategorie.value
+  drabinkaFilters.value.kategoria = ''
 }
 
 const selectAllGenders = () => {
   selectedPlcie.value = ['Mężczyźni', 'Kobiety']
+  drabinkaFilters.value.plec = ''
 }
 
 const clearFilters = () => {
   selectedKategorie.value = []
   selectedPlcie.value = []
+  clearAllFilters()
 }
 
 const fetchDrabinka = async () => {
@@ -350,7 +600,6 @@ const fetchDrabinka = async () => {
     const response = await axios.get<DrabinkaResponse>('/api/drabinka')
     drabinka.value = response.data
   } catch (err) {
-    console.error('Błąd podczas pobierania drabinki:', err)
     error.value = 'Nie udało się załadować drabinki turniejowej'
   } finally {
     loading.value = false
