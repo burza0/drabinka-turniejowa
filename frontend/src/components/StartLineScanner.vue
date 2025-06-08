@@ -356,7 +356,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { 
   QrCodeIcon, 
   UsersIcon,
@@ -469,30 +469,33 @@ const setAktywnaGrupa = async (grupa: Grupa) => {
       throw new Error(`Backend error: ${response.status} - ${errorText}`)
     }
     
-    // Po sukcesie ustaw prawdziwą aktywną grupę
+    // Po sukcesie ustaw prawdziwą aktywną grupę (NIE czyść optimistic jeszcze!)
     aktualna_grupa.value = grupa
+    // appState.value.optimisticActiveGroupId = null  // Wyczyścimy PO syncAllData()
     
     // SYNC: Po aktywacji synchronizuj dane w tle (z loading indicator)
     console.log('✅ Grupa aktywowana, synchronizuję dane...')
-    setTimeout(async () => {
-      try {
-        appState.value.syncingData = true
-        await syncAllData('po aktywacji grupy')
-      } catch (error) {
-        console.error('❌ Błąd synchronizacji po aktywacji:', error)
-      } finally {
-        appState.value.syncingData = false
-      }
-    }, 500) // Krótsze opóźnienie
+    // NATYCHMIASTOWY sync po aktywacji grupy
+    appState.value.syncingData = true
+    try {
+      await syncAllData('po aktywacji grupy')
+      console.log('🎯 SYNC ZAKOŃCZONY PO AKTYWACJI')
+      // Teraz możemy bezpiecznie wyczyścić optimistic ID
+      appState.value.optimisticActiveGroupId = null
+    } catch (error) {
+      console.error('❌ Błąd synchronizacji po aktywacji:', error)
+    } finally {
+      appState.value.syncingData = false
+    }
     
-    showSuccess(`✅ Aktywowano grupę: ${grupa.nazwa}`)
+    console.log(`✅ Aktywowano grupę: ${grupa.nazwa}`)
     
   } catch (error) {
     console.error('❌ Błąd aktywacji grupy:', error)
     // ROLLBACK: W przypadku błędu, cofnij optymistyczną zmianę
     appState.value.optimisticActiveGroupId = null
     appState.value.error = error.message
-    showError(`Błąd aktywacji: ${error.message}`)
+    console.error(`Błąd aktywacji: ${error.message}`)
   } finally {
     appState.value.activatingGroupId = null
   }
@@ -529,7 +532,7 @@ const clearAktywnaGrupa = async () => {
       }
     }, 500)
     
-    showSuccess('🧹 Wyczyszczono aktywną grupę')
+    console.log('🧹 Wyczyszczono aktywną grupę')
     
   } catch (error) {
     console.error('❌ Błąd czyszczenia grupy:', error)
@@ -537,7 +540,7 @@ const clearAktywnaGrupa = async () => {
     aktualna_grupa.value = previousGroup
     appState.value.optimisticActiveGroupId = previousGroup?.numer_grupy || null
     appState.value.error = error.message
-    showError(`Błąd: ${error.message}`)
+    console.error(`Błąd: ${error.message}`)
   } finally {
     appState.value.activatingGroupId = null
   }
@@ -574,15 +577,15 @@ const syncAllData = async (reason = 'manual') => {
     }
     
     // 2. Grupy startowe
-    const grupyResponse = await fetch('/api/grupy-startowe')
+    const grupyResponse = await fetch(`/api/grupy-startowe?_t=${Date.now()}`)
     if (!grupyResponse.ok) throw new Error('Błąd ładowania grup')
     const grupyData = await grupyResponse.json()
     grupy.value = grupyData.grupy || []
     
-    // 3. Aktywna grupa (tylko jeśli nie ma optymistycznej)
-    if (!appState.value.optimisticActiveGroupId) {
+    // 3. Aktywna grupa - ZAWSZE ładuj z backend (cache-busting)
+    {
       try {
-        const aktywnaResponse = await fetch('/api/grupa-aktywna')
+        const aktywnaResponse = await fetch(`/api/grupa-aktywna?_t=${Date.now()}`)
         if (aktywnaResponse.ok) {
           const aktywnaData = await aktywnaResponse.json()
           if (aktywnaData.success && aktywnaData.aktywna_grupa) {
@@ -605,7 +608,7 @@ const syncAllData = async (reason = 'manual') => {
     }
     
     // 4. Kolejka startowa
-    const kolejkaResponse = await fetch('/api/start-queue')
+    const kolejkaResponse = await fetch(`/api/start-queue?_t=${Date.now()}`)
     if (!kolejkaResponse.ok) throw new Error('Błąd ładowania kolejki')
     const kolejkaData = await kolejkaResponse.json()
     kolejka_zawodnikow.value = kolejkaData.queue || []
@@ -678,9 +681,8 @@ const handleQRCode = async () => {
 
 // IMPROVED: Remove z optymistyczną aktualizacją
 const removeFromQueue = async (zawodnik: Zawodnik) => {
-  const confirmMessage = `Czy na pewno chcesz usunąć zawodnika #${zawodnik.nr_startowy} ${zawodnik.imie} ${zawodnik.nazwisko} z kolejki?`
   
-  if (!confirm(confirmMessage)) return
+  // if (!confirm(...)) return  // USUNIĘTO DIALOG
   
   // OPTYMISTIC UPDATE: Od razu usuń z lokalnej listy
   const originalQueue = [...kolejka_zawodnikow.value]
@@ -697,7 +699,7 @@ const removeFromQueue = async (zawodnik: Zawodnik) => {
       setTimeout(async () => {
         appState.value.syncingQueue = true
         try {
-          const kolejkaResponse = await fetch('/api/start-queue')
+          const kolejkaResponse = await fetch(`/api/start-queue?_t=${Date.now()}`)
           if (kolejkaResponse.ok) {
             const kolejkaData = await kolejkaResponse.json()
             kolejka_zawodnikow.value = kolejkaData.queue || []
@@ -707,7 +709,7 @@ const removeFromQueue = async (zawodnik: Zawodnik) => {
         }
       }, 1000)
       
-      showSuccess(`Usunięto zawodnika #${zawodnik.nr_startowy} z kolejki`)
+      console.log(`Usunięto zawodnika #${zawodnik.nr_startowy} z kolejki`)
     } else {
       const error = await response.json()
       throw new Error(error.message || 'Błąd usuwania')
@@ -716,17 +718,15 @@ const removeFromQueue = async (zawodnik: Zawodnik) => {
     console.error('Błąd usuwania:', error)
     // ROLLBACK: Przywróć oryginalną kolejkę
     kolejka_zawodnikow.value = originalQueue
-    showError(`Błąd: ${error.message}`)
+    console.error(`Błąd: ${error.message}`)
   }
 }
 
 // SIMPLIFIED: Clear queue
 const clearQueue = async (type: 'all' | 'scanned') => {
-  const confirmMessage = type === 'all' 
-    ? 'Czy na pewno chcesz wyczyścić całą kolejkę startową?'
-    : 'Czy na pewno chcesz usunąć wszystkich skanowanych zawodników z kolejki?'
+  // const confirmMessage = type === 'all' ? 'Czy na pewno chcesz wyczyścić całą kolejkę startową?' : 'Czy na pewno chcesz usunąć wszystkich skanowanych zawodników z kolejki?'  // USUNIĘTO DIALOG
   
-  if (!confirm(confirmMessage)) return
+  // if (!confirm(...)) return  // USUNIĘTO DIALOG
   
   appState.value.loading = true
   try {
@@ -738,13 +738,13 @@ const clearQueue = async (type: 'all' | 'scanned') => {
     
     if (response.ok) {
       await syncAllData('po czyszczeniu kolejki')
-      showSuccess(`Wyczyszczono kolejkę: ${type}`)
+      console.log(`Wyczyszczono kolejkę: ${type}`)  // USUNIĘTO DIALOG
     } else {
       throw new Error('Błąd czyszczenia kolejki')
     }
   } catch (error) {
     console.error('Błąd czyszczenia kolejki:', error)
-    showError(`Błąd: ${error.message}`)
+    console.error(`Błąd: ${error.message}`)
   } finally {
     appState.value.loading = false
   }

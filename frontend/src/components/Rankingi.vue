@@ -60,26 +60,109 @@
     <div v-else>
       <!-- Klasyfikacja Indywidualna -->
       <div v-if="activeTab === 'individual'" class="space-y-6">
-        <!-- Uniwersalny system filtrów -->
-        <FilterSection 
-          :config="individualFilterConfig"
-          :filters="individualFilters"
-          :data="{ categories: uniqueCategories, clubs: uniqueClubs }"
-          @filtersChange="handleIndividualFiltersChange"
-          @clearFilters="clearAllFilters"
-          @quickAction="handleQuickAction"
-        />
-
-        <!-- Tabela rankingu indywidualnego -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 transition-colors duration-200">
-          <div class="p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900 dark:to-indigo-900 transition-colors duration-200">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
-              <span class="mr-2">🏆</span>
-              Klasyfikacja Indywidualna
-              <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">({{ filteredIndividualRanking.length }} pozycji)</span>
-            </h3>
+        <!-- Filtry i sortowanie dla Indywidualnej -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6 transition-colors duration-200">
+          <!-- Nagłówek sekcji -->
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Filtry i sortowanie</h3>
+            <button 
+              @click="clearAllFilters" 
+              class="text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 flex items-center space-x-1 transition-colors duration-200"
+            >
+              <span>🗑️</span>
+              <span>Wyczyść filtry</span>
+            </button>
           </div>
-          
+
+          <!-- Filtry w grid layout -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Filtr kategorii -->
+            <div>
+              <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                <span class="flex items-center space-x-2">
+                  <span>🏆</span>
+                  <span>Kategoria</span>
+                </span>
+              </label>
+              <select 
+                v-model="selectedCategory" 
+                class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg"
+              >
+                <option value="">Wszystkie</option>
+                <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
+              </select>
+            </div>
+            
+            <!-- Filtr klubu -->
+            <div>
+              <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                <span class="flex items-center space-x-2">
+                  <span>🏢</span>
+                  <span>Klub</span>
+                </span>
+              </label>
+              <select 
+                v-model="selectedClub" 
+                class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg"
+              >
+                <option value="">Wszystkie</option>
+                <option v-for="club in clubs" :key="club" :value="club">{{ club }}</option>
+              </select>
+            </div>
+
+            <!-- Filtr płci -->
+            <div>
+              <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                <span class="flex items-center space-x-2">
+                  <span>👥</span>
+                  <span>Płeć</span>
+                </span>
+              </label>
+              <select 
+                v-model="selectedGender" 
+                class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg"
+              >
+                <option value="">Wszystkie</option>
+                <option value="M">Mężczyźni</option>
+                <option value="K">Kobiety</option>
+              </select>
+            </div>
+            
+            <!-- Sortowanie -->
+            <div>
+              <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                <span class="flex items-center space-x-2">
+                  <span>🔄</span>
+                  <span>Sortowanie</span>
+                </span>
+              </label>
+              <select 
+                v-model="sortBy" 
+                class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg"
+              >
+                <option value="pozycja_asc">Pozycja (najlepsi)</option>
+                <option value="pozycja_desc">Pozycja (najgorsi)</option>
+                <option value="punkty_desc">Punkty (malejąco)</option>
+                <option value="punkty_asc">Punkty (rosnąco)</option>
+                <option value="nazwisko_asc">Nazwisko (A-Z)</option>
+                <option value="nazwisko_desc">Nazwisko (Z-A)</option>
+                <option value="kategoria_asc">Kategoria (A-Z)</option>
+                <option value="starty_desc">Starty (malejąco)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Nagłówek klasyfikacji indywidualnej -->
+        <div class="flex items-center justify-between">
+          <h3 class="text-lg font-medium text-gray-900 dark:text-white">Klasyfikacja Indywidualna</h3>
+          <div class="text-sm text-gray-600 dark:text-gray-400">
+            Suma wszystkich punktów ({{ filteredIndividualRanking.length }} pozycji)
+          </div>
+        </div>
+        
+        <!-- Tabela rankingu indywidualnego -->
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
           <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead class="bg-gray-50 dark:bg-gray-700">
@@ -574,8 +657,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import axios from 'axios'
+import { ref, computed, onMounted, watch } from 'vue'
 import { 
   ChartBarIcon, 
   TrophyIcon, 
@@ -585,14 +667,13 @@ import {
   ArrowPathIcon,
   StarIcon
 } from '@heroicons/vue/24/outline'
-// Uniwersalny system filtrów v30.6
-import FilterSection from './FilterSection.vue'
-import { useFilterConfigs } from '../composables/useFilterConfigs'
 
 // State
 const loading = ref(false)
 const selectedSeason = ref('2025')
 const activeTab = ref('general')
+const lastFetchTime = ref(0)
+const CACHE_DURATION = 30000 // 30 sekund cache
 
 // Rankings data
 const individualRanking = ref([])
@@ -832,93 +913,152 @@ const isEmpty = computed(() => {
 
 // Methods
 const refreshRankings = async () => {
+  if (loading.value) {
+    console.log('🚫 Refresh już w toku, przerywam')
+    return
+  }
+  
   loading.value = true
+  console.log('🔄 ROZPOCZYNAM refresh rankings...')
+  
   try {
     // Fetch all ranking data from API
     await Promise.all([
       fetchIndividualRanking(),
-      fetchGeneralRanking(),
+      fetchGeneralRanking(), 
       fetchClubRankings(),
       fetchMedalRanking()
     ])
+    // Aktualizuj timestamp cache po udanym pobraniu
+    lastFetchTime.value = Date.now()
+    console.log('✅ ZAKOŃCZONO refresh rankings - wszystkie dane pobrane')
   } catch (error) {
-    console.error('Error fetching rankings:', error)
+    console.error('❌ Error fetching rankings:', error)
+    // Nie czyścimy danych przy błędzie - zachowujemy cache
   } finally {
     loading.value = false
   }
 }
 
+const clearMedalsFilters = () => {
+  minZlote.value = null
+  sortByMedals.value = 'zlote_desc'
+}
+
+// Watch activeTab - nie pobieraj danych za każdym razem
+watch(activeTab, (newTab) => {
+  console.log('🔀 Przełączono na zakładkę:', newTab)
+  // Nie pobieraj danych automatycznie przy zmianie zakładki
+  // Tylko jeśli dane są bardzo stare (>30 sekund)
+  const now = Date.now()
+  if (now - lastFetchTime.value > CACHE_DURATION) {
+    console.log('📅 Cache wygasł, pobieram świeże dane...')
+    refreshRankings()
+  } else {
+    console.log('💾 Używam cache danych (', Math.round((now - lastFetchTime.value) / 1000), 's temu)')
+  }
+})
+
+// Watch selectedSeason - tylko wtedy pobieraj nowe dane
+watch(selectedSeason, () => {
+  console.log('📅 Zmiana sezonu na:', selectedSeason.value)
+  refreshRankings()
+})
+
+// Lifecycle
+onMounted(() => {
+  refreshRankings()
+})
+
+// MISSING FUNCTIONS - RANKING DATA FETCHERS WITH CACHE-BUSTING
 const fetchIndividualRanking = async () => {
   console.log('🔍 Pobieranie rankingu indywidualnego...')
-  const response = await fetch(`/api/rankings/individual?season=${selectedSeason.value}`)
-  console.log('📡 Individual response status:', response.status)
-  if (response.ok) {
-    const data = await response.json()
-    console.log('✅ Individual data received:', data.length, 'items')
-    individualRanking.value = data
-  } else {
-    console.error('❌ Individual ranking response not ok:', response.status, response.statusText)
-    individualRanking.value = []
+  try {
+    const response = await fetch(`/api/rankings/individual?season=${selectedSeason.value}&_t=${Date.now()}`)
+    console.log('📡 Individual response status:', response.status)
+    if (response.ok) {
+      const data = await response.json()
+      console.log('✅ Individual data received:', data.length, 'items')
+      individualRanking.value = data
+      console.log("✅ individualRanking updated, length:", individualRanking.value.length)
+    } else {
+      console.error('❌ Individual ranking response not ok:', response.status, response.statusText)
+    }
+  } catch (error) {
+    console.error('❌ Error fetching individual ranking:', error)
   }
 }
 
 const fetchGeneralRanking = async () => {
   console.log('🔍 Pobieranie rankingu generalnego...')
-  const response = await fetch(`/api/rankings/general?season=${selectedSeason.value}`)
-  console.log('📡 General response status:', response.status)
-  if (response.ok) {
-    const data = await response.json()
-    console.log('✅ General data received:', data.length, 'items')
-    generalRanking.value = data
-  } else {
-    console.error('❌ General ranking response not ok:', response.status, response.statusText)
-    generalRanking.value = []
+  try {
+    const response = await fetch(`/api/rankings/general?season=${selectedSeason.value}&_t=${Date.now()}`)
+    console.log('📡 General response status:', response.status)
+    if (response.ok) {
+      const data = await response.json()
+      console.log('✅ General data received:', data.length, 'items')
+      generalRanking.value = data
+      console.log("✅ generalRanking updated, length:", generalRanking.value.length)
+    } else {
+      console.error('❌ General ranking response not ok:', response.status, response.statusText)
+    }
+  } catch (error) {
+    console.error('❌ Error fetching general ranking:', error)
   }
 }
 
 const fetchClubRankings = async () => {
   console.log('🔍 Pobieranie rankingów klubowych...')
-  const [totalResponse, top3Response] = await Promise.all([
-    fetch(`/api/rankings/clubs/total?season=${selectedSeason.value}`),
-    fetch(`/api/rankings/clubs/top3?season=${selectedSeason.value}`)
-  ])
-  
-  console.log('📡 Club total response status:', totalResponse.status)
-  console.log('📡 Club top3 response status:', top3Response.status)
-  
-  if (totalResponse.ok) {
-    const data = await totalResponse.json()
-    console.log('✅ Club total data received:', data.length, 'items')
-    clubRankingTotal.value = data
-  } else {
-    console.error('❌ Club total ranking response not ok:', totalResponse.status, totalResponse.statusText)
-    clubRankingTotal.value = []
-  }
-  
-  if (top3Response.ok) {
-    const data = await top3Response.json()
-    console.log('✅ Club top3 data received:', data.length, 'items')
-    clubRankingTop3.value = data
-  } else {
-    console.error('❌ Club top3 ranking response not ok:', top3Response.status, top3Response.statusText)
-    clubRankingTop3.value = []
+  try {
+    const [totalResponse, top3Response] = await Promise.all([
+      fetch(`/api/rankings/clubs/total?season=${selectedSeason.value}&_t=${Date.now()}`),
+      fetch(`/api/rankings/clubs/top3?season=${selectedSeason.value}&_t=${Date.now()}`)
+    ])
+    
+    console.log('📡 Club total response status:', totalResponse.status)
+    console.log('📡 Club top3 response status:', top3Response.status)
+    
+    if (totalResponse.ok) {
+      const data = await totalResponse.json()
+      console.log('✅ Club total data received:', data.length, 'items')
+      clubRankingTotal.value = data
+      console.log("✅ clubRankingTotal updated, length:", clubRankingTotal.value.length)
+    } else {
+      console.error('❌ Club total ranking response not ok:', totalResponse.status, totalResponse.statusText)
+    }
+    
+    if (top3Response.ok) {
+      const data = await top3Response.json()
+      console.log('✅ Club top3 data received:', data.length, 'items')
+      clubRankingTop3.value = data
+      console.log("✅ clubRankingTop3 updated, length:", clubRankingTop3.value.length)
+    } else {
+      console.error('❌ Club top3 ranking response not ok:', top3Response.status, top3Response.statusText)
+    }
+  } catch (error) {
+    console.error('❌ Error fetching club rankings:', error)
   }
 }
 
 const fetchMedalRanking = async () => {
   console.log('🔍 Pobieranie rankingu medalowego...')
-  const response = await fetch(`/api/rankings/medals?season=${selectedSeason.value}`)
-  console.log('📡 Medal response status:', response.status)
-  if (response.ok) {
-    const data = await response.json()
-    console.log('✅ Medal data received:', data.length, 'items')
-    medalRanking.value = data
-  } else {
-    console.error('❌ Medal ranking response not ok:', response.status, response.statusText)
-    medalRanking.value = []
+  try {
+    const response = await fetch(`/api/rankings/medals?season=${selectedSeason.value}&_t=${Date.now()}`)
+    console.log('📡 Medal response status:', response.status)
+    if (response.ok) {
+      const data = await response.json()
+      console.log('✅ Medal data received:', data.length, 'items')
+      medalRanking.value = data
+      console.log("✅ medalRanking updated, length:", medalRanking.value.length)
+    } else {
+      console.error('❌ Medal ranking response not ok:', response.status, response.statusText)
+    }
+  } catch (error) {
+    console.error('❌ Error fetching medal ranking:', error)
   }
 }
 
+// HELPER FUNCTIONS FOR FILTERS
 const clearAllFilters = () => {
   selectedCategory.value = ''
   selectedClub.value = ''
@@ -943,48 +1083,6 @@ const clearClubsTop3Filters = () => {
   sortByClubsTop3.value = 'punkty_desc'
 }
 
-const clearMedalsFilters = () => {
-  minZlote.value = null
-  sortByMedals.value = 'zlote_desc'
-}
-
-// Setup uniwersalnego systemu filtrów v30.6
-const { rankingConfig } = useFilterConfigs()
-
-// Unified filters dla każdej zakładki
-const individualFilters = ref({
-  kategoria: '',
-  klub: '',
-  plec: '',
-  sortowanie: 'pozycja_asc'
-})
-
-const generalFilters = ref({
-  kategoria: '',
-  klub: '',
-  plec: '',
-  sortowanie: 'punkty_desc'
-})
-
-const clubsTotalFilters = ref({
-  minZawodnikow: '',
-  sortowanie: 'punkty_desc'
-})
-
-const clubsTop3Filters = ref({
-  minKategorie: '',
-  sortowanie: 'punkty_desc'
-})
-
-const medalsFilters = ref({
-  minZlote: '',
-  sortowanie: 'zlote_desc'
-})
-
-// Lifecycle
-onMounted(() => {
-  refreshRankings()
-})
 </script>
 
 <style scoped>

@@ -8,11 +8,13 @@ import math
 import re
 from psycopg2 import pool
 from cache import app_cache
+from api_endpoints_new import new_queue_api
 import atexit
 
 load_dotenv()
 app = Flask(__name__)
 CORS(app)
+app.register_blueprint(new_queue_api)
 
 # WERSJA 30.5.1: COMPRESSION dla Heroku Performance
 compress = Compress()
@@ -88,21 +90,21 @@ def get_all(query, params=None):
             print("❌ Błąd: Nie udało się uzyskać połączenia z bazą danych")
             return []
             
-        cur = conn.cursor()
+    cur = conn.cursor()
         try:
-            if params:
+    if params:
                 print(f"🔍 Wykonuję zapytanie: {query} z parametrami: {params}")
-                cur.execute(query, params)
-            else:
+        cur.execute(query, params)
+    else:
                 print(f"🔍 Wykonuję zapytanie: {query}")
-                cur.execute(query)
+        cur.execute(query)
                     
-            rows = cur.fetchall()
+    rows = cur.fetchall()
             if not rows:
                 print("ℹ️ Zapytanie nie zwróciło żadnych wyników")
                 return []
                     
-            columns = [desc[0] for desc in cur.description]
+    columns = [desc[0] for desc in cur.description]
             result = [dict(zip(columns, row)) for row in rows]
             print(f"✅ Znaleziono {len(result)} wyników")
             return result
@@ -111,7 +113,7 @@ def get_all(query, params=None):
             print(f"❌ Błąd podczas wykonywania zapytania: {str(e)}")
             return []
         finally:
-            cur.close()
+    cur.close()
     except Exception as e:
         print(f"❌ Błąd w get_all: {str(e)}")
         return []
@@ -128,7 +130,7 @@ def get_one(query, params=None):
         if conn is None:
             return None
             
-        cur = conn.cursor()
+    cur = conn.cursor()
         if params:
             cur.execute(query, params)
         else:
@@ -167,7 +169,7 @@ def execute_query(query, params=None):
         return rowcount
     except Exception as e:
         if conn:
-            conn.rollback()
+        conn.rollback()
         raise e
     finally:
         if conn:

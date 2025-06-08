@@ -713,19 +713,14 @@ const exportData = async () => {
 
 const generateMissingQR = async () => {
   // TODO: Implement bulk QR generation
-  alert('Funkcja w przygotowaniu')
 }
 
 const resetAllCheckIns = async () => {
-  if (confirm('Czy na pewno chcesz zresetować wszystkie check-iny? Ta operacja jest nieodwracalna.')) {
-    // TODO: Implement reset
-    alert('Funkcja w przygotowaniu')
-  }
+  // TODO: Implement reset
 }
 
 const viewSystemLogs = () => {
   // TODO: Implement system logs viewer
-  alert('Funkcja w przygotowaniu')
 }
 
 const formatTime = (timeString: string) => {
@@ -833,15 +828,13 @@ const performManualCheckIn = async () => {
         powod: '',
         opis: ''
       }
-      
-      alert(`✅ Zawodnik ${previewZawodnik.value?.imie} ${previewZawodnik.value?.nazwisko} został pomyślnie zameldowany ręcznie.`)
     } else {
-      alert(`❌ Błąd podczas zameldowania: ${response.data.message}`)
+      console.log("Manual check-in failed")
     }
   } catch (error: any) {
     console.error('Błąd podczas ręcznego zameldowania:', error)
     const errorMsg = error.response?.data?.message || 'Nieznany błąd serwera'
-    alert(`❌ Błąd podczas zameldowania: ${errorMsg}`)
+    console.error("Manual check-in error:", errorMsg)
   } finally {
     manualCheckInLoading.value = false
   }

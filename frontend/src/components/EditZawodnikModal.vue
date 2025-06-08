@@ -227,8 +227,6 @@ const saveChanges = async () => {
 
 const deleteZawodnik = async () => {
   if (!originalData.value) return
-  const confirmed = confirm(`Czy na pewno chcesz usunąć zawodnika ${originalData.value.imie} ${originalData.value.nazwisko} (nr ${originalData.value.nr_startowy})?`)
-  if (!confirmed) return
   loading.value = true
   error.value = ''
   try {
