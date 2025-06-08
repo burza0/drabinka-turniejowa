@@ -7,14 +7,11 @@ from dotenv import load_dotenv
 import math
 import re
 from psycopg2 import pool
-from cache import app_cache
-from api_endpoints_new import new_queue_api
 import atexit
 
 load_dotenv()
 app = Flask(__name__)
 CORS(app)
-app.register_blueprint(new_queue_api)
 
 # WERSJA 30.5.1: COMPRESSION dla Heroku Performance
 compress = Compress()
