@@ -201,7 +201,7 @@
         
         <!-- QR Scanner -->
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-          <div class="text-center">
+      <div class="text-center">
             <div class="w-16 h-16 mx-auto mb-4 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center">
               <QrCodeIcon class="h-8 w-8 text-green-600 dark:text-green-400" />
         </div>

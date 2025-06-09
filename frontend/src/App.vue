@@ -449,6 +449,11 @@
         <Rankingi />
       </div>
 
+      <!-- SECTRO Live Timing -->
+      <div v-if="activeTab === 'sectro'">
+        <SectroView />
+      </div>
+
       <!-- Start Line Scanner -->
       <div v-if="activeTab === 'start-line'">
         <StartLineScanner />
@@ -511,6 +516,7 @@ import ZawodnikCard from './components/ZawodnikCard.vue'
 import DrabinkaPucharowa from './components/DrabinkaPucharowa.vue'
 import EditZawodnikModal from './components/EditZawodnikModal.vue'
 import Rankingi from './components/Rankingi.vue'
+import SectroView from './views/SectroView.vue'
 import QrAdminDashboard from './components/QrAdminDashboard.vue'
 import QrPrint from './components/QrPrint.vue'
 import StartLineScanner from './components/StartLineScanner.vue'
@@ -566,6 +572,7 @@ const tabs = [
   { id: 'zawodnicy', name: 'Zawodnicy', icon: UsersIcon, adminOnly: false },
   { id: 'drabinka', name: 'Drabinka', icon: TrophyIcon, adminOnly: false },
   { id: 'rankingi', name: 'Rankingi', icon: ListBulletIcon, adminOnly: false },
+  { id: 'sectro', name: 'Live Timing', icon: ClockIcon, adminOnly: true },
   { id: 'start-line', name: 'Centrum Startu', icon: QrCodeIcon, adminOnly: true },
   { id: 'qr-print', name: 'Drukowanie QR', icon: PrinterIcon, adminOnly: true },
   { id: 'qr-dashboard', name: 'QR Dashboard', icon: QrCodeIcon, adminOnly: true },
