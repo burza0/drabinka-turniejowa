@@ -399,8 +399,10 @@ def _process_measurement(session_id: int, nr_startowy: int, frame: SectroFrame) 
             logger.info(f"🔍 Start result for athlete {nr_startowy}: {start_result}")
             
             if start_result and start_result['start_time']:
-                total_time = frame.timestamp - start_result['start_time']
-                logger.info(f"🔍 Calculated total_time: {total_time} (finish: {frame.timestamp}, start: {start_result['start_time']})")
+                # Convert Decimal to float for calculation
+                start_time = float(start_result['start_time'])
+                total_time = frame.timestamp - start_time
+                logger.info(f"🔍 Calculated total_time: {total_time} (finish: {frame.timestamp}, start: {start_time})")
                 
                 # Handle day rollover
                 if total_time < 0:
@@ -419,7 +421,7 @@ def _process_measurement(session_id: int, nr_startowy: int, frame: SectroFrame) 
                 
                 return {
                     'status': 'completed',
-                    'start_time': start_result['start_time'],
+                    'start_time': start_time,
                     'finish_time': frame.timestamp,
                     'total_time': total_time,
                     'formatted_time': parser.format_time(total_time)
