@@ -19,9 +19,9 @@ app.register_blueprint(sectro_bp)
 init_app(app)
 
 # System version
-SYSTEM_VERSION = "30.2"
+SYSTEM_VERSION = "32.0"
 SYSTEM_NAME = "SKATECROSS Drabinka Turniejowa"
-SYSTEM_FEATURES = ["SECTRO Live Timing", "QR System", "Start Queue", "Rankings"]
+SYSTEM_FEATURES = ["SECTRO Live Timing", "QR System", "Start Queue", "Rankings", "Toggle Buttons", "Queue Management"]
 
 # Cache aktywnej grupy
 aktywna_grupa_cache = {

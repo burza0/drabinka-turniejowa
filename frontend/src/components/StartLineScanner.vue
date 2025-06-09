@@ -424,7 +424,7 @@ const kolejka_zawodnikow = ref<Zawodnik[]>([])
 const selectedGrupa = ref<number | null>(null)
 const manualQrCode = ref('')
 const lastVerification = ref<VerificationResult | null>(null)
-const apiVersion = ref('30.5.0')
+const apiVersion = ref('32.0.0')
 
 // NOWY: Stan statusów grup z backendu
 const grupyStatuses = ref<Record<string, { is_active: boolean; count: number }>>({})
@@ -574,12 +574,12 @@ const syncAllData = async (reason = 'manual') => {
   
   try {
     // 1. API Version (tylko raz przy starcie)
-    if (!apiVersion.value || apiVersion.value === '30.5.0') {
+    if (!apiVersion.value || apiVersion.value === '32.0.0') {
       try {
         const versionResponse = await fetch('/api/version')
         if (versionResponse.ok) {
           const versionData = await versionResponse.json()
-          apiVersion.value = versionData.version || '30.4.0'
+          apiVersion.value = versionData.version || '32.0.0'
         }
       } catch (e) {
         console.warn('⚠️ Nie można pobrać wersji API')
