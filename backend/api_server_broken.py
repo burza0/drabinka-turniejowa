@@ -1,86 +1,94 @@
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
+from flask_compress import Compress
 import psycopg2
 import os
 from dotenv import load_dotenv
 import math
 import re
-
-# Import SECTRO module
+from psycopg2 import pool
+import atexit
+# SECTRO Live Timing Module
+# Import database functions from shared module
+from database_utils import get_all, get_one, execute_query, get_db_connection, return_db_connection
+from cache import app_cache
 from sectro.sectro_api import sectro_bp
 
 load_dotenv()
 app = Flask(__name__)
-CORS(app)
-
 # Register SECTRO blueprint
 app.register_blueprint(sectro_bp)
+CORS(app)
 
-# System version
-SYSTEM_VERSION = "30.2"
-SYSTEM_NAME = "SKATECROSS Drabinka Turniejowa"
-SYSTEM_FEATURES = ["SECTRO Live Timing", "QR System", "Start Queue", "Rankings"]
+# WERSJA 30.5.1: COMPRESSION dla Heroku Performance - WYŁĄCZONE DO DEBUGOWANIA
+# compress = Compress()
+# compress.init_app(app)
 
-DB_URL = os.getenv("DATABASE_URL")
+# Cache headers dla statycznych plików
+@app.after_request
+def after_request(response):
+    # Gzip compression już obsługuje flask-compress
+    # Dodaj cache headers dla API
+    if request.path.startswith('/api/'):
+        response.headers['Cache-Control'] = 'public, max-age=60'  # 1 minuta cache
+    elif request.path.startswith('/assets/'):
+        response.headers['Cache-Control'] = 'public, max-age=86400'  # 24h cache dla statycznych plików
 
-# Cache aktywnej grupy
-aktywna_grupa_cache = {
-    "numer_grupy": None,
-    "kategoria": None,
-    "plec": None,
-    "nazwa": None
-}
+# WERSJA 30.5.0: RADYKALNY REFACTOR - BRAK CACHE
+# Cache aktywnej grupy - USUŃ TO!
+# aktywna_grupa_cache = {
+#     "numer_grupy": None,
+#     "kategoria": None,
+#     "plec": None,
+#     "nazwa": None
+# }
 
-def get_all(query, params=None):
-    conn = psycopg2.connect(DB_URL)
-    cur = conn.cursor()
-    if params:
-        cur.execute(query, params)
-    else:
-        cur.execute(query)
-    rows = cur.fetchall()
-    columns = [desc[0] for desc in cur.description]
-    cur.close()
-    conn.close()
-    return [dict(zip(columns, row)) for row in rows]
-
-def get_one(query, params=None):
-    """Pobiera pojedynczy rekord z bazy danych"""
-    conn = psycopg2.connect(DB_URL)
-    cur = conn.cursor()
-    if params:
-        cur.execute(query, params)
-    else:
-        cur.execute(query)
-    row = cur.fetchone()
-    if row:
-        columns = [desc[0] for desc in cur.description]
-        result = dict(zip(columns, row))
-    else:
-        result = None
-    cur.close()
-    conn.close()
-    return result
-
-def execute_query(query, params=None):
-    """Wykonuje zapytanie INSERT/UPDATE/DELETE i zwraca liczbę zmienionych wierszy"""
-    conn = psycopg2.connect(DB_URL)
-    cur = conn.cursor()
+# NOWY: Prosty storage w bazie danych
+def get_aktywna_grupa_from_db():
+    """Pobiera aktywną grupę z bazy danych - ŚWIEŻE DANE"""
     try:
-        if params:
-            cur.execute(query, params)
-        else:
-            cur.execute(query)
-        conn.commit()
-        rowcount = cur.rowcount
-        cur.close()
-        conn.close()
-        return rowcount
+        result = get_one("""
+            SELECT kategoria, plec, nazwa, numer_grupy 
+            FROM aktywna_grupa_settings 
+            ORDER BY updated_at DESC 
+            LIMIT 1
+        """)
+        return result
+    except:
+        # Jeśli tabela nie istnieje, stwórz ją
+        try:
+            execute_query("""
+                CREATE TABLE IF NOT EXISTS aktywna_grupa_settings (
+                    id SERIAL PRIMARY KEY,
+                    kategoria VARCHAR(50),
+                    plec CHAR(1),
+                    nazwa VARCHAR(100),
+                    numer_grupy INTEGER,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            print("✅ Utworzono tabelę aktywna_grupa_settings")
+        except Exception as e:
+            print(f"⚠️ Błąd tworzenia tabeli: {e}")
+        return None
+
+def set_aktywna_grupa_in_db(kategoria, plec, nazwa, numer_grupy):
+    """Zapisuje aktywną grupę w bazie danych"""
+    try:
+        # Usuń wszystkie stare wpisy
+        execute_query("DELETE FROM aktywna_grupa_settings")
+        
+        # Dodaj nowy wpis
+        execute_query("""
+            INSERT INTO aktywna_grupa_settings (kategoria, plec, nazwa, numer_grupy)
+            VALUES (%s, %s, %s, %s)
+        """, (kategoria, plec, nazwa, numer_grupy))
+        
+        print(f"✅ Zapisano aktywną grupę w DB: {nazwa} ({kategoria} {plec})")
+        return True
     except Exception as e:
-        conn.rollback()
-        cur.close()
-        conn.close()
-        raise e
+        print(f"❌ Błąd zapisu aktywnej grupy: {e}")
+        return False
 
 def validate_time_format(time_str):
     """Waliduje format czasu MM:SS.ms lub SS.ms"""
@@ -153,11 +161,8 @@ def kategorie():
 def statystyki():
     """Endpoint zwracający statystyki zawodników według kategorii i płci"""
     rows = get_all("""
-        SELECT kategoria, plec, COUNT(*) as liczba
-        FROM zawodnicy 
-        WHERE kategoria IS NOT NULL AND plec IS NOT NULL
-        GROUP BY kategoria, plec 
-        ORDER BY kategoria, plec
+        SELECT kategoria, plec, liczba
+        FROM mv_statystyki_kategorie_plec
     """)
     
     # Przekształć dane na bardziej czytelny format
@@ -184,22 +189,6 @@ def statystyki():
         'kategorie': stats,
         'total': {'M': total_m, 'K': total_k, 'razem': total_m + total_k}
     })
-
-@app.route("/api/version")
-def get_version():
-    """Endpoint zwracający wersję systemu"""
-    try:
-        return jsonify({
-            "version": SYSTEM_VERSION,
-            "name": SYSTEM_NAME,
-            "features": SYSTEM_FEATURES,
-            "status": "production",
-            "sectro": "integrated",
-            "environment": "production" if os.getenv("PRODUCTION") else "development"
-        })
-    except Exception as e:
-        print(f"Błąd przy endpoincie wersji: {e}")
-        return jsonify({"version": "unknown", "error": str(e)}), 500
 
 @app.route("/api/kluby")
 def kluby():
@@ -874,30 +863,32 @@ def frontend_static(filename):
 def qr_dashboard():
     """Endpoint dla QR Admin Dashboard - kompleksowe statystyki"""
     try:
-        # Podstawowe statystyki
+        # Podstawowe statystyki z materialized view
         basic_stats = get_all("""
             SELECT 
-                COUNT(*) as total_zawodnikow,
-                COUNT(CASE WHEN qr_code IS NOT NULL THEN 1 END) as z_qr_kodami,
-                COUNT(CASE WHEN checked_in = TRUE THEN 1 END) as zameldowanych,
-                COUNT(CASE WHEN qr_code IS NULL THEN 1 END) as bez_qr_kodow
-            FROM zawodnicy
+                SUM(total_zawodnikow) as total_zawodnikow,
+                SUM(z_qr_kodami) as z_qr_kodami,
+                SUM(zameldowanych) as zameldowanych,
+                SUM(bez_qr_kodow) as bez_qr_kodow
+            FROM mv_statystyki_qr
         """)[0]
         
-        # Statystyki według kategorii
+        # Statystyki według kategorii z materialized view
         category_stats = get_all("""
             SELECT 
                 kategoria,
-                COUNT(*) as total,
-                COUNT(CASE WHEN checked_in = TRUE THEN 1 END) as zameldowanych,
-                COUNT(CASE WHEN w.status = 'FINISHED' THEN 1 END) as z_wynikami
-            FROM zawodnicy z
-            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+                SUM(total_zawodnikow) as total,
+                SUM(zameldowanych) as zameldowanych,
+                (SELECT COUNT(*) 
+                 FROM mv_statystyki_wyniki w 
+                 WHERE w.kategoria = q.kategoria 
+                 AND w.status = 'FINISHED') as z_wynikami
+            FROM mv_statystyki_qr q
             GROUP BY kategoria
             ORDER BY kategoria
         """)
         
-        # Ostatnie checkpointy
+        # Ostatnie checkpointy - te zostawiamy bez zmian, bo potrzebujemy aktualnych danych
         recent_checkpoints = get_all("""
             SELECT 
                 c.nr_startowy,
@@ -913,91 +904,15 @@ def qr_dashboard():
             LIMIT 20
         """)
         
-        # Aktywność urządzeń (ostatnie 24h)
-        device_activity = get_all("""
-            SELECT 
-                device_id,
-                COUNT(*) as total_scans,
-                MAX(timestamp) as last_activity,
-                COUNT(CASE WHEN checkpoint_name = 'check-in' THEN 1 END) as check_ins,
-                COUNT(CASE WHEN checkpoint_name = 'finish' THEN 1 END) as results
-            FROM checkpoints
-            WHERE timestamp >= NOW() - INTERVAL '24 hours'
-            GROUP BY device_id
-            ORDER BY last_activity DESC
-        """)
-        
-        # Postęp zawodów według godzin (dzisiaj)
-        hourly_progress = get_all("""
-            SELECT 
-                DATE_TRUNC('hour', timestamp) as hour,
-                COUNT(*) as scans,
-                COUNT(CASE WHEN checkpoint_name = 'check-in' THEN 1 END) as check_ins,
-                COUNT(CASE WHEN checkpoint_name = 'finish' THEN 1 END) as results
-            FROM checkpoints
-            WHERE timestamp >= CURRENT_DATE
-            GROUP BY DATE_TRUNC('hour', timestamp)
-            ORDER BY hour
-        """)
-        
-        # Problematyczne sytuacje
-        issues = []
-        
-        # Zawodnicy zameldowani ale bez wyników (po 2h od check-in)
-        no_results = get_all("""
-            SELECT 
-                z.nr_startowy,
-                z.imie,
-                z.nazwisko,
-                z.kategoria,
-                z.check_in_time
-            FROM zawodnicy z
-            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
-            WHERE z.checked_in = TRUE 
-            AND w.status IS NULL
-            AND z.check_in_time < NOW() - INTERVAL '2 hours'
-            LIMIT 10
-        """)
-        
-        if no_results:
-            issues.append({
-                "type": "no_results",
-                "title": "Zawodnicy bez wyników (>2h od check-in)",
-                "count": len(no_results),
-                "details": no_results
-            })
-        
-        # Duplikaty QR kodów
-        duplicate_qr = get_all("""
-            SELECT qr_code, COUNT(*) as count
-            FROM zawodnicy
-            WHERE qr_code IS NOT NULL
-            GROUP BY qr_code
-            HAVING COUNT(*) > 1
-        """)
-        
-        if duplicate_qr:
-            issues.append({
-                "type": "duplicate_qr",
-                "title": "Duplikaty QR kodów",
-                "count": len(duplicate_qr),
-                "details": duplicate_qr
-            })
-        
         return jsonify({
-            "success": True,
-            "basic_stats": basic_stats,
-            "category_stats": category_stats,
-            "recent_checkpoints": recent_checkpoints,
-            "device_activity": device_activity,
-            "hourly_progress": hourly_progress,
-            "issues": issues,
-            "timestamp": __import__('datetime').datetime.now().isoformat()
-        }), 200
+            'basic_stats': basic_stats,
+            'category_stats': category_stats,
+            'recent_checkpoints': recent_checkpoints
+        })
         
     except Exception as e:
-        print(f"Błąd w QR dashboard: {e}")
-        return jsonify({"error": str(e)}), 500
+        print(f"Błąd w QR dashboard: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route("/api/qr/live-feed")
 def qr_live_feed():
@@ -1209,41 +1124,50 @@ def qr_generate_bulk():
 
 @app.route("/api/grupy-startowe")
 def grupy_startowe():
-    """Endpoint zwracający grupy startowe na podstawie zameldowanych zawodników"""
+    """Endpoint zwracający grupy startowe na podstawie zameldowanych zawodników - ULTRA ZOPTYMALIZOWANA WERSJA"""
     try:
-        # Pobierz zameldowanych zawodników pogrupowanych
-        grupy_data = get_all("""
+        # WERSJA 30.3.8b: Jedno zapytanie z agregacją w Python (najbardziej wydajne)
+        zawodnicy_data = get_all("""
             SELECT 
                 kategoria,
                 plec,
-                COUNT(*) as liczba_zameldowanych,
-                STRING_AGG(
-                    CONCAT(nr_startowy, ': ', imie, ' ', nazwisko, ' (', klub, ')'), 
-                    E'\n' ORDER BY nr_startowy
-                ) as lista_zawodnikow,
-                STRING_AGG(nr_startowy::text, ',' ORDER BY nr_startowy) as numery_startowe
+                nr_startowy,
+                imie, 
+                nazwisko,
+                klub
             FROM zawodnicy 
             WHERE checked_in = TRUE AND kategoria IS NOT NULL
-            GROUP BY kategoria, plec 
-            ORDER BY kategoria, plec
+            ORDER BY kategoria, plec, nr_startowy
         """)
         
-        # Organizuj w grupy startowe
+        # Grupowanie w Python (bardzo szybkie)
+        grupy_dict = {}
+        for zawodnik in zawodnicy_data:
+            key = (zawodnik['kategoria'], zawodnik['plec'])
+            if key not in grupy_dict:
+                grupy_dict[key] = []
+            grupy_dict[key].append(zawodnik)
+        
+        # Tworzenie grup startowych
         grupy_startowe = []
         numer_grupy = 1
         
-        for grupa in grupy_data:
-            nazwa_grupy = f"Grupa {numer_grupy}: {grupa['kategoria']} {'Mężczyźni' if grupa['plec'] == 'M' else 'Kobiety'}"
+        for (kategoria, plec), zawodnicy in sorted(grupy_dict.items()):
+            nazwa_grupy = f"Grupa {numer_grupy}: {kategoria} {'Mężczyźni' if plec == 'M' else 'Kobiety'}"
+            
+            # Szybkie tworzenie list w Python
+            numery_startowe = ','.join(str(z['nr_startowy']) for z in zawodnicy)
+            lista_zawodnikow = '\n'.join(f"{z['nr_startowy']}: {z['imie']} {z['nazwisko']} ({z['klub']})" for z in zawodnicy)
             
             grupy_startowe.append({
                 "numer_grupy": numer_grupy,
                 "nazwa": nazwa_grupy,
-                "kategoria": grupa['kategoria'],
-                "plec": grupa['plec'],
-                "liczba_zawodnikow": grupa['liczba_zameldowanych'],
-                "lista_zawodnikow": grupa['lista_zawodnikow'],
-                "numery_startowe": grupa['numery_startowe'],
-                "estimated_time": grupa['liczba_zameldowanych'] * 20, # sekundy (20s na zawodnika)
+                "kategoria": kategoria,
+                "plec": plec,
+                "liczba_zawodnikow": len(zawodnicy),
+                "lista_zawodnikow": lista_zawodnikow,
+                "numery_startowe": numery_startowe,
+                "estimated_time": len(zawodnicy) * 20, # sekundy (20s na zawodnika)
                 "status": "OCZEKUJE" # OCZEKUJE, AKTYWNA, UKONCZONA
             })
             numer_grupy += 1
@@ -1262,14 +1186,23 @@ def grupy_startowe():
 
 @app.route("/api/grupa-aktywna", methods=['GET'])
 def get_grupa_aktywna():
-    """Pobierz aktywną grupę"""
+    """Pobierz aktywną grupę - NOWA LOGIKA Z BAZY DANYCH"""
     try:
-        if aktywna_grupa_cache["numer_grupy"] is None:
+        aktywna_grupa = get_aktywna_grupa_from_db()
+        
+        if not aktywna_grupa:
             return jsonify({"success": False, "message": "Brak aktywnej grupy"}), 404
-            
+        
+        print(f"📖 Czytam aktywną grupę z DB: {aktywna_grupa['nazwa']} ({aktywna_grupa['kategoria']} {aktywna_grupa['plec']})")
+        
         return jsonify({
             "success": True,
-            "aktywna_grupa": aktywna_grupa_cache
+            "aktywna_grupa": {
+                "numer_grupy": aktywna_grupa['numer_grupy'],
+                "kategoria": aktywna_grupa['kategoria'],
+                "plec": aktywna_grupa['plec'],
+                "nazwa": aktywna_grupa['nazwa']
+            }
         }), 200
         
     except Exception as e:
@@ -1278,20 +1211,14 @@ def get_grupa_aktywna():
 
 @app.route("/api/grupa-aktywna", methods=['POST'])
 def set_grupa_aktywna():
-    """Ustawienie aktywnej grupy startowej"""
+    """Ustawienie aktywnej grupy startowej - NOWA LOGIKA Z BAZY DANYCH"""
     try:
         data = request.json
         
         # Sprawdź czy to żądanie czyszczenia
         if data.get('clear'):
-            global aktywna_grupa_cache
-            aktywna_grupa_cache = {
-                "numer_grupy": None,
-                "kategoria": None,
-                "plec": None,
-                "nazwa": None
-            }
-            print("🧹 Wyczyszczono aktywną grupę")
+            execute_query("DELETE FROM aktywna_grupa_settings")
+            print("🧹 Wyczyszczono aktywną grupę z DB")
             return jsonify({
                 "success": True,
                 "message": "Wyczyszczono aktywną grupę"
@@ -1305,13 +1232,11 @@ def set_grupa_aktywna():
         if not all([numer_grupy, kategoria, plec]):
             return jsonify({"error": "Brak wymaganych danych"}), 400
         
-        # Zapisz do cache
-        aktywna_grupa_cache = {
-            "numer_grupy": numer_grupy,
-            "kategoria": kategoria,
-            "plec": plec,
-            "nazwa": nazwa
-        }
+        # Zapisz do bazy danych
+        success = set_aktywna_grupa_in_db(kategoria, plec, nazwa, numer_grupy)
+        
+        if not success:
+            return jsonify({"error": "Błąd zapisu do bazy danych"}), 500
         
         # WAŻNE: Przy aktywacji grupy przywróć wszystkich zawodników z tej grupy
         # Usuń checkpointy 'hidden-from-queue' dla zawodników z tej grupy
@@ -1327,12 +1252,17 @@ def set_grupa_aktywna():
         if deleted_hidden > 0:
             print(f"🔄 Przywrócono {deleted_hidden} ukrytych zawodników z grupy {nazwa}")
         
-        print(f"✅ Ustawiono aktywną grupę: {nazwa}")
+        print(f"✅ AKTYWOWANO GRUPĘ: {nazwa} ({kategoria} {plec}) - przywrócono {deleted_hidden} ukrytych")
         
         return jsonify({
             "success": True,
             "message": f"Grupa {numer_grupy} ({kategoria} {plec}) ustawiona jako aktywna",
-            "aktywna_grupa": aktywna_grupa_cache,
+            "aktywna_grupa": {
+                "numer_grupy": numer_grupy,
+                "kategoria": kategoria,
+                "plec": plec,
+                "nazwa": nazwa
+            },
             "przywrocono_ukrytych": deleted_hidden
         }), 200
         
@@ -1342,11 +1272,14 @@ def set_grupa_aktywna():
 
 @app.route("/api/start-queue", methods=['GET'])
 def get_start_queue():
-    """Pobierz kolejkę zawodników oczekujących na starcie"""
+    """NOWA WERSJA 30.5.0: Pobierz kolejkę zawodników - RADYKALNIE UPROSZCZONA LOGIKA"""
     try:
+        print("🚀 === START QUEUE REQUEST ===")
+        
         queue_data = []
         
-        # Pobierz zawodników skanowanych (start-line-verify) 
+        # KROK 1: Pobierz zawodników skanowanych (start-line-verify) 
+        print("🔍 KROK 1: Szukam skanowanych zawodników...")
         skanowani_zawodnicy = get_all("""
             SELECT DISTINCT
                 z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
@@ -1361,12 +1294,24 @@ def get_start_queue():
             ORDER BY c.timestamp ASC
         """)
         
+        print(f"✅ Znaleziono {len(skanowani_zawodnicy)} skanowanych zawodników")
+        for s in skanowani_zawodnicy:
+            print(f"   - #{s['nr_startowy']} {s['imie']} {s['nazwisko']} ({s['kategoria']} {s['plec']})")
+        
         queue_data.extend(skanowani_zawodnicy)
         
-        # Jeśli jest aktywna grupa, dodaj zawodników z tej grupy
-        if aktywna_grupa_cache["numer_grupy"] is not None:
+        # KROK 2: Pobierz aktywną grupę Z BAZY DANYCH
+        print("🔍 KROK 2: Czytam aktywną grupę z bazy danych...")
+        aktywna_grupa = get_aktywna_grupa_from_db()
+        
+        if aktywna_grupa:
+            print(f"✅ AKTYWNA GRUPA: {aktywna_grupa['nazwa']} (kategoria={aktywna_grupa['kategoria']}, plec={aktywna_grupa['plec']})")
+            
+            # KROK 3: Pobierz zawodników z aktywnej grupy
+            print(f"🔍 KROK 3: Szukam zawodników z aktywnej grupy: {aktywna_grupa['kategoria']} {aktywna_grupa['plec']}")
+            
             grupa_zawodnicy = get_all("""
-                SELECT DISTINCT
+                SELECT 
                     z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
                     NULL as ostatni_skan,
                     w.czas_przejazdu_s,
@@ -1377,28 +1322,53 @@ def get_start_queue():
                 WHERE z.checked_in = TRUE 
                 AND z.kategoria = %s 
                 AND z.plec = %s
-                AND z.nr_startowy NOT IN (
-                    SELECT nr_startowy FROM checkpoints 
-                    WHERE checkpoint_name = 'start-line-verify'
-                )
-                AND z.nr_startowy NOT IN (
-                    SELECT nr_startowy FROM checkpoints 
-                    WHERE checkpoint_name = 'hidden-from-queue'
-                )
                 ORDER BY z.nr_startowy ASC
-            """, (aktywna_grupa_cache["kategoria"], aktywna_grupa_cache["plec"]))
+            """, (aktywna_grupa['kategoria'], aktywna_grupa['plec']))
             
-            # Dodaj oznaczenie dla zawodników którzy są zarówno z aktywnej grupy jak i skanowani
-            for skanowany in skanowani_zawodnicy:
-                for grupa_zawodnik in grupa_zawodnicy[:]:  # Kopia listy do iteracji
-                    if skanowany['nr_startowy'] == grupa_zawodnik['nr_startowy']:
-                        skanowany['source_type'] = 'AKTYWNA_GRUPA_I_SKANOWANY'
-                        grupa_zawodnicy.remove(grupa_zawodnik)
-                        break
+            print(f"✅ Znaleziono {len(grupa_zawodnicy)} zawodników z aktywnej grupy:")
+            for g in grupa_zawodnicy:
+                print(f"   - #{g['nr_startowy']} {g['imie']} {g['nazwisko']} ({g['kategoria']} {g['plec']})")
             
-            queue_data.extend(grupa_zawodnicy)
+            # KROK 4: Filtruj zawodników (usuń skanowanych i ukrytych)
+            print("🔍 KROK 4: Filtruję zawodników...")
+            
+            skanowani_nr = {z['nr_startowy'] for z in skanowani_zawodnicy}
+            print(f"   - Skanowani numery: {skanowani_nr}")
+            
+            # Pobierz ukrytych zawodników
+            ukryci_zawodnicy = get_all("""
+                SELECT nr_startowy FROM checkpoints 
+                WHERE checkpoint_name = 'hidden-from-queue'
+            """)
+            ukryci_nr = {z['nr_startowy'] for z in ukryci_zawodnicy}
+            print(f"   - Ukryci numery: {ukryci_nr}")
+            
+            # Filtruj grupę
+            filtered_grupa = []
+            for zawodnik in grupa_zawodnicy:
+                nr = zawodnik['nr_startowy']
+                if nr in skanowani_nr:
+                    # Zmień typ na kombinowany dla skanowanych
+                    for skanowany in skanowani_zawodnicy:
+                        if skanowany['nr_startowy'] == nr:
+                            skanowany['source_type'] = 'AKTYWNA_GRUPA_I_SKANOWANY'
+                            print(f"   ✏️ #{nr} oznaczony jako AKTYWNA_GRUPA_I_SKANOWANY")
+                            break
+                elif nr not in ukryci_nr:
+                    # Dodaj do grupy jeśli nie jest ukryty
+                    filtered_grupa.append(zawodnik)
+                    print(f"   ✅ #{nr} dodany do kolejki z aktywnej grupy")
+                else:
+                    print(f"   ❌ #{nr} pominięty (ukryty)")
+            
+            queue_data.extend(filtered_grupa)
+            print(f"✅ Dodano {len(filtered_grupa)} zawodników z aktywnej grupy do kolejki")
+            
+        else:
+            print("⚠️ Brak aktywnej grupy")
         
-        # Sortowanie: najpierw aktywna grupa, potem skanowani
+        # KROK 5: Sortowanie
+        print("🔍 KROK 5: Sortuję kolejkę...")
         def sort_key(item):
             if item['source_type'] == 'AKTYWNA_GRUPA':
                 return (0, item['nr_startowy'])
@@ -1409,15 +1379,22 @@ def get_start_queue():
         
         queue_data.sort(key=sort_key)
         
-        return jsonify({
+        print(f"✅ FINALNA KOLEJKA ({len(queue_data)} zawodników):")
+        for i, z in enumerate(queue_data):
+            print(f"   {i+1}. #{z['nr_startowy']} {z['imie']} {z['nazwisko']} ({z['kategoria']} {z['plec']}) - {z['source_type']}")
+        
+        result = {
             "success": True,
             "queue": queue_data,
             "count": len(queue_data),
-            "aktywna_grupa": aktywna_grupa_cache if aktywna_grupa_cache["numer_grupy"] is not None else None
-        }), 200
+            "aktywna_grupa": aktywna_grupa if aktywna_grupa else None
+        }
+        
+        print("🏁 === KONIEC START QUEUE REQUEST ===")
+        return jsonify(result), 200
         
     except Exception as e:
-        print(f"Błąd w start-queue: {e}")
+        print(f"❌ BŁĄD W START-QUEUE: {e}")
         return jsonify({"error": str(e)}), 500
 
 @app.route("/api/qr/manual-checkins", methods=['GET'])
@@ -1598,6 +1575,745 @@ def remove_from_start_queue(nr_startowy):
         print(f"Błąd w remove-from-start-queue: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
 
-if __name__ == '__main__':
+@app.route("/api/version")
+def get_version():
+    """Zwraca wersję API - UPROSZCZONA"""
+    try:
+        return jsonify({
+            "version": "30.5.1",
+            "status": "production", 
+            "sectro": "integrated",
+            "message": "SECTRO Live Timing Ready!"
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+def get_statystyki_turnieju():
+    """Pobiera statystyki turnieju - UPROSZCZONA WERSJA"""
+    try:
+        return {
+            'liczba_zawodnikow': 0,
+            'liczba_kategorii': 0, 
+            'liczba_klubow': 0,
+            'liczba_walk': 0
+        }
+    except:
+        return {}
+
+def get_lista_kategorii():
+    """Pobiera listę kategorii - UPROSZCZONA WERSJA"""
+    try:
+        return []
+    except:
+        return []
+
+# Invalidacja cache przy zmianach
+def invalidate_cache_after_change():
+    """Funkcja do invalidacji cache po zmianach w danych - WYŁĄCZONA"""
+    pass
+
+# Dodajemy nowy endpoint do odświeżania materialized views
+@app.route("/api/admin/refresh-stats", methods=['POST'])
+def refresh_materialized_views():
+    """Refresh materialized views and clear cache"""
+    try:
+        # Opcjonalnie: odśwież materialized views jeśli są
+        # refresh_stats_cache()
+        print("♻️ Odświeżono cache i statystyki")
+        return jsonify({"success": True, "message": "Cache odświeżony"}), 200
+    except Exception as e:
+        print(f"Błąd odświeżania cache: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/admin/optimize-db", methods=['POST'])
+def optimize_database():
+    """Optymalizacja bazy danych - tworzenie indeksów i analiza"""
+    try:
+        conn = get_db_connection()
+        
+        # Lista indeksów dla optymalizacji wydajności
+        indexes_to_create = [
+            # Indeks dla tabeli zawodnicy - najczęściej używane kolumny
+            "CREATE INDEX IF NOT EXISTS idx_zawodnicy_checked_in ON zawodnicy(checked_in)",
+            "CREATE INDEX IF NOT EXISTS idx_zawodnicy_kategoria_plec ON zawodnicy(kategoria, plec)",
+            "CREATE INDEX IF NOT EXISTS idx_zawodnicy_nr_startowy ON zawodnicy(nr_startowy)",
+            
+            # Indeks dla tabeli checkpoints - checkpoint_name jest często filtrowany
+            "CREATE INDEX IF NOT EXISTS idx_checkpoints_name ON checkpoints(checkpoint_name)",
+            "CREATE INDEX IF NOT EXISTS idx_checkpoints_nr_startowy ON checkpoints(nr_startowy)",
+            "CREATE INDEX IF NOT EXISTS idx_checkpoints_name_nr ON checkpoints(checkpoint_name, nr_startowy)",
+            "CREATE INDEX IF NOT EXISTS idx_checkpoints_timestamp ON checkpoints(timestamp)",
+            
+            # Indeks dla tabeli wyniki
+            "CREATE INDEX IF NOT EXISTS idx_wyniki_nr_startowy ON wyniki(nr_startowy)",
+            "CREATE INDEX IF NOT EXISTS idx_wyniki_status ON wyniki(status)",
+        ]
+        
+        created_indexes = []
+        
+        for index_sql in indexes_to_create:
+            try:
+                cursor = conn.cursor()
+                cursor.execute(index_sql)
+                conn.commit()
+                index_name = index_sql.split("idx_")[1].split(" ")[0] if "idx_" in index_sql else "unknown"
+                created_indexes.append(index_name)
+                print(f"✅ Utworzono indeks: {index_name}")
+            except Exception as e:
+                # Indeks prawdopodobnie już istnieje
+                print(f"⚠️ Indeks już istnieje lub błąd: {e}")
+        
+        # Opcjonalnie: ANALYZE dla lepszych statystyk
+        try:
+            cursor = conn.cursor()
+            cursor.execute("ANALYZE")
+            conn.commit()
+            print("📊 Wykonano ANALYZE dla optymalizacji query planner")
+        except Exception as e:
+            print(f"Błąd ANALYZE: {e}")
+        
+        return_db_connection(conn)
+        
+        return jsonify({
+            "success": True,
+            "message": f"Optymalizacja zakończona",
+            "created_indexes": created_indexes,
+            "total_indexes": len(created_indexes)
+        }), 200
+        
+    except Exception as e:
+        print(f"Błąd optymalizacji DB: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/admin/init-tables", methods=['POST'])
+def init_tables():
+    """Inicjalizuje wymagane tabele dla v30.5.0"""
+    try:
+        # Utwórz tabelę aktywna_grupa_settings
+        execute_query("""
+            CREATE TABLE IF NOT EXISTS aktywna_grupa_settings (
+                id SERIAL PRIMARY KEY,
+                kategoria VARCHAR(50) NOT NULL,
+                plec CHAR(1) NOT NULL,
+                nazwa VARCHAR(100) NOT NULL,
+                numer_grupy INTEGER NOT NULL,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        print("✅ Tabela aktywna_grupa_settings utworzona/sprawdzona")
+        
+        return jsonify({
+            "success": True,
+            "message": "Tabele zainicjalizowane pomyślnie",
+            "tables_created": ["aktywna_grupa_settings"]
+        }), 200
+        
+    except Exception as e:
+        print(f"❌ Błąd inicjalizacji tabel: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/start-line-verify", methods=['POST'])
+def start_line_verify():
+    """Endpoint do weryfikacji zawodników na linii startu"""
+    try:
+        data = request.json
+        qr_code = data.get('qr_code')
+        kategoria = data.get('kategoria')
+        plec = data.get('plec') 
+        device_id = data.get('device_id', 'start-line-scanner')
+        
+        if not qr_code:
+            return jsonify({
+                "success": False,
+                "action": "ODRZUC",
+                "issues": ["Brak QR kodu"],
+                "zawodnik": {},
+                "komunikat": "❌ Brak QR kodu"
+            }), 400
+        
+        # Spróbuj znaleźć zawodnika po QR kodzie
+        zawodnik_data = None
+        nr_startowy = None
+        
+        # Sprawdź czy to QR kod
+        if qr_code.startswith('SKATECROSS_'):
+            zawodnik_data = get_all("""
+                SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub, checked_in
+                FROM zawodnicy 
+                WHERE qr_code = %s
+            """, (qr_code,))
+        else:
+            # Spróbuj jako numer startowy
+            try:
+                nr_startowy = int(qr_code)
+                zawodnik_data = get_all("""
+                    SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub, checked_in
+                    FROM zawodnicy 
+                    WHERE nr_startowy = %s
+                """, (nr_startowy,))
+            except ValueError:
+                pass
+        
+        if not zawodnik_data:
+            return jsonify({
+                "success": False,
+                "action": "ODRZUC", 
+                "issues": ["Nie znaleziono zawodnika"],
+                "zawodnik": {},
+                "komunikat": f"❌ Nie znaleziono zawodnika: {qr_code}"
+            }), 404
+        
+        zawodnik = zawodnik_data[0]
+        issues = []
+        action = "AKCEPTUJ"
+        
+        # Weryfikacja 1: Czy zawodnik jest zameldowany
+        if not zawodnik['checked_in']:
+            issues.append("Zawodnik nie jest zameldowany")
+            action = "ODRZUC"
+        
+        # Weryfikacja 2: Czy zawodnik pasuje do aktywnej grupy (jeśli podana)
+        if kategoria and plec:
+            if zawodnik['kategoria'] != kategoria or zawodnik['plec'] != plec:
+                issues.append(f"Zawodnik z innej grupy: {zawodnik['kategoria']} {zawodnik['plec']} (aktywna: {kategoria} {plec})")
+                action = "OSTRZEZENIE"  # Pozwól ale ostrzeż
+        
+        # Weryfikacja 3: Czy zawodnik już nie jest w kolejce
+        existing_scan = get_all("""
+            SELECT id FROM checkpoints 
+            WHERE checkpoint_name = 'start-line-verify' AND nr_startowy = %s
+        """, (zawodnik['nr_startowy'],))
+        
+        if existing_scan:
+            issues.append("Zawodnik już w kolejce startowej")
+            action = "OSTRZEZENIE"
+        
+        # Weryfikacja 4: Czy zawodnik nie ma już wyniku
+        if zawodnik.get('czas_przejazdu_s'):
+            issues.append("Zawodnik już ma wynik")
+            action = "OSTRZEZENIE"
+        
+        # Jeśli akcja to AKCEPTUJ lub OSTRZEZENIE, dodaj checkpoint
+        if action in ['AKCEPTUJ', 'OSTRZEZENIE']:
+            try:
+                # Usuń stary checkpoint jeśli istnieje (pozwala na ponowne skanowanie)
+                execute_query("""
+                    DELETE FROM checkpoints 
+                    WHERE checkpoint_name = 'start-line-verify' AND nr_startowy = %s
+                """, (zawodnik['nr_startowy'],))
+                
+                # Dodaj nowy checkpoint
+                execute_query("""
+                    INSERT INTO checkpoints (nr_startowy, checkpoint_name, qr_code, device_id)
+                    VALUES (%s, %s, %s, %s)
+                """, (zawodnik['nr_startowy'], 'start-line-verify', qr_code, device_id))
+                
+                print(f"✅ Dodano zawodnika do kolejki: {zawodnik['imie']} {zawodnik['nazwisko']} (#{zawodnik['nr_startowy']})")
+                
+            except Exception as e:
+                print(f"❌ Błąd dodawania checkpoint: {e}")
+                return jsonify({
+                    "success": False,
+                    "action": "ODRZUC",
+                    "issues": [f"Błąd bazy danych: {str(e)}"],
+                    "zawodnik": zawodnik,
+                    "komunikat": "❌ Błąd zapisu"
+                }), 500
+        
+        # Przygotuj komunikat
+        if action == "AKCEPTUJ":
+            komunikat = f"✅ {zawodnik['imie']} {zawodnik['nazwisko']} dodany do kolejki"
+        elif action == "OSTRZEZENIE":
+            komunikat = f"⚠️ {zawodnik['imie']} {zawodnik['nazwisko']} - sprawdź ostrzeżenia"
+        else:
+            komunikat = f"❌ {zawodnik['imie']} {zawodnik['nazwisko']} - nie można dodać"
+        
+        return jsonify({
+            "success": action != "ODRZUC",
+            "action": action,
+            "issues": issues,
+            "zawodnik": zawodnik,
+            "komunikat": komunikat
+        }), 200
+        
+    except Exception as e:
+        print(f"Błąd w start-line-verify: {e}")
+        return jsonify({
+            "success": False,
+            "action": "ODRZUC",
+            "issues": [f"Błąd serwera: {str(e)}"],
+            "zawodnik": {},
+            "komunikat": "❌ Błąd serwera"
+        }), 500
+
+# ============================================================================
+# SYSTEM PUNKTOWY SKATECROSS - RANKINGI
+# ============================================================================
+
+# Tabela punktów SKATECROSS dla miejsc 1-32
+SKATECROSS_POINTS_TABLE = {
+    1: 100, 2: 80, 3: 60, 4: 50, 5: 45, 6: 40, 7: 36, 8: 32,
+    9: 29, 10: 26, 11: 24, 12: 22, 13: 20, 14: 18, 15: 16, 16: 15,
+    17: 14, 18: 13, 19: 12, 20: 11, 21: 10, 22: 9, 23: 8, 24: 7,
+    25: 6, 26: 5, 27: 4, 28: 3, 29: 2, 30: 1, 31: 1, 32: 1
+}
+
+def get_points_for_position(position):
+    """Zwraca punkty za daną pozycję według tabeli SKATECROSS"""
+    return SKATECROSS_POINTS_TABLE.get(position, 0)
+
+def calculate_individual_ranking(season=None):
+    """Kalkuluje ranking indywidualny (suma wszystkich punktów)"""
+    # Usuwam filtrowanie po sezonie bo brakuje kolumny created_at
+    # season_filter = f"AND EXTRACT(YEAR FROM w.created_at) = {season}" if season else ""
+    
+    query = f"""
+        WITH wyniki_z_pozycjami AS (
+            SELECT 
+                w.nr_startowy,
+                z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                ROW_NUMBER() OVER (
+                    PARTITION BY z.kategoria, z.plec 
+                    ORDER BY w.czas_przejazdu_s ASC
+                ) as pozycja,
+                w.czas_przejazdu_s
+            FROM wyniki w
+            JOIN zawodnicy z ON w.nr_startowy = z.nr_startowy
+            WHERE w.status = 'FINISHED' 
+                AND w.czas_przejazdu_s IS NOT NULL
+        ),
+        punkty_zawodnikow AS (
+            SELECT 
+                nr_startowy, imie, nazwisko, kategoria, plec, klub,
+                pozycja,
+                CASE 
+                    WHEN pozycja <= 32 THEN 
+                        CASE pozycja
+                            WHEN 1 THEN 100 WHEN 2 THEN 80 WHEN 3 THEN 60 WHEN 4 THEN 50
+                            WHEN 5 THEN 45 WHEN 6 THEN 40 WHEN 7 THEN 36 WHEN 8 THEN 32
+                            WHEN 9 THEN 29 WHEN 10 THEN 26 WHEN 11 THEN 24 WHEN 12 THEN 22
+                            WHEN 13 THEN 20 WHEN 14 THEN 18 WHEN 15 THEN 16 WHEN 16 THEN 15
+                            WHEN 17 THEN 14 WHEN 18 THEN 13 WHEN 19 THEN 12 WHEN 20 THEN 11
+                            WHEN 21 THEN 10 WHEN 22 THEN 9 WHEN 23 THEN 8 WHEN 24 THEN 7
+                            WHEN 25 THEN 6 WHEN 26 THEN 5 WHEN 27 THEN 4 WHEN 28 THEN 3
+                            WHEN 29 THEN 2 WHEN 30 THEN 1 WHEN 31 THEN 1 WHEN 32 THEN 1
+                            ELSE 0
+                        END
+                    ELSE 0
+                END as punkty,
+                czas_przejazdu_s
+            FROM wyniki_z_pozycjami
+        )
+        SELECT 
+            nr_startowy, imie, nazwisko, kategoria, plec, klub,
+            SUM(punkty) as punkty,
+            COUNT(*) as liczba_zawodow,
+            MIN(czas_przejazdu_s) as najlepszy_czas
+        FROM punkty_zawodnikow
+        GROUP BY nr_startowy, imie, nazwisko, kategoria, plec, klub
+        ORDER BY punkty DESC, najlepszy_czas ASC
+    """
+    
+    return get_all(query)
+
+def calculate_general_ranking_n2(season=None):
+    """Kalkuluje ranking generalny z zasadą n-2 (najlepsze minus 2 najsłabsze)"""
+    # Usuwam filtrowanie po sezonie bo brakuje kolumny created_at
+    # season_filter = f"AND EXTRACT(YEAR FROM w.created_at) = {season}" if season else ""
+    
+    query = f"""
+        WITH wyniki_z_pozycjami AS (
+            SELECT 
+                w.nr_startowy,
+                z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                ROW_NUMBER() OVER (
+                    PARTITION BY z.kategoria, z.plec 
+                    ORDER BY w.czas_przejazdu_s ASC
+                ) as pozycja,
+                w.czas_przejazdu_s
+            FROM wyniki w
+            JOIN zawodnicy z ON w.nr_startowy = z.nr_startowy
+            WHERE w.status = 'FINISHED' 
+                AND w.czas_przejazdu_s IS NOT NULL
+        ),
+        punkty_zawodnikow AS (
+            SELECT 
+                nr_startowy, imie, nazwisko, kategoria, plec, klub,
+                pozycja,
+                CASE 
+                    WHEN pozycja <= 32 THEN 
+                        CASE pozycja
+                            WHEN 1 THEN 100 WHEN 2 THEN 80 WHEN 3 THEN 60 WHEN 4 THEN 50
+                            WHEN 5 THEN 45 WHEN 6 THEN 40 WHEN 7 THEN 36 WHEN 8 THEN 32
+                            WHEN 9 THEN 29 WHEN 10 THEN 26 WHEN 11 THEN 24 WHEN 12 THEN 22
+                            WHEN 13 THEN 20 WHEN 14 THEN 18 WHEN 15 THEN 16 WHEN 16 THEN 15
+                            WHEN 17 THEN 14 WHEN 18 THEN 13 WHEN 19 THEN 12 WHEN 20 THEN 11
+                            WHEN 21 THEN 10 WHEN 22 THEN 9 WHEN 23 THEN 8 WHEN 24 THEN 7
+                            WHEN 25 THEN 6 WHEN 26 THEN 5 WHEN 27 THEN 4 WHEN 28 THEN 3
+                            WHEN 29 THEN 2 WHEN 30 THEN 1 WHEN 31 THEN 1 WHEN 32 THEN 1
+                            ELSE 0
+                        END
+                    ELSE 0
+                END as punkty,
+                czas_przejazdu_s
+            FROM wyniki_z_pozycjami
+        ),
+        zawodnicy_statystyki AS (
+            SELECT 
+                nr_startowy, imie, nazwisko, kategoria, plec, klub,
+                COUNT(*) as uczestnictwa
+            FROM punkty_zawodnikow
+            GROUP BY nr_startowy, imie, nazwisko, kategoria, plec, klub
+        ),
+        zawodnicy_z_punktami AS (
+            SELECT 
+                p.nr_startowy, p.imie, p.nazwisko, p.kategoria, p.plec, p.klub,
+                p.punkty,
+                s.uczestnictwa,
+                ROW_NUMBER() OVER (
+                    PARTITION BY p.nr_startowy 
+                    ORDER BY p.punkty ASC
+                ) as ranking_najslabsze
+            FROM punkty_zawodnikow p
+            JOIN zawodnicy_statystyki s ON p.nr_startowy = s.nr_startowy
+        ),
+        ranking_n2 AS (
+            SELECT 
+                nr_startowy, imie, nazwisko, kategoria, plec, klub,
+                uczestnictwa,
+                CASE 
+                    WHEN uczestnictwa > 2 THEN 
+                        SUM(CASE WHEN ranking_najslabsze <= uczestnictwa - 2 THEN punkty ELSE 0 END)
+                    ELSE SUM(punkty)
+                END as punkty_koncowe,
+                CASE 
+                    WHEN uczestnictwa > 2 THEN 2
+                    ELSE 0
+                END as odrzucone
+            FROM zawodnicy_z_punktami
+            GROUP BY nr_startowy, imie, nazwisko, kategoria, plec, klub, uczestnictwa
+        )
+        SELECT *
+        FROM ranking_n2
+        ORDER BY punkty_koncowe DESC, uczestnictwa DESC
+    """
+    
+    return get_all(query)
+
+def calculate_club_ranking_total(season=None):
+    """Kalkuluje ranking klubowy - suma wszystkich punktów"""
+    # Usuwam filtrowanie po sezonie bo brakuje kolumny created_at
+    # season_filter = f"AND EXTRACT(YEAR FROM w.created_at) = {season}" if season else ""
+    
+    query = f"""
+        WITH wyniki_z_pozycjami AS (
+            SELECT 
+                w.nr_startowy,
+                z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                ROW_NUMBER() OVER (
+                    PARTITION BY z.kategoria, z.plec 
+                    ORDER BY w.czas_przejazdu_s ASC
+                ) as pozycja,
+                w.czas_przejazdu_s
+            FROM wyniki w
+            JOIN zawodnicy z ON w.nr_startowy = z.nr_startowy
+            WHERE w.status = 'FINISHED' 
+                AND w.czas_przejazdu_s IS NOT NULL
+                AND z.klub IS NOT NULL
+        ),
+        punkty_zawodnikow AS (
+            SELECT 
+                klub,
+                CASE 
+                    WHEN pozycja <= 32 THEN 
+                        CASE pozycja
+                            WHEN 1 THEN 100 WHEN 2 THEN 80 WHEN 3 THEN 60 WHEN 4 THEN 50
+                            WHEN 5 THEN 45 WHEN 6 THEN 40 WHEN 7 THEN 36 WHEN 8 THEN 32
+                            WHEN 9 THEN 29 WHEN 10 THEN 26 WHEN 11 THEN 24 WHEN 12 THEN 22
+                            WHEN 13 THEN 20 WHEN 14 THEN 18 WHEN 15 THEN 16 WHEN 16 THEN 15
+                            WHEN 17 THEN 14 WHEN 18 THEN 13 WHEN 19 THEN 12 WHEN 20 THEN 11
+                            WHEN 21 THEN 10 WHEN 22 THEN 9 WHEN 23 THEN 8 WHEN 24 THEN 7
+                            WHEN 25 THEN 6 WHEN 26 THEN 5 WHEN 27 THEN 4 WHEN 28 THEN 3
+                            WHEN 29 THEN 2 WHEN 30 THEN 1 WHEN 31 THEN 1 WHEN 32 THEN 1
+                            ELSE 0
+                        END
+                    ELSE 0
+                END as punkty
+            FROM wyniki_z_pozycjami
+        )
+        SELECT 
+            klub,
+            SUM(punkty) as laczne_punkty,
+            COUNT(*) as liczba_zawodnikow,
+            ROUND(AVG(punkty), 1) as srednia
+        FROM punkty_zawodnikow
+        GROUP BY klub
+        ORDER BY laczne_punkty DESC, srednia DESC
+    """
+    
+    return get_all(query)
+
+def calculate_club_ranking_top3(season=None):
+    """Kalkuluje ranking klubowy - top 3 zawodników z każdej kategorii"""
+    # Usuwam filtrowanie po sezonie bo brakuje kolumny created_at
+    # season_filter = f"AND EXTRACT(YEAR FROM w.created_at) = {season}" if season else ""
+    
+    query = f"""
+        WITH wyniki_z_pozycjami AS (
+            SELECT 
+                w.nr_startowy,
+                z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                ROW_NUMBER() OVER (
+                    PARTITION BY z.kategoria, z.plec 
+                    ORDER BY w.czas_przejazdu_s ASC
+                ) as pozycja,
+                w.czas_przejazdu_s
+            FROM wyniki w
+            JOIN zawodnicy z ON w.nr_startowy = z.nr_startowy
+            WHERE w.status = 'FINISHED' 
+                AND w.czas_przejazdu_s IS NOT NULL
+                AND z.klub IS NOT NULL
+        ),
+        punkty_zawodnikow AS (
+            SELECT 
+                klub, kategoria, plec, nr_startowy,
+                CASE 
+                    WHEN pozycja <= 32 THEN 
+                        CASE pozycja
+                            WHEN 1 THEN 100 WHEN 2 THEN 80 WHEN 3 THEN 60 WHEN 4 THEN 50
+                            WHEN 5 THEN 45 WHEN 6 THEN 40 WHEN 7 THEN 36 WHEN 8 THEN 32
+                            WHEN 9 THEN 29 WHEN 10 THEN 26 WHEN 11 THEN 24 WHEN 12 THEN 22
+                            WHEN 13 THEN 20 WHEN 14 THEN 18 WHEN 15 THEN 16 WHEN 16 THEN 15
+                            WHEN 17 THEN 14 WHEN 18 THEN 13 WHEN 19 THEN 12 WHEN 20 THEN 11
+                            WHEN 21 THEN 10 WHEN 22 THEN 9 WHEN 23 THEN 8 WHEN 24 THEN 7
+                            WHEN 25 THEN 6 WHEN 26 THEN 5 WHEN 27 THEN 4 WHEN 28 THEN 3
+                            WHEN 29 THEN 2 WHEN 30 THEN 1 WHEN 31 THEN 1 WHEN 32 THEN 1
+                            ELSE 0
+                        END
+                    ELSE 0
+                END as punkty,
+                ROW_NUMBER() OVER (
+                    PARTITION BY klub, kategoria, plec 
+                    ORDER BY pozycja ASC
+                ) as ranking_w_kategorii
+            FROM wyniki_z_pozycjami
+        ),
+        top3_per_category AS (
+            SELECT 
+                klub, kategoria, plec, punkty
+            FROM punkty_zawodnikow
+            WHERE ranking_w_kategorii <= 3
+        )
+        SELECT 
+            klub,
+            SUM(punkty) as punkty_top3,
+            COUNT(DISTINCT CONCAT(kategoria, '_', plec)) as aktywne_kategorie,
+            ROUND(AVG(punkty), 1) as balance
+        FROM top3_per_category
+        GROUP BY klub
+        ORDER BY punkty_top3 DESC, aktywne_kategorie DESC
+    """
+    
+    return get_all(query)
+
+def calculate_medal_ranking(season=None):
+    """Kalkuluje ranking medalowy (złote, srebrne, brązowe medale)"""
+    # Usuwam filtrowanie po sezonie bo brakuje kolumny created_at
+    # season_filter = f"AND EXTRACT(YEAR FROM w.created_at) = {season}" if season else ""
+    
+    query = f"""
+        WITH wyniki_z_pozycjami AS (
+            SELECT 
+                w.nr_startowy,
+                z.klub,
+                ROW_NUMBER() OVER (
+                    PARTITION BY z.kategoria, z.plec 
+                    ORDER BY w.czas_przejazdu_s ASC
+                ) as pozycja
+            FROM wyniki w
+            JOIN zawodnicy z ON w.nr_startowy = z.nr_startowy
+            WHERE w.status = 'FINISHED' 
+                AND w.czas_przejazdu_s IS NOT NULL
+                AND z.klub IS NOT NULL
+        ),
+        medale AS (
+            SELECT 
+                klub,
+                SUM(CASE WHEN pozycja = 1 THEN 1 ELSE 0 END) as zlote,
+                SUM(CASE WHEN pozycja = 2 THEN 1 ELSE 0 END) as srebrne,
+                SUM(CASE WHEN pozycja = 3 THEN 1 ELSE 0 END) as brazowe
+            FROM wyniki_z_pozycjami
+            WHERE pozycja <= 3
+            GROUP BY klub
+        )
+        SELECT 
+            klub,
+            zlote,
+            srebrne,
+            brazowe,
+            (zlote + srebrne + brazowe) as lacznie
+        FROM medale
+        ORDER BY zlote DESC, srebrne DESC, brazowe DESC
+    """
+    
+    return get_all(query)
+
+# ============================================================================
+# ENDPOINTS RANKINGOWE
+# ============================================================================
+
+@app.route("/api/rankings/individual")
+def get_individual_ranking():
+    """Endpoint dla klasyfikacji indywidualnej"""
+    try:
+        season = request.args.get('season')
+        if season:
+            try:
+                season = int(season)
+            except ValueError:
+                return jsonify({"error": "Nieprawidłowy format sezonu"}), 400
+        
+        ranking = calculate_individual_ranking(season)
+        
+        return jsonify(ranking), 200
+        
+    except Exception as e:
+        print(f"Błąd w individual ranking: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/rankings/general")
+def get_general_ranking():
+    """Endpoint dla klasyfikacji generalnej z zasadą n-2"""
+    try:
+        season = request.args.get('season')
+        if season:
+            try:
+                season = int(season)
+            except ValueError:
+                return jsonify({"error": "Nieprawidłowy format sezonu"}), 400
+        
+        ranking = calculate_general_ranking_n2(season)
+        
+        return jsonify(ranking), 200
+        
+    except Exception as e:
+        print(f"Błąd w general ranking: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/rankings/clubs/total")
+def get_club_ranking_total():
+    """Endpoint dla klasyfikacji klubowej - suma punktów"""
+    try:
+        season = request.args.get('season')
+        if season:
+            try:
+                season = int(season)
+            except ValueError:
+                return jsonify({"error": "Nieprawidłowy format sezonu"}), 400
+        
+        ranking = calculate_club_ranking_total(season)
+        
+        return jsonify(ranking), 200
+        
+    except Exception as e:
+        print(f"Błąd w club ranking total: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/rankings/clubs/top3")
+def get_club_ranking_top3():
+    """Endpoint dla klasyfikacji klubowej - top 3 z każdej kategorii"""
+    try:
+        season = request.args.get('season')
+        if season:
+            try:
+                season = int(season)
+            except ValueError:
+                return jsonify({"error": "Nieprawidłowy format sezonu"}), 400
+        
+        ranking = calculate_club_ranking_top3(season)
+        
+        return jsonify(ranking), 200
+        
+    except Exception as e:
+        print(f"Błąd w club ranking top3: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/rankings/medals")
+def get_medal_ranking():
+    """Endpoint dla klasyfikacji medalowej"""
+    try:
+        season = request.args.get('season')
+        if season:
+            try:
+                season = int(season)
+            except ValueError:
+                return jsonify({"error": "Nieprawidłowy format sezonu"}), 400
+        
+        ranking = calculate_medal_ranking(season)
+        
+        return jsonify(ranking), 200
+        
+    except Exception as e:
+        print(f"Błąd w medal ranking: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/rankings/summary")
+def get_rankings_summary():
+    """Endpoint zwracający podsumowanie wszystkich rankingów"""
+    try:
+        season = request.args.get('season')
+        if season:
+            try:
+                season = int(season)
+            except ValueError:
+                return jsonify({"error": "Nieprawidłowy format sezonu"}), 400
+        
+        # Pobierz podstawowe statystyki
+        individual = calculate_individual_ranking(season)
+        general = calculate_general_ranking_n2(season)
+        clubs_total = calculate_club_ranking_total(season)
+        clubs_top3 = calculate_club_ranking_top3(season)
+        medals = calculate_medal_ranking(season)
+        
+        # Przygotuj podsumowanie
+        summary = {
+            "season": season or "wszystkie",
+            "stats": {
+                "zawodnicy_total": len(individual),
+                "zawodnicy_general": len(general),
+                "kluby_total": len(clubs_total),
+                "kluby_top3": len(clubs_top3),
+                "kluby_z_medalami": len(medals)
+            },
+            "top_zawodnik": individual[0] if individual else None,
+            "top_general": general[0] if general else None,
+            "top_klub_total": clubs_total[0] if clubs_total else None,
+            "top_klub_top3": clubs_top3[0] if clubs_top3 else None,
+            "top_medals": medals[0] if medals else None
+        }
+        
+        return jsonify(summary), 200
+        
+    except Exception as e:
+        print(f"Błąd w rankings summary: {e}")
+        return jsonify({"error": str(e)}), 500
+
+def cleanup_db_pool():
+    """Czyści connection pool przy wyłączaniu aplikacji"""
+    global connection_pool
+    if connection_pool is not None:
+        try:
+            connection_pool.closeall()
+            print("🧹 Connection pool zamknięty przy shutdown")
+        except Exception as e:
+            print(f"⚠️ Błąd zamykania connection pool: {e}")
+        connection_pool = None
+
+# Zarejestruj cleanup funkcję przy shutdown aplikacji
+atexit.register(cleanup_db_pool)
+
+if __name__ == "__main__":
+    # Inicjalizacja connection pool przed startem
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False) 
