@@ -1,9 +1,11 @@
 from utils.database import get_all
 from flask import Blueprint, jsonify
+from utils.api_response import APIResponse, handle_api_errors
 
 statystyki_bp = Blueprint('statystyki', __name__)
 
 @statystyki_bp.route("/api/kategorie")
+@handle_api_errors
 def get_kategorie():
     """Pobiera listę kategorii z liczbą zawodników"""
     # Pobierz kategorie
@@ -14,12 +16,19 @@ def get_kategorie():
     total_rows = get_all("SELECT COUNT(*) as total FROM zawodnicy WHERE kategoria IS NOT NULL")
     total_zawodnikow = total_rows[0]["total"] if total_rows else 0
     
-    return jsonify({
+    data = {
         "kategorie": kategorie_list,
         "total_zawodnikow": total_zawodnikow
-    })
+    }
+    
+    return APIResponse.success(
+        data=data,
+        count=len(kategorie_list),
+        message="Kategorie pobrane pomyślnie"
+    )
 
 @statystyki_bp.route("/api/statystyki")
+@handle_api_errors
 def get_statystyki():
     """Endpoint zwracający statystyki zawodników według kategorii i płci"""
     rows = get_all("""
@@ -50,32 +59,32 @@ def get_statystyki():
         else:
             total_k += liczba
     
-    return jsonify({
+    data = {
         'kategorie': stats,
         'total': {'M': total_m, 'K': total_k, 'razem': total_m + total_k}
-    })
+    }
+    
+    return APIResponse.success(
+        data=data,
+        count=total_m + total_k,
+        message="Statystyki zawodników pobrane pomyślnie"
+    )
 
 @statystyki_bp.route("/api/kluby")
+@handle_api_errors
 def get_kluby():
     """Endpoint zwracający listę klubów z liczbą zawodników"""
-    # Pobierz kluby z liczbą zawodników
-    rows = get_all("""
-        SELECT k.id, k.nazwa, k.miasto, k.utworzony_date,
-               COUNT(z.nr_startowy) as liczba_zawodnikow,
-               SUM(CASE WHEN z.plec = 'M' THEN 1 ELSE 0 END) as mezczyzni,
-               SUM(CASE WHEN z.plec = 'K' THEN 1 ELSE 0 END) as kobiety
-        FROM kluby k
-        LEFT JOIN zawodnicy z ON k.nazwa = z.klub
-        GROUP BY k.id, k.nazwa, k.miasto, k.utworzony_date
-        ORDER BY liczba_zawodnikow DESC, k.nazwa
-    """)
+    # Pobierz podstawową listę nazw klubów
+    nazwy_rows = get_all("SELECT DISTINCT klub FROM zawodnicy WHERE klub IS NOT NULL ORDER BY klub")
+    nazwy_list = [row["klub"] for row in nazwy_rows]
     
-    # Dodaj też podstawową listę nazw klubów
-    kluby_nazwy = get_all("SELECT DISTINCT nazwa FROM kluby ORDER BY nazwa")
-    nazwy_list = [row["nazwa"] for row in kluby_nazwy]
-    
-    return jsonify({
-        'kluby_szczegoly': rows,
+    data = {
         'nazwy_klubow': nazwy_list,
-        'total_klubow': len(rows)
-    }) 
+        'total_klubow': len(nazwy_list)
+    }
+    
+    return APIResponse.success(
+        data=data,
+        count=len(nazwy_list),
+        message="Lista klubów pobrana pomyślnie"
+    ) 

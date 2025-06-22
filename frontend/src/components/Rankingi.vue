@@ -977,9 +977,9 @@ const fetchIndividualRanking = async () => {
     const response = await fetch(`/api/rankings/individual?season=${selectedSeason.value}&_t=${Date.now()}`)
     console.log('📡 Individual response status:', response.status)
     if (response.ok) {
-      const data = await response.json()
-      console.log('✅ Individual data received:', data.length, 'items')
-      individualRanking.value = data
+      const result = await response.json()
+      console.log('✅ Individual data received:', result.data?.length || 0, 'items')
+      individualRanking.value = result.data || []
       console.log("✅ individualRanking updated, length:", individualRanking.value.length)
     } else {
       console.error('❌ Individual ranking response not ok:', response.status, response.statusText)
@@ -995,9 +995,9 @@ const fetchGeneralRanking = async () => {
     const response = await fetch(`/api/rankings/general?season=${selectedSeason.value}&_t=${Date.now()}`)
     console.log('📡 General response status:', response.status)
     if (response.ok) {
-      const data = await response.json()
-      console.log('✅ General data received:', data.length, 'items')
-      generalRanking.value = data
+      const result = await response.json()
+      console.log('✅ General data received:', result.data?.length || 0, 'items')
+      generalRanking.value = result.data || []
       console.log("✅ generalRanking updated, length:", generalRanking.value.length)
     } else {
       console.error('❌ General ranking response not ok:', response.status, response.statusText)
@@ -1019,18 +1019,18 @@ const fetchClubRankings = async () => {
     console.log('📡 Club top3 response status:', top3Response.status)
     
     if (totalResponse.ok) {
-      const data = await totalResponse.json()
-      console.log('✅ Club total data received:', data.length, 'items')
-      clubRankingTotal.value = data
+      const result = await totalResponse.json()
+      console.log('✅ Club total data received:', result.data?.length || 0, 'items')
+      clubRankingTotal.value = result.data || []
       console.log("✅ clubRankingTotal updated, length:", clubRankingTotal.value.length)
     } else {
       console.error('❌ Club total ranking response not ok:', totalResponse.status, totalResponse.statusText)
     }
     
     if (top3Response.ok) {
-      const data = await top3Response.json()
-      console.log('✅ Club top3 data received:', data.length, 'items')
-      clubRankingTop3.value = data
+      const result = await top3Response.json()
+      console.log('✅ Club top3 data received:', result.data?.length || 0, 'items')
+      clubRankingTop3.value = result.data || []
       console.log("✅ clubRankingTop3 updated, length:", clubRankingTop3.value.length)
     } else {
       console.error('❌ Club top3 ranking response not ok:', top3Response.status, top3Response.statusText)
@@ -1046,9 +1046,9 @@ const fetchMedalRanking = async () => {
     const response = await fetch(`/api/rankings/medals?season=${selectedSeason.value}&_t=${Date.now()}`)
     console.log('📡 Medal response status:', response.status)
     if (response.ok) {
-      const data = await response.json()
-      console.log('✅ Medal data received:', data.length, 'items')
-      medalRanking.value = data
+      const result = await response.json()
+      console.log('✅ Medal data received:', result.data?.length || 0, 'items')
+      medalRanking.value = result.data || []
       console.log("✅ medalRanking updated, length:", medalRanking.value.length)
     } else {
       console.error('❌ Medal ranking response not ok:', response.status, response.statusText)

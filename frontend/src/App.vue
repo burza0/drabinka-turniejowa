@@ -113,6 +113,11 @@
 
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      <!-- Dashboard -->
+      <div v-if="activeTab === 'dashboard'">
+        <Dashboard @navigate="handleDashboardNavigation" />
+      </div>
+
       <!-- Zawodnicy -->
       <div v-if="activeTab === 'zawodnicy'" class="space-y-6">
         <!-- Stats -->
@@ -416,7 +421,7 @@
                     {{ zawodnik.kategoria }}
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
-                    <StatusBadge :status="zawodnik.status" />
+                    <StatusBadge :status="zawodnik.status" :checked_in="zawodnik.checked_in" />
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-base font-medium text-gray-900 dark:text-white">
                     {{ zawodnik.czas_przejazdu_s ? formatTime(zawodnik.czas_przejazdu_s) : '-' }}
@@ -521,6 +526,8 @@ import QrAdminDashboard from './components/QrAdminDashboard.vue'
 import QrPrint from './components/QrPrint.vue'
 import StartLineScanner from './components/StartLineScanner.vue'
 import QrPrintAdvanced from './components/QrPrintAdvanced.vue'
+import Dashboard from './components/Dashboard.vue'
+
 
 // Types
 interface Zawodnik {
@@ -531,8 +538,10 @@ interface Zawodnik {
   plec: string
   klub: string
   qr_code?: string
-  czas_przejazdu_s: number | null
-  status: string
+  czas_przejazdu_s?: number | null
+  status?: string
+  checked_in?: boolean
+  id?: number
 }
 
 interface Stats {
@@ -569,6 +578,7 @@ const selectedZawodnicy = ref<number[]>([])
 
 // Tabs configuration
 const tabs = [
+  { id: 'dashboard', name: 'Dashboard', icon: ChartBarIcon, adminOnly: false },
   { id: 'zawodnicy', name: 'Zawodnicy', icon: UsersIcon, adminOnly: false },
   { id: 'drabinka', name: 'Drabinka', icon: TrophyIcon, adminOnly: false },
   { id: 'rankingi', name: 'Rankingi', icon: ListBulletIcon, adminOnly: false },
@@ -645,10 +655,10 @@ const filteredZawodnicyNew = computed(() => {
 
 const stats = computed((): Stats => {
   const total = zawodnicy.value.length
-  const finished = zawodnicy.value.filter(z => z.status === 'FINISHED').length
-  const dnfDsq = zawodnicy.value.filter(z => z.status === 'DNF' || z.status === 'DSQ').length
+  const finished = zawodnicy.value.filter(z => z.status === 'FINISHED' || z.checked_in === true).length
+  const dnfDsq = zawodnicy.value.filter(z => z.status === 'DNF' || z.status === 'DSQ' || z.checked_in === false).length
   
-  const finishedContestants = zawodnicy.value.filter(z => z.status === 'FINISHED' && z.czas_przejazdu_s)
+  const finishedContestants = zawodnicy.value.filter(z => (z.status === 'FINISHED' || z.checked_in === true) && z.czas_przejazdu_s)
   
   let recordTime = '-'
   let recordHolder = '-'
@@ -749,8 +759,9 @@ const formatTime = (seconds: number): string => {
 const fetchZawodnicy = async () => {
   try {
     loading.value = true
-    const response = await axios.get<Zawodnik[]>('/api/zawodnicy')
-    zawodnicy.value = response.data
+    const response = await axios.get('/api/zawodnicy')
+    // Backend zwraca obiekt z data i count, więc wyciągamy data
+    zawodnicy.value = response.data.data || response.data
   } catch (error) {
     console.error('Błąd podczas pobierania zawodników:', error)
   } finally {
@@ -919,6 +930,10 @@ const toggleWithoutQr = () => {
 
 const clearSelection = () => {
   selectedZawodnicy.value = []
+}
+
+const handleDashboardNavigation = (section: string) => {
+  activeTab.value = section
 }
 
 // Lifecycle

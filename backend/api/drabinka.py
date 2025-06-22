@@ -1,18 +1,23 @@
 from flask import Blueprint, jsonify
 from utils.database import get_all
+from utils.api_response import APIResponse, handle_api_errors
 
 drabinka_bp = Blueprint('drabinka', __name__)
 
 @drabinka_bp.route("/api/drabinka")
+@handle_api_errors
 def drabinka():
+    """
+    Endpoint zwracający drabinkę turniejową dla wszystkich kategorii
+    GET /api/drabinka
+    """
     try:
         zawodnicy_rows = get_all("""
-            SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
-                   w.czas_przejazdu_s, w.status
-            FROM zawodnicy z
-            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
-            WHERE z.kategoria IS NOT NULL AND z.plec IS NOT NULL
-            ORDER BY z.kategoria, z.plec, w.czas_przejazdu_s ASC NULLS LAST
+            SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub,
+                   NULL as czas_przejazdu_s, 'WAITING' as status
+            FROM zawodnicy
+            WHERE kategoria IS NOT NULL AND plec IS NOT NULL
+            ORDER BY kategoria, plec, nr_startowy ASC
         """)
         if not zawodnicy_rows:
             return jsonify({
@@ -43,7 +48,8 @@ def drabinka():
                     total_mezczyzni += len(zawodnicy_list)
                 else:
                     total_kobiety += len(zawodnicy_list)
-                zawodnicy_z_czasami = [z for z in zawodnicy_list if z['czas_przejazdu_s'] is not None and z['status'] == 'FINISHED']
+                # W demo używamy wszystkich zawodników (bez czasów)
+                zawodnicy_z_czasami = zawodnicy_list
                 if len(zawodnicy_z_czasami) < 4:
                     drabinka_data[kategoria][plec] = {
                         "info": f"Za mało zawodników z czasami ({len(zawodnicy_z_czasami)}/4) do utworzenia drabinki",
@@ -131,7 +137,11 @@ def drabinka():
             }
         }
         result.update(drabinka_data)
-        return jsonify(result)
+        
+        return APIResponse.success(
+            data=result,
+            message="Drabinka turniejowa pobrana pomyślnie"
+        )
     except Exception as e:
         print(f"Błąd w endpoincie drabinki: {e}")
-        return jsonify({"error": str(e)}), 500 
+        return APIResponse.internal_error(e, debug=True) 

@@ -1,0 +1,1016 @@
+nohup: zignorowane dane wejściowe
+ * Serving Flask app 'api_server'
+ * Debug mode: on
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on http://127.0.0.1:5000
+Press CTRL+C to quit
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 128-402-315
+127.0.0.1 - - [10/Jun/2025 16:43:23] "GET /api/kluby HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:43:24] "GET /api/drabinka HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:43:24] "GET /api/rankings/individual HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:43:29] "GET /api/drabinka HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:43:59] "GET /api/kluby HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:43:59] "GET /api/zawodnicy HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:44:01] "GET /api/drabinka HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:44:03] "GET /api/rankings/individual?season=2025&_t=1749566643689 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:44:03] "GET /api/rankings/clubs/top3?season=2025&_t=1749566643690 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:44:03] "GET /api/rankings/general?season=2025&_t=1749566643689 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:44:03] "GET /api/rankings/clubs/total?season=2025&_t=1749566643690 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:44:04] "GET /api/rankings/medals?season=2025&_t=1749566643690 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:44:06] "GET /api/version HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:44:06] "GET /api/grupy-startowe?_t=1749566646706 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:44:06] "GET /api/grupa-aktywna?_t=1749566646798 HTTP/1.1" 500 -
+127.0.0.1 - - [10/Jun/2025 16:44:06] "GET /api/start-queue/all-group-statuses?_t=1749566646882 HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 16:44:06] "GET /api/start-queue?_t=1749566646891 HTTP/1.1" 200 -
+🔍 Wykonuję zapytanie: 
+            SELECT DISTINCT klub as nazwa, 
+                   COUNT(*) as liczba_zawodnikow
+            FROM zawodnicy 
+            WHERE klub IS NOT NULL 
+            GROUP BY klub 
+            ORDER BY klub
+        
+✅ Znaleziono 14 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                   w.czas_przejazdu_s, w.status,
+                   RANK() OVER (PARTITION BY z.kategoria, z.plec ORDER BY w.czas_przejazdu_s ASC) as pozycja
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE w.czas_przejazdu_s IS NOT NULL
+            ORDER BY z.kategoria, z.plec, w.czas_przejazdu_s ASC
+        
+✅ Znaleziono 188 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                   w.czas_przejazdu_s, w.status,
+                   RANK() OVER (ORDER BY w.czas_przejazdu_s ASC) as pozycja
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE w.czas_przejazdu_s IS NOT NULL
+            ORDER BY w.czas_przejazdu_s ASC
+            LIMIT 50
+        
+✅ Znaleziono 50 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                   w.czas_przejazdu_s, w.status,
+                   RANK() OVER (PARTITION BY z.kategoria, z.plec ORDER BY w.czas_przejazdu_s ASC) as pozycja
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE w.czas_przejazdu_s IS NOT NULL
+            ORDER BY z.kategoria, z.plec, w.czas_przejazdu_s ASC
+        
+✅ Znaleziono 188 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT DISTINCT klub as nazwa, 
+                   COUNT(*) as liczba_zawodnikow
+            FROM zawodnicy 
+            WHERE klub IS NOT NULL 
+            GROUP BY klub 
+            ORDER BY klub
+        
+✅ Znaleziono 14 wyników
+🔍 Wykonuję zapytanie: 
+        SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub, z.qr_code,
+               w.czas_przejazdu_s, w.status
+        FROM zawodnicy z
+        LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+        ORDER BY z.nr_startowy
+    
+✅ Znaleziono 251 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                   w.czas_przejazdu_s, w.status,
+                   RANK() OVER (PARTITION BY z.kategoria, z.plec ORDER BY w.czas_przejazdu_s ASC) as pozycja
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE w.czas_przejazdu_s IS NOT NULL
+            ORDER BY z.kategoria, z.plec, w.czas_przejazdu_s ASC
+        
+✅ Znaleziono 188 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                   w.czas_przejazdu_s, w.status,
+                   RANK() OVER (ORDER BY w.czas_przejazdu_s ASC) as pozycja
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE w.czas_przejazdu_s IS NOT NULL
+            ORDER BY w.czas_przejazdu_s ASC
+            LIMIT 50
+        
+✅ Znaleziono 50 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT z.klub,
+                   COUNT(*) as liczba_top3
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE z.klub IS NOT NULL 
+              AND w.czas_przejazdu_s IS NOT NULL
+              AND (
+                  SELECT COUNT(*) 
+                  FROM zawodnicy z2 
+                  LEFT JOIN wyniki w2 ON z2.nr_startowy = w2.nr_startowy
+                  WHERE z2.kategoria = z.kategoria 
+                    AND z2.plec = z.plec 
+                    AND w2.czas_przejazdu_s < w.czas_przejazdu_s
+              ) < 3
+            GROUP BY z.klub
+            ORDER BY liczba_top3 DESC
+        
+🔍 Wykonuję zapytanie: 
+            SELECT z.kategoria, z.plec,
+                   COUNT(*) as liczba_zawodnikow,
+                   AVG(w.czas_przejazdu_s) as sredni_czas,
+                   MIN(w.czas_przejazdu_s) as najlepszy_czas
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE w.czas_przejazdu_s IS NOT NULL
+            GROUP BY z.kategoria, z.plec
+            ORDER BY sredni_czas ASC
+        
+🔍 Wykonuję zapytanie: 
+            SELECT z.klub,
+                   COUNT(*) as liczba_zawodnikow,
+                   COUNT(w.czas_przejazdu_s) as z_wynikami,
+                   AVG(w.czas_przejazdu_s) as sredni_czas
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE z.klub IS NOT NULL
+            GROUP BY z.klub
+            ORDER BY z_wynikami DESC, sredni_czas ASC
+        
+✅ Znaleziono 13 wyników
+✅ Znaleziono 12 wyników
+✅ Znaleziono 14 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT z.klub,
+                   SUM(CASE WHEN pozycja = 1 THEN 1 ELSE 0 END) as zloto,
+                   SUM(CASE WHEN pozycja = 2 THEN 1 ELSE 0 END) as srebro,
+                   SUM(CASE WHEN pozycja = 3 THEN 1 ELSE 0 END) as braz
+            FROM (
+                SELECT z.klub,
+                       RANK() OVER (PARTITION BY z.kategoria, z.plec ORDER BY w.czas_przejazdu_s ASC) as pozycja
+                FROM zawodnicy z
+                LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+                WHERE z.klub IS NOT NULL AND w.czas_przejazdu_s IS NOT NULL
+            ) ranked
+            WHERE pozycja <= 3
+            GROUP BY klub
+            ORDER BY zloto DESC, srebro DESC, braz DESC
+        
+❌ Błąd podczas wykonywania zapytania: missing FROM-clause entry for table "z"
+LINE 2:             SELECT z.klub,
+                           ^
+
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                q.kategoria,
+                q.plec,
+                q.numer_grupy,
+                q.nazwa,
+                COUNT(z.nr_startowy) as liczba_zawodnikow,
+                q.status,
+                q.estimated_time,
+                STRING_AGG(z.nr_startowy::text, ', ' ORDER BY z.nr_startowy) as numery_startowe,
+                STRING_AGG(z.imie || ' ' || z.nazwisko, ', ' ORDER BY z.nr_startowy) as lista_zawodnikow
+            FROM start_queue q
+            LEFT JOIN zawodnicy z ON z.kategoria = q.kategoria AND z.plec = q.plec
+            GROUP BY q.kategoria, q.plec, q.numer_grupy, q.nazwa, q.status, q.estimated_time
+            ORDER BY q.numer_grupy
+        
+❌ Błąd podczas wykonywania zapytania: column q.kategoria does not exist
+LINE 13: ...           LEFT JOIN zawodnicy z ON z.kategoria = q.kategori...
+                                                              ^
+HINT:  Perhaps you meant to reference the column "z.kategoria".
+
+🔍 Wykonuję zapytanie: 
+            SELECT DISTINCT
+                z.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                z.plec,
+                z.klub,
+                z.qr_code,
+                'AKTYWNA_GRUPA' as source_type,
+                z.ostatni_skan
+            FROM zawodnicy z
+            INNER JOIN start_queue sq ON z.kategoria = sq.kategoria AND z.plec = sq.plec
+            WHERE sq.status = 'ACTIVE'
+            
+            UNION
+            
+            SELECT DISTINCT
+                z.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                z.plec,
+                z.klub,
+                z.qr_code,
+                'SKANOWANY' as source_type,
+                z.ostatni_skan
+            FROM zawodnicy z
+            WHERE z.checked_in = true
+            
+            ORDER BY nr_startowy
+        
+❌ Błąd podczas wykonywania zapytania: column sq.kategoria does not exist
+LINE 13: ...       INNER JOIN start_queue sq ON z.kategoria = sq.kategor...
+                                                              ^
+HINT:  Perhaps you meant to reference the column "z.kategoria".
+
+127.0.0.1 - - [10/Jun/2025 16:44:24] "GET /api/rankings/individual?season=2025&_t=1749566664578 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:44:24] "GET /api/rankings/clubs/total?season=2025&_t=1749566664579 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:44:24] "GET /api/rankings/general?season=2025&_t=1749566664579 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:44:24] "GET /api/rankings/medals?season=2025&_t=1749566664580 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:44:24] "GET /api/rankings/clubs/top3?season=2025&_t=1749566664580 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:44:26] "GET /api/drabinka HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:45:02] "POST /api/sectro/sessions HTTP/1.1" 405 -
+127.0.0.1 - - [10/Jun/2025 16:45:22] "GET /api/grupy-startowe HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:45:40] "GET /api/zawodnicy HTTP/1.1" 200 -
+ * Detected change in '/home/mariusz/projekty/drabinka-turniejowa/backend/init_centrum_startu.py', reloading
+🔍 Wykonuję zapytanie: 
+            SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                   w.czas_przejazdu_s, w.status,
+                   RANK() OVER (ORDER BY w.czas_przejazdu_s ASC) as pozycja
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE w.czas_przejazdu_s IS NOT NULL
+            ORDER BY w.czas_przejazdu_s ASC
+            LIMIT 50
+        
+✅ Znaleziono 50 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT z.klub,
+                   COUNT(*) as liczba_zawodnikow,
+                   COUNT(w.czas_przejazdu_s) as z_wynikami,
+                   AVG(w.czas_przejazdu_s) as sredni_czas
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE z.klub IS NOT NULL
+            GROUP BY z.klub
+            ORDER BY z_wynikami DESC, sredni_czas ASC
+        
+🔍 Wykonuję zapytanie: 
+            SELECT z.kategoria, z.plec,
+                   COUNT(*) as liczba_zawodnikow,
+                   AVG(w.czas_przejazdu_s) as sredni_czas,
+                   MIN(w.czas_przejazdu_s) as najlepszy_czas
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE w.czas_przejazdu_s IS NOT NULL
+            GROUP BY z.kategoria, z.plec
+            ORDER BY sredni_czas ASC
+        
+🔍 Wykonuję zapytanie: 
+            SELECT z.klub,
+                   SUM(CASE WHEN pozycja = 1 THEN 1 ELSE 0 END) as zloto,
+                   SUM(CASE WHEN pozycja = 2 THEN 1 ELSE 0 END) as srebro,
+                   SUM(CASE WHEN pozycja = 3 THEN 1 ELSE 0 END) as braz
+            FROM (
+                SELECT z.klub,
+                       RANK() OVER (PARTITION BY z.kategoria, z.plec ORDER BY w.czas_przejazdu_s ASC) as pozycja
+                FROM zawodnicy z
+                LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+                WHERE z.klub IS NOT NULL AND w.czas_przejazdu_s IS NOT NULL
+            ) ranked
+            WHERE pozycja <= 3
+            GROUP BY klub
+            ORDER BY zloto DESC, srebro DESC, braz DESC
+        
+🔍 Wykonuję zapytanie: 
+            SELECT z.klub,
+                   COUNT(*) as liczba_top3
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE z.klub IS NOT NULL 
+              AND w.czas_przejazdu_s IS NOT NULL
+              AND (
+                  SELECT COUNT(*) 
+                  FROM zawodnicy z2 
+                  LEFT JOIN wyniki w2 ON z2.nr_startowy = w2.nr_startowy
+                  WHERE z2.kategoria = z.kategoria 
+                    AND z2.plec = z.plec 
+                    AND w2.czas_przejazdu_s < w.czas_przejazdu_s
+              ) < 3
+            GROUP BY z.klub
+            ORDER BY liczba_top3 DESC
+        
+✅ Znaleziono 14 wyników
+✅ Znaleziono 12 wyników
+❌ Błąd podczas wykonywania zapytania: missing FROM-clause entry for table "z"
+LINE 2:             SELECT z.klub,
+                           ^
+
+✅ Znaleziono 13 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                   w.czas_przejazdu_s, w.status,
+                   RANK() OVER (PARTITION BY z.kategoria, z.plec ORDER BY w.czas_przejazdu_s ASC) as pozycja
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE w.czas_przejazdu_s IS NOT NULL
+            ORDER BY z.kategoria, z.plec, w.czas_przejazdu_s ASC
+        
+✅ Znaleziono 188 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                q.kategoria,
+                q.plec,
+                q.numer_grupy,
+                q.nazwa,
+                COUNT(z.nr_startowy) as liczba_zawodnikow,
+                q.status,
+                q.estimated_time,
+                STRING_AGG(z.nr_startowy::text, ', ' ORDER BY z.nr_startowy) as numery_startowe,
+                STRING_AGG(z.imie || ' ' || z.nazwisko, ', ' ORDER BY z.nr_startowy) as lista_zawodnikow
+            FROM start_queue q
+            LEFT JOIN zawodnicy z ON z.kategoria = q.kategoria AND z.plec = q.plec
+            GROUP BY q.kategoria, q.plec, q.numer_grupy, q.nazwa, q.status, q.estimated_time
+            ORDER BY q.numer_grupy
+        
+❌ Błąd podczas wykonywania zapytania: column q.kategoria does not exist
+LINE 13: ...           LEFT JOIN zawodnicy z ON z.kategoria = q.kategori...
+                                                              ^
+HINT:  Perhaps you meant to reference the column "z.kategoria".
+
+🔍 Wykonuję zapytanie: 
+        SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub, z.qr_code,
+               w.czas_przejazdu_s, w.status
+        FROM zawodnicy z
+        LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+        ORDER BY z.nr_startowy
+    
+✅ Znaleziono 251 wyników
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 128-402-315
+ * Detected change in '/home/mariusz/projekty/drabinka-turniejowa/backend/fix_centrum_startu.py', reloading
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 128-402-315
+127.0.0.1 - - [10/Jun/2025 16:49:39] "GET /api/rankings/medals?season=2025&_t=1749566938421 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:49:39] "GET /api/version HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:49:39] "GET /api/grupy-startowe?_t=1749566979168 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:49:39] "GET /api/rankings/general?season=2025&_t=1749566938420 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:49:39] "GET /api/grupa-aktywna?_t=1749566979297 HTTP/1.1" 500 -
+127.0.0.1 - - [10/Jun/2025 16:49:39] "GET /api/start-queue/all-group-statuses?_t=1749566979376 HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 16:49:39] "GET /api/rankings/clubs/top3?season=2025&_t=1749566938421 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:49:39] "GET /api/rankings/clubs/total?season=2025&_t=1749566938421 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:49:39] "GET /api/drabinka HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:49:39] "GET /api/rankings/individual?season=2025&_t=1749566938420 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:49:39] "GET /api/start-queue?_t=1749566979384 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:50:23] "GET /api/version HTTP/1.1" 200 -
+🔍 Wykonuję zapytanie: 
+            SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                   w.czas_przejazdu_s, w.status,
+                   RANK() OVER (ORDER BY w.czas_przejazdu_s ASC) as pozycja
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE w.czas_przejazdu_s IS NOT NULL
+            ORDER BY w.czas_przejazdu_s ASC
+            LIMIT 50
+        
+🔍 Wykonuję zapytanie: 
+            SELECT z.klub,
+                   COUNT(*) as liczba_top3
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE z.klub IS NOT NULL 
+              AND w.czas_przejazdu_s IS NOT NULL
+              AND (
+                  SELECT COUNT(*) 
+                  FROM zawodnicy z2 
+                  LEFT JOIN wyniki w2 ON z2.nr_startowy = w2.nr_startowy
+                  WHERE z2.kategoria = z.kategoria 
+                    AND z2.plec = z.plec 
+                    AND w2.czas_przejazdu_s < w.czas_przejazdu_s
+              ) < 3
+            GROUP BY z.klub
+            ORDER BY liczba_top3 DESC
+        
+🔍 Wykonuję zapytanie: 
+            SELECT z.klub,
+                   COUNT(*) as liczba_zawodnikow,
+                   COUNT(w.czas_przejazdu_s) as z_wynikami,
+                   AVG(w.czas_przejazdu_s) as sredni_czas
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE z.klub IS NOT NULL
+            GROUP BY z.klub
+            ORDER BY z_wynikami DESC, sredni_czas ASC
+        
+🔍 Wykonuję zapytanie: 
+            SELECT z.kategoria, z.plec,
+                   COUNT(*) as liczba_zawodnikow,
+                   AVG(w.czas_przejazdu_s) as sredni_czas,
+                   MIN(w.czas_przejazdu_s) as najlepszy_czas
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE w.czas_przejazdu_s IS NOT NULL
+            GROUP BY z.kategoria, z.plec
+            ORDER BY sredni_czas ASC
+        
+🔍 Wykonuję zapytanie: 
+            SELECT z.klub,
+                   SUM(CASE WHEN pozycja = 1 THEN 1 ELSE 0 END) as zloto,
+                   SUM(CASE WHEN pozycja = 2 THEN 1 ELSE 0 END) as srebro,
+                   SUM(CASE WHEN pozycja = 3 THEN 1 ELSE 0 END) as braz
+            FROM (
+                SELECT z.klub,
+                       RANK() OVER (PARTITION BY z.kategoria, z.plec ORDER BY w.czas_przejazdu_s ASC) as pozycja
+                FROM zawodnicy z
+                LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+                WHERE z.klub IS NOT NULL AND w.czas_przejazdu_s IS NOT NULL
+            ) ranked
+            WHERE pozycja <= 3
+            GROUP BY klub
+            ORDER BY zloto DESC, srebro DESC, braz DESC
+        
+🔍 Wykonuję zapytanie: 
+            SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                   w.czas_przejazdu_s, w.status,
+                   RANK() OVER (PARTITION BY z.kategoria, z.plec ORDER BY w.czas_przejazdu_s ASC) as pozycja
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE w.czas_przejazdu_s IS NOT NULL
+            ORDER BY z.kategoria, z.plec, w.czas_przejazdu_s ASC
+        
+❌ Błąd podczas wykonywania zapytania: missing FROM-clause entry for table "z"
+LINE 2:             SELECT z.klub,
+                           ^
+
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                q.kategoria,
+                q.plec,
+                q.numer_grupy,
+                q.nazwa,
+                COUNT(z.nr_startowy) as liczba_zawodnikow,
+                q.status,
+                q.estimated_time,
+                STRING_AGG(z.nr_startowy::text, ', ' ORDER BY z.nr_startowy) as numery_startowe,
+                STRING_AGG(z.imie || ' ' || z.nazwisko, ', ' ORDER BY z.nr_startowy) as lista_zawodnikow
+            FROM start_queue q
+            LEFT JOIN zawodnicy z ON z.kategoria = q.kategoria AND z.plec = q.plec
+            GROUP BY q.kategoria, q.plec, q.numer_grupy, q.nazwa, q.status, q.estimated_time
+            ORDER BY q.numer_grupy
+        
+❌ Błąd podczas wykonywania zapytania: column q.kategoria does not exist
+LINE 13: ...           LEFT JOIN zawodnicy z ON z.kategoria = q.kategori...
+                                                              ^
+HINT:  Perhaps you meant to reference the column "z.kategoria".
+
+✅ Znaleziono 12 wyników
+✅ Znaleziono 13 wyników
+✅ Znaleziono 14 wyników
+✅ Znaleziono 188 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT DISTINCT
+                z.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                z.plec,
+                z.klub,
+                z.qr_code,
+                'AKTYWNA_GRUPA' as source_type,
+                z.ostatni_skan
+            FROM zawodnicy z
+            INNER JOIN start_queue sq ON z.kategoria = sq.kategoria AND z.plec = sq.plec
+            WHERE sq.status = 'ACTIVE'
+            
+            UNION
+            
+            SELECT DISTINCT
+                z.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                z.plec,
+                z.klub,
+                z.qr_code,
+                'SKANOWANY' as source_type,
+                z.ostatni_skan
+            FROM zawodnicy z
+            WHERE z.checked_in = true
+            
+            ORDER BY nr_startowy
+        
+✅ Znaleziono 50 wyników
+❌ Błąd podczas wykonywania zapytania: column sq.kategoria does not exist
+LINE 13: ...       INNER JOIN start_queue sq ON z.kategoria = sq.kategor...
+                                                              ^
+HINT:  Perhaps you meant to reference the column "z.kategoria".
+
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                q.kategoria,
+                q.plec,
+                q.numer_grupy,
+                q.nazwa,
+                COUNT(z.nr_startowy) as liczba_zawodnikow,
+                q.status,
+                q.estimated_time,
+                STRING_AGG(z.nr_startowy::text, ', ' ORDER BY z.nr_startowy) as numery_startowe,
+                STRING_AGG(z.imie || ' ' || z.nazwisko, ', ' ORDER BY z.nr_startowy) as lista_zawodnikow
+            FROM start_queue q
+            LEFT JOIN zawodnicy z ON z.kategoria = q.kategoria AND z.plec = q.plec
+            GROUP BY q.kategoria, q.plec, q.numer_grupy, q.nazwa, q.status, q.estimated_time
+            ORDER BY q.numer_grupy
+        
+🔍 Wykonuję zapytanie: 
+            SELECT DISTINCT klub as nazwa, 
+                   COUNT(*) as liczba_zawodnikow
+            FROM zawodnicy 
+            WHERE klub IS NOT NULL 
+            GROUP BY klub 
+            ORDER BY klub
+        
+🔍 Wykonuję zapytanie: 
+        SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub, z.qr_code,
+               w.czas_przejazdu_s, w.status
+        FROM zawodnicy z
+        LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+        ORDER BY z.nr_startowy
+    
+🔍 Wykonuję zapytanie: 
+            SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                   w.czas_przejazdu_s, w.status,
+                   RANK() OVER (ORDER BY w.czas_przejazdu_s ASC) as pozycja
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE w.czas_przejazdu_s IS NOT NULL
+            ORDER BY w.czas_przejazdu_s ASC
+            LIMIT 50
+        
+127.0.0.1 - - [10/Jun/2025 16:50:30] "GET /api/rankings/clubs/top3?season=2025&_t=1749567030135 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:50:30] "GET /api/rankings/medals?season=2025&_t=1749567030135 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:50:32] "GET /api/version HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:50:32] "GET /api/grupy-startowe?_t=1749567032188 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:50:32] "GET /api/grupa-aktywna?_t=1749567032228 HTTP/1.1" 500 -
+127.0.0.1 - - [10/Jun/2025 16:50:32] "GET /api/start-queue/all-group-statuses?_t=1749567032262 HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 16:50:32] "GET /api/start-queue?_t=1749567032270 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:50:36] "GET /api/rankings/individual?season=2025&_t=1749567036285 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:50:36] "GET /api/rankings/general?season=2025&_t=1749567036286 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:50:36] "GET /api/rankings/clubs/total?season=2025&_t=1749567036286 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:50:36] "GET /api/rankings/clubs/top3?season=2025&_t=1749567036286 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:50:36] "GET /api/rankings/medals?season=2025&_t=1749567036286 HTTP/1.1" 200 -
+🔍 Wykonuję zapytanie: 
+            SELECT z.klub,
+                   COUNT(*) as liczba_top3
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE z.klub IS NOT NULL 
+              AND w.czas_przejazdu_s IS NOT NULL
+              AND (
+                  SELECT COUNT(*) 
+                  FROM zawodnicy z2 
+                  LEFT JOIN wyniki w2 ON z2.nr_startowy = w2.nr_startowy
+                  WHERE z2.kategoria = z.kategoria 
+                    AND z2.plec = z.plec 
+                    AND w2.czas_przejazdu_s < w.czas_przejazdu_s
+              ) < 3
+            GROUP BY z.klub
+            ORDER BY liczba_top3 DESC
+        
+🔍 Wykonuję zapytanie: 
+            SELECT z.kategoria, z.plec,
+                   COUNT(*) as liczba_zawodnikow,
+                   AVG(w.czas_przejazdu_s) as sredni_czas,
+                   MIN(w.czas_przejazdu_s) as najlepszy_czas
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE w.czas_przejazdu_s IS NOT NULL
+            GROUP BY z.kategoria, z.plec
+            ORDER BY sredni_czas ASC
+        
+❌ Błąd podczas wykonywania zapytania: current transaction is aborted, commands ignored until end of transaction block
+
+🔍 Wykonuję zapytanie: 
+            SELECT z.klub,
+                   SUM(CASE WHEN pozycja = 1 THEN 1 ELSE 0 END) as zloto,
+                   SUM(CASE WHEN pozycja = 2 THEN 1 ELSE 0 END) as srebro,
+                   SUM(CASE WHEN pozycja = 3 THEN 1 ELSE 0 END) as braz
+            FROM (
+                SELECT z.klub,
+                       RANK() OVER (PARTITION BY z.kategoria, z.plec ORDER BY w.czas_przejazdu_s ASC) as pozycja
+                FROM zawodnicy z
+                LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+                WHERE z.klub IS NOT NULL AND w.czas_przejazdu_s IS NOT NULL
+            ) ranked
+            WHERE pozycja <= 3
+            GROUP BY klub
+            ORDER BY zloto DESC, srebro DESC, braz DESC
+        
+❌ Błąd podczas wykonywania zapytania: current transaction is aborted, commands ignored until end of transaction block
+
+🔍 Wykonuję zapytanie: 
+            SELECT z.klub,
+                   COUNT(*) as liczba_zawodnikow,
+                   COUNT(w.czas_przejazdu_s) as z_wynikami,
+                   AVG(w.czas_przejazdu_s) as sredni_czas
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE z.klub IS NOT NULL
+            GROUP BY z.klub
+            ORDER BY z_wynikami DESC, sredni_czas ASC
+        
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                q.kategoria,
+                q.plec,
+                q.numer_grupy,
+                q.nazwa,
+                COUNT(z.nr_startowy) as liczba_zawodnikow,
+                q.status,
+                q.estimated_time,
+                STRING_AGG(z.nr_startowy::text, ', ' ORDER BY z.nr_startowy) as numery_startowe,
+                STRING_AGG(z.imie || ' ' || z.nazwisko, ', ' ORDER BY z.nr_startowy) as lista_zawodnikow
+            FROM start_queue q
+            LEFT JOIN zawodnicy z ON z.kategoria = q.kategoria AND z.plec = q.plec
+            GROUP BY q.kategoria, q.plec, q.numer_grupy, q.nazwa, q.status, q.estimated_time
+            ORDER BY q.numer_grupy
+        
+❌ Błąd podczas wykonywania zapytania: current transaction is aborted, commands ignored until end of transaction block
+
+🔍 Wykonuję zapytanie: 
+            SELECT DISTINCT
+                z.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                z.plec,
+                z.klub,
+                z.qr_code,
+                'AKTYWNA_GRUPA' as source_type,
+                z.ostatni_skan
+            FROM zawodnicy z
+            INNER JOIN start_queue sq ON z.kategoria = sq.kategoria AND z.plec = sq.plec
+            WHERE sq.status = 'ACTIVE'
+            
+            UNION
+            
+            SELECT DISTINCT
+                z.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                z.plec,
+                z.klub,
+                z.qr_code,
+                'SKANOWANY' as source_type,
+                z.ostatni_skan
+            FROM zawodnicy z
+            WHERE z.checked_in = true
+            
+            ORDER BY nr_startowy
+        
+❌ Błąd podczas wykonywania zapytania: current transaction is aborted, commands ignored until end of transaction block
+
+🔍 Wykonuję zapytanie: 
+            SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                   w.czas_przejazdu_s, w.status,
+                   RANK() OVER (ORDER BY w.czas_przejazdu_s ASC) as pozycja
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE w.czas_przejazdu_s IS NOT NULL
+            ORDER BY w.czas_przejazdu_s ASC
+            LIMIT 50
+        
+❌ Błąd podczas wykonywania zapytania: current transaction is aborted, commands ignored until end of transaction block
+
+🔍 Wykonuję zapytanie: 
+            SELECT z.kategoria, z.plec,
+                   COUNT(*) as liczba_zawodnikow,
+                   AVG(w.czas_przejazdu_s) as sredni_czas,
+                   MIN(w.czas_przejazdu_s) as najlepszy_czas
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE w.czas_przejazdu_s IS NOT NULL
+            GROUP BY z.kategoria, z.plec
+            ORDER BY sredni_czas ASC
+        
+❌ Błąd podczas wykonywania zapytania: current transaction is aborted, commands ignored until end of transaction block
+
+🔍 Wykonuję zapytanie: 
+            SELECT z.klub,
+                   COUNT(*) as liczba_zawodnikow,
+                   COUNT(w.czas_przejazdu_s) as z_wynikami,
+                   AVG(w.czas_przejazdu_s) as sredni_czas
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE z.klub IS NOT NULL
+            GROUP BY z.klub
+            ORDER BY z_wynikami DESC, sredni_czas ASC
+        
+❌ Błąd podczas wykonywania zapytania: current transaction is aborted, commands ignored until end of transaction block
+
+🔍 Wykonuję zapytanie: 
+            SELECT z.klub,
+                   COUNT(*) as liczba_top3
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE z.klub IS NOT NULL 
+              AND w.czas_przejazdu_s IS NOT NULL
+              AND (
+                  SELECT COUNT(*) 
+                  FROM zawodnicy z2 
+                  LEFT JOIN wyniki w2 ON z2.nr_startowy = w2.nr_startowy
+                  WHERE z2.kategoria = z.kategoria 
+                    AND z2.plec = z.plec 
+                    AND w2.czas_przejazdu_s < w.czas_przejazdu_s
+              ) < 3
+            GROUP BY z.klub
+            ORDER BY liczba_top3 DESC
+        
+❌ Błąd podczas wykonywania zapytania: current transaction is aborted, commands ignored until end of transaction block
+
+🔍 Wykonuję zapytanie: 
+            SELECT z.klub,
+                   SUM(CASE WHEN pozycja = 1 THEN 1 ELSE 0 END) as zloto,
+                   SUM(CASE WHEN pozycja = 2 THEN 1 ELSE 0 END) as srebro,
+                   SUM(CASE WHEN pozycja = 3 THEN 1 ELSE 0 END) as braz
+            FROM (
+                SELECT z.klub,
+                       RANK() OVER (PARTITION BY z.kategoria, z.plec ORDER BY w.czas_przejazdu_s ASC) as pozycja
+                FROM zawodnicy z
+                LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+                WHERE z.klub IS NOT NULL AND w.czas_przejazdu_s IS NOT NULL
+            ) ranked
+            WHERE pozycja <= 3
+            GROUP BY klub
+            ORDER BY zloto DESC, srebro DESC, braz DESC
+        
+❌ Błąd podczas wykonywania zapytania: current transaction is aborted, commands ignored until end of transaction block
+
+127.0.0.1 - - [10/Jun/2025 16:50:53] "GET /api/zawodnicy HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:52:10] "GET /api/rankings/general?season=2025&_t=1749567030135 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:52:10] "GET /api/grupy-startowe?_t=1749567023049 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:52:10] "GET /api/rankings/clubs/total?season=2025&_t=1749567030135 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:52:10] "GET /api/kluby HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:52:10] "GET /api/rankings/individual?season=2025&_t=1749567030134 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:52:10] "GET /api/zawodnicy HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:52:24] "GET /api/grupy-startowe HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:52:24] "POST /api/grupa-aktywna HTTP/1.1" 500 -
+127.0.0.1 - - [10/Jun/2025 16:52:49] "GET /api/grupy-startowe HTTP/1.1" 200 -
+ * Detected change in '/home/mariusz/projekty/drabinka-turniejowa/backend/add_centrum_data.py', reloading
+🔍 Wykonuję zapytanie: 
+        SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub, z.qr_code,
+               w.czas_przejazdu_s, w.status
+        FROM zawodnicy z
+        LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+        ORDER BY z.nr_startowy
+    
+❌ Błąd podczas wykonywania zapytania: current transaction is aborted, commands ignored until end of transaction block
+
+✅ Znaleziono 12 wyników
+❌ Błąd podczas wykonywania zapytania: column q.kategoria does not exist
+LINE 13: ...           LEFT JOIN zawodnicy z ON z.kategoria = q.kategori...
+                                                              ^
+HINT:  Perhaps you meant to reference the column "z.kategoria".
+
+✅ Znaleziono 14 wyników
+✅ Znaleziono 14 wyników
+✅ Znaleziono 50 wyników
+✅ Znaleziono 251 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                q.kategoria,
+                q.plec,
+                q.numer_grupy,
+                q.nazwa,
+                COUNT(z.nr_startowy) as liczba_zawodnikow,
+                q.status,
+                q.estimated_time,
+                STRING_AGG(z.nr_startowy::text, ', ' ORDER BY z.nr_startowy) as numery_startowe,
+                STRING_AGG(z.imie || ' ' || z.nazwisko, ', ' ORDER BY z.nr_startowy) as lista_zawodnikow
+            FROM start_queue q
+            LEFT JOIN zawodnicy z ON z.kategoria = q.kategoria AND z.plec = q.plec
+            GROUP BY q.kategoria, q.plec, q.numer_grupy, q.nazwa, q.status, q.estimated_time
+            ORDER BY q.numer_grupy
+        
+❌ Błąd podczas wykonywania zapytania: current transaction is aborted, commands ignored until end of transaction block
+
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                q.kategoria,
+                q.plec,
+                q.numer_grupy,
+                q.nazwa,
+                COUNT(z.nr_startowy) as liczba_zawodnikow,
+                q.status,
+                q.estimated_time,
+                STRING_AGG(z.nr_startowy::text, ', ' ORDER BY z.nr_startowy) as numery_startowe,
+                STRING_AGG(z.imie || ' ' || z.nazwisko, ', ' ORDER BY z.nr_startowy) as lista_zawodnikow
+            FROM start_queue q
+            LEFT JOIN zawodnicy z ON z.kategoria = q.kategoria AND z.plec = q.plec
+            GROUP BY q.kategoria, q.plec, q.numer_grupy, q.nazwa, q.status, q.estimated_time
+            ORDER BY q.numer_grupy
+        
+❌ Błąd podczas wykonywania zapytania: current transaction is aborted, commands ignored until end of transaction block
+
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 128-402-315
+127.0.0.1 - - [10/Jun/2025 16:53:16] "GET /api/version HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:53:16] "GET /api/grupy-startowe?_t=1749567196405 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:53:16] "GET /api/grupa-aktywna?_t=1749567196441 HTTP/1.1" 500 -
+127.0.0.1 - - [10/Jun/2025 16:53:16] "GET /api/start-queue/all-group-statuses?_t=1749567196473 HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 16:53:16] "GET /api/start-queue?_t=1749567196482 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:53:39] "GET /api/grupy-startowe HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:53:56] "GET /api/drabinka HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:54:02] "GET /api/rankings/individual?season=2025&_t=1749567242050 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:54:02] "GET /api/rankings/medals?season=2025&_t=1749567242051 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:54:02] "GET /api/rankings/general?season=2025&_t=1749567242050 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:54:02] "GET /api/rankings/clubs/total?season=2025&_t=1749567242051 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:54:02] "GET /api/rankings/clubs/top3?season=2025&_t=1749567242051 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:54:04] "GET /api/version HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:54:04] "GET /api/grupy-startowe?_t=1749567244679 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:54:04] "GET /api/grupa-aktywna?_t=1749567244725 HTTP/1.1" 500 -
+127.0.0.1 - - [10/Jun/2025 16:54:04] "GET /api/start-queue/all-group-statuses?_t=1749567244762 HTTP/1.1" 404 -
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                q.kategoria,
+                q.plec,
+                q.numer_grupy,
+                q.nazwa,
+                COUNT(z.nr_startowy) as liczba_zawodnikow,
+                q.status,
+                q.estimated_time,
+                STRING_AGG(z.nr_startowy::text, ', ' ORDER BY z.nr_startowy) as numery_startowe,
+                STRING_AGG(z.imie || ' ' || z.nazwisko, ', ' ORDER BY z.nr_startowy) as lista_zawodnikow
+            FROM start_queue q
+            LEFT JOIN zawodnicy z ON z.kategoria = q.kategoria AND z.plec = q.plec
+            GROUP BY q.kategoria, q.plec, q.numer_grupy, q.nazwa, q.status, q.estimated_time
+            ORDER BY q.numer_grupy
+        
+❌ Błąd podczas wykonywania zapytania: current transaction is aborted, commands ignored until end of transaction block
+
+🔍 Wykonuję zapytanie: 
+            SELECT DISTINCT
+                z.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                z.plec,
+                z.klub,
+                z.qr_code,
+                'AKTYWNA_GRUPA' as source_type,
+                z.ostatni_skan
+            FROM zawodnicy z
+            INNER JOIN start_queue sq ON z.kategoria = sq.kategoria AND z.plec = sq.plec
+            WHERE sq.status = 'ACTIVE'
+            
+            UNION
+            
+            SELECT DISTINCT
+                z.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                z.plec,
+                z.klub,
+                z.qr_code,
+                'SKANOWANY' as source_type,
+                z.ostatni_skan
+            FROM zawodnicy z
+            WHERE z.checked_in = true
+            
+            ORDER BY nr_startowy
+        
+❌ Błąd podczas wykonywania zapytania: current transaction is aborted, commands ignored until end of transaction block
+
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                q.kategoria,
+                q.plec,
+                q.numer_grupy,
+                q.nazwa,
+                COUNT(z.nr_startowy) as liczba_zawodnikow,
+                q.status,
+                q.estimated_time,
+                STRING_AGG(z.nr_startowy::text, ', ' ORDER BY z.nr_startowy) as numery_startowe,
+                STRING_AGG(z.imie || ' ' || z.nazwisko, ', ' ORDER BY z.nr_startowy) as lista_zawodnikow
+            FROM start_queue q
+            LEFT JOIN zawodnicy z ON z.kategoria = q.kategoria AND z.plec = q.plec
+            GROUP BY q.kategoria, q.plec, q.numer_grupy, q.nazwa, q.status, q.estimated_time
+            ORDER BY q.numer_grupy
+        
+❌ Błąd podczas wykonywania zapytania: current transaction is aborted, commands ignored until end of transaction block
+
+🔍 Wykonuję zapytanie: 
+            SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                   w.czas_przejazdu_s, w.status,
+                   RANK() OVER (PARTITION BY z.kategoria, z.plec ORDER BY w.czas_przejazdu_s ASC) as pozycja
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE w.czas_przejazdu_s IS NOT NULL
+            ORDER BY z.kategoria, z.plec, w.czas_przejazdu_s ASC
+        
+❌ Błąd podczas wykonywania zapytania: current transaction is aborted, commands ignored until end of transaction block
+
+🔍 Wykonuję zapytanie: 
+            SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                   w.czas_przejazdu_s, w.status,
+                   RANK() OVER (ORDER BY w.czas_przejazdu_s ASC) as pozycja
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE w.czas_przejazdu_s IS NOT NULL
+            ORDER BY w.czas_przejazdu_s ASC
+            LIMIT 50
+        
+❌ Błąd podczas wykonywania zapytania: current transaction is aborted, commands ignored until end of transaction block
+
+🔍 Wykonuję zapytanie: 
+            SELECT z.klub,
+                   SUM(CASE WHEN pozycja = 1 THEN 1 ELSE 0 END) as zloto,
+                   SUM(CASE WHEN pozycja = 2 THEN 1 ELSE 0 END) as srebro,
+                   SUM(CASE WHEN pozycja = 3 THEN 1 ELSE 0 END) as braz
+            FROM (
+                SELECT z.klub,
+                       RANK() OVER (PARTITION BY z.kategoria, z.plec ORDER BY w.czas_przejazdu_s ASC) as pozycja
+                FROM zawodnicy z
+                LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+                WHERE z.klub IS NOT NULL AND w.czas_przejazdu_s IS NOT NULL
+            ) ranked
+            WHERE pozycja <= 3
+            GROUP BY klub
+            ORDER BY zloto DESC, srebro DESC, braz DESC
+        
+🔍 Wykonuję zapytanie: 
+            SELECT z.kategoria, z.plec,
+                   COUNT(*) as liczba_zawodnikow,
+                   AVG(w.czas_przejazdu_s) as sredni_czas,
+                   MIN(w.czas_przejazdu_s) as najlepszy_czas
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE w.czas_przejazdu_s IS NOT NULL
+            GROUP BY z.kategoria, z.plec
+            ORDER BY sredni_czas ASC
+        
+🔍 Wykonuję zapytanie: 
+            SELECT z.klub,
+                   COUNT(*) as liczba_zawodnikow,
+                   COUNT(w.czas_przejazdu_s) as z_wynikami,
+                   AVG(w.czas_przejazdu_s) as sredni_czas
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE z.klub IS NOT NULL
+            GROUP BY z.klub
+            ORDER BY z_wynikami DESC, sredni_czas ASC
+        
+🔍 Wykonuję zapytanie: 
+            SELECT z.klub,
+                   COUNT(*) as liczba_top3
+            FROM zawodnicy z
+            LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+            WHERE z.klub IS NOT NULL 
+              AND w.czas_przejazdu_s IS NOT NULL
+              AND (
+                  SELECT COUNT(*) 
+                  FROM zawodnicy z2 
+                  LEFT JOIN wyniki w2 ON z2.nr_startowy = w2.nr_startowy
+                  WHERE z2.kategoria = z.kategoria 
+                    AND z2.plec = z.plec 
+                    AND w2.czas_przejazdu_s < w.czas_przejazdu_s
+              ) < 3
+            GROUP BY z.klub
+            ORDER BY liczba_top3 DESC
+        
+❌ Błąd podczas wykonywania zapytania: missing FROM-clause entry for table "z"
+LINE 2:             SELECT z.klub,
+                           ^
+
+✅ Znaleziono 12 wyników
+✅ Znaleziono 14 wyników
+✅ Znaleziono 13 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                q.kategoria,
+                q.plec,
+                q.numer_grupy,
+                q.nazwa,
+                COUNT(z.nr_startowy) as liczba_zawodnikow,
+                q.status,
+                q.estimated_time,
+                STRING_AGG(z.nr_startowy::text, ', ' ORDER BY z.nr_startowy) as numery_startowe,
+                STRING_AGG(z.imie || ' ' || z.nazwisko, ', ' ORDER BY z.nr_startowy) as lista_zawodnikow
+            FROM start_queue q
+            LEFT JOIN zawodnicy z ON z.kategoria = q.kategoria AND z.plec = q.plec
+            GROUP BY q.kategoria, q.plec, q.numer_grupy, q.nazwa, q.status, q.estimated_time
+            ORDER BY q.numer_grupy
+        
+❌ Błąd podczas wykonywania zapytania: current transaction is aborted, commands ignored until end of transaction block
+
+127.0.0.1 - - [10/Jun/2025 16:54:04] "GET /api/start-queue?_t=1749567244766 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:54:05] "GET /api/zawodnicy HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:54:09] "GET /api/drabinka HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 17:00:56] "GET /api/zawodnicy HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 17:01:04] "GET /api/rankings/individual HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 17:01:11] "GET /api/grupy-startowe HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 17:01:29] "GET /api/drabinka HTTP/1.1" 200 -

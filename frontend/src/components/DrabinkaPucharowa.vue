@@ -589,7 +589,7 @@ const fetchDrabinka = async () => {
     error.value = null
     
     const response = await axios.get<DrabinkaResponse>('/api/drabinka')
-    drabinka.value = response.data
+    drabinka.value = response.data.data || response.data
   } catch (err) {
     error.value = 'Nie udało się załadować drabinki turniejowej'
   } finally {

@@ -590,26 +590,26 @@ const syncAllData = async (reason = 'manual') => {
     const grupyResponse = await fetch(`/api/grupy-startowe?_t=${Date.now()}`)
     if (!grupyResponse.ok) throw new Error('Błąd ładowania grup')
     const grupyData = await grupyResponse.json()
-    grupy.value = grupyData.grupy || []
+    grupy.value = grupyData.data?.grupy || []
     
     // 3. Aktywna grupa - ZAWSZE ładuj z backend (cache-busting)
     {
-      try {
-        const aktywnaResponse = await fetch(`/api/grupa-aktywna?_t=${Date.now()}`)
-        if (aktywnaResponse.ok) {
-          const aktywnaData = await aktywnaResponse.json()
-          if (aktywnaData.success && aktywnaData.aktywna_grupa) {
-            const grupaData = aktywnaData.aktywna_grupa
-            aktualna_grupa.value = grupy.value.find(g => 
-              g.kategoria === grupaData.kategoria && g.plec === grupaData.plec
-            ) || null
+              try {
+          const aktywnaResponse = await fetch(`/api/grupa-aktywna?_t=${Date.now()}`)
+          if (aktywnaResponse.ok) {
+            const aktywnaData = await aktywnaResponse.json()
+            if (aktywnaData.success && aktywnaData.grupa && aktywnaData.grupa.kategoria) {
+              const grupaData = aktywnaData.grupa
+              aktualna_grupa.value = grupy.value.find(g => 
+                g.kategoria === grupaData.kategoria && g.plec === grupaData.plec
+              ) || null
+            } else {
+              aktualna_grupa.value = null
+            }
           } else {
             aktualna_grupa.value = null
           }
-        } else {
-          aktualna_grupa.value = null
-        }
-      } catch (e) {
+        } catch (e) {
         console.warn('⚠️ Błąd ładowania aktywnej grupy:', e)
         if (!appState.value.optimisticActiveGroupId) {
           aktualna_grupa.value = null
@@ -622,7 +622,7 @@ const syncAllData = async (reason = 'manual') => {
       const statusyResponse = await fetch(`/api/start-queue/all-group-statuses?_t=${Date.now()}`)
       if (statusyResponse.ok) {
         const statusyData = await statusyResponse.json()
-        grupyStatuses.value = statusyData.statuses || {}
+        grupyStatuses.value = statusyData || {}
       }
     } catch (e) {
       console.warn('⚠️ Błąd ładowania statusów grup:', e)
@@ -632,7 +632,7 @@ const syncAllData = async (reason = 'manual') => {
     const kolejkaResponse = await fetch(`/api/start-queue?_t=${Date.now()}`)
     if (!kolejkaResponse.ok) throw new Error('Błąd ładowania kolejki')
     const kolejkaData = await kolejkaResponse.json()
-    kolejka_zawodnikow.value = kolejkaData.queue || []
+    kolejka_zawodnikow.value = kolejkaData || []
     
     appState.value.lastUpdate = new Date()
     console.log('✅ Synchronizacja zakończona:', {
@@ -723,7 +723,7 @@ const removeFromQueue = async (zawodnik: Zawodnik) => {
           const kolejkaResponse = await fetch(`/api/start-queue?_t=${Date.now()}`)
           if (kolejkaResponse.ok) {
             const kolejkaData = await kolejkaResponse.json()
-            kolejka_zawodnikow.value = kolejkaData.queue || []
+            kolejka_zawodnikow.value = kolejkaData || []
           }
         } finally {
           appState.value.syncingQueue = false

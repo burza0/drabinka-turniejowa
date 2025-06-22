@@ -1,0 +1,2 @@
+nohup: zignorowane dane wejściowe
+python3: can't open file '/home/mariusz/projekty/drabinka-turniejowa/api_server.py': [Errno 2] No such file or directory

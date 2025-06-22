@@ -1,85 +1,145 @@
-from utils.database import get_all, get_one, execute_query
+# -*- coding: utf-8 -*-
+"""
+SKATECROSS QR - Zawodnicy API Blueprint
+Wersja: 2.0.0
+Endpointy zarządzania zawodnikami - z Supabase PostgreSQL
+"""
+
 from flask import Blueprint, jsonify, request
+import sys
+import os
+
+# Dodaj ścieżkę do utils
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from utils.database import get_all, get_one, execute_query
+from utils.api_response import APIResponse, handle_api_errors, validate_pagination
 
 zawodnicy_bp = Blueprint('zawodnicy', __name__)
 
-@zawodnicy_bp.route("/api/zawodnicy")
+@zawodnicy_bp.route('/api/zawodnicy', methods=['GET'])
+@handle_api_errors
 def get_zawodnicy():
-    """Pobiera listę wszystkich zawodników"""
-    rows = get_all("""
-        SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub, z.qr_code,
-               w.czas_przejazdu_s, w.status
-        FROM zawodnicy z
-        LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
-        ORDER BY z.nr_startowy
-    """)
-    return jsonify(rows)
-
-@zawodnicy_bp.route("/api/zawodnicy", methods=['POST'])
-def add_zawodnik():
-    """Dodaje nowego zawodnika"""
-    data = request.json
-    query = """
-        INSERT INTO zawodnicy (nr_startowy, imie, nazwisko, kategoria, plec, klub)
-        VALUES (%s, %s, %s, %s, %s, %s)
     """
-    params = (
-        data['nr_startowy'],
-        data['imie'],
-        data['nazwisko'],
-        data['kategoria'],
-        data['plec'],
-        data.get('klub')  # klub jest opcjonalny
+    Endpoint zwracający listę wszystkich zawodników z Supabase PostgreSQL
+    GET /api/zawodnicy?page=1&limit=50
+    """
+    # Obsługa paginacji
+    page, limit = validate_pagination(
+        request.args.get('page'),
+        request.args.get('limit')
     )
-    execute_query(query, params)
     
-    # Dodaj rekord do tabeli wyniki
-    query_wyniki = """
-        INSERT INTO wyniki (nr_startowy, status)
-        VALUES (%s, %s)
-    """
-    execute_query(query_wyniki, (data['nr_startowy'], 'oczekuje'))
+    # Policz wszystkich zawodników
+    count_result = get_one("SELECT COUNT(*) as total FROM zawodnicy")
+    total = count_result['total'] if count_result else 0
     
-    return jsonify({"success": True, "message": "Zawodnik dodany"})
+    # Pobierz paginowane dane
+    offset = (page - 1) * limit
+    zawodnicy = get_all("""
+        SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub, qr_code, 
+               COALESCE(checked_in, false) as checked_in
+        FROM zawodnicy 
+        ORDER BY nr_startowy 
+        LIMIT %s OFFSET %s
+    """, (limit, offset))
+    
+    return APIResponse.paginated(
+        data=zawodnicy,
+        page=page,
+        limit=limit,
+        total=total,
+        message="Zawodnicy pobrani pomyślnie z Supabase"
+    )
 
-@zawodnicy_bp.route("/api/zawodnicy/<int:nr_startowy>", methods=['DELETE'])
-def delete_zawodnik(nr_startowy):
-    """Usuwa zawodnika"""
-    execute_query("DELETE FROM zawodnicy WHERE nr_startowy = %s", (nr_startowy,))
-    execute_query("DELETE FROM wyniki WHERE nr_startowy = %s", (nr_startowy,))
-    return jsonify({"success": True, "message": "Zawodnik usunięty"})
-
-@zawodnicy_bp.route("/api/zawodnicy/<int:nr_startowy>", methods=['GET'])
+@zawodnicy_bp.route('/api/zawodnicy/<int:nr_startowy>', methods=['GET'])
+@handle_api_errors
 def get_zawodnik(nr_startowy):
-    """Pobiera szczegóły zawodnika"""
+    """
+    Endpoint zwracający pojedynczego zawodnika po numerze startowym
+    GET /api/zawodnicy/{nr_startowy}
+    """
     zawodnik = get_one("""
-        SELECT z.*, w.czas_przejazdu_s, w.status
-        FROM zawodnicy z
-        LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
-        WHERE z.nr_startowy = %s
+        SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub, qr_code,
+               COALESCE(checked_in, false) as checked_in
+        FROM zawodnicy 
+        WHERE nr_startowy = %s
     """, (nr_startowy,))
     
     if not zawodnik:
-        return jsonify({"error": "Zawodnik nie znaleziony"}), 404
-        
-    return jsonify(zawodnik)
-
-@zawodnicy_bp.route("/api/zawodnicy/<int:nr_startowy>", methods=['PUT'])
-def update_zawodnik(nr_startowy):
-    """Aktualizuje dane zawodnika"""
-    data = request.json
-    query = """
-        UPDATE zawodnicy 
-        SET imie = %s, nazwisko = %s, kategoria = %s, plec = %s, klub = %s
-        WHERE nr_startowy = %s
-    """
-    params = (
-        data['imie'],
-        data['nazwisko'],
-        data['kategoria'],
-        data['plec'],
-        data.get('klub'),
-        nr_startowy
+        return APIResponse.not_found("Zawodnik", nr_startowy)
+    
+    return APIResponse.success(
+        data=zawodnik,
+        message=f"Zawodnik nr {nr_startowy} pobrany pomyślnie"
     )
-    execute_query(query, params)
-    return jsonify({"success": True, "message": "Zawodnik zaktualizowany"}) 
+
+@zawodnicy_bp.route('/api/zawodnicy/kategoria/<kategoria>', methods=['GET'])
+@handle_api_errors
+def get_zawodnicy_kategoria(kategoria):
+    """
+    Endpoint zwracający zawodników z danej kategorii
+    GET /api/zawodnicy/kategoria/{kategoria}?plec=M/K&page=1&limit=50
+    """
+    plec = request.args.get('plec')
+    page, limit = validate_pagination(
+        request.args.get('page'),
+        request.args.get('limit')
+    )
+    
+    # Buduj zapytanie SQL w zależności od parametrów
+    if plec:
+        count_query = "SELECT COUNT(*) as total FROM zawodnicy WHERE kategoria = %s AND plec = %s"
+        data_query = """
+            SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub, qr_code,
+                   COALESCE(checked_in, false) as checked_in
+            FROM zawodnicy 
+            WHERE kategoria = %s AND plec = %s
+            ORDER BY nr_startowy 
+            LIMIT %s OFFSET %s
+        """
+        count_params = (kategoria, plec)
+        data_params = (kategoria, plec, limit, (page - 1) * limit)
+    else:
+        count_query = "SELECT COUNT(*) as total FROM zawodnicy WHERE kategoria = %s"
+        data_query = """
+            SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub, qr_code,
+                   COALESCE(checked_in, false) as checked_in
+            FROM zawodnicy 
+            WHERE kategoria = %s
+            ORDER BY nr_startowy 
+            LIMIT %s OFFSET %s
+        """
+        count_params = (kategoria,)
+        data_params = (kategoria, limit, (page - 1) * limit)
+    
+    # Policz wyniki
+    count_result = get_one(count_query, count_params)
+    total = count_result['total'] if count_result else 0
+    
+    # Pobierz dane
+    zawodnicy = get_all(data_query, data_params)
+    
+    # Dodatkowe metadane
+    extra_meta = {
+        "kategoria": kategoria,
+        "plec": plec,
+        "filters_applied": {
+            "kategoria": kategoria,
+            "plec": plec if plec else "wszystkie"
+        }
+    }
+    
+    response_data = APIResponse.paginated(
+        data=zawodnicy,
+        page=page,
+        limit=limit,
+        total=total,
+        message=f"Zawodnicy z kategorii {kategoria} pobrani pomyślnie"
+    )
+    
+    # Dodaj dodatkowe metadane
+    response_data.json["meta"].update(extra_meta)
+    
+    return response_data
+
+print("👤 SKATECROSS QR - Moduł Zawodników załadowany z Supabase PostgreSQL") 

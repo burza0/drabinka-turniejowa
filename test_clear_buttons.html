@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Clear Queue Buttons</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .button { padding: 12px 24px; margin: 10px; cursor: pointer; border: none; border-radius: 6px; font-weight: bold; }
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-warning { background: #f59e0b; color: white; }
+        .btn-info { background: #3b82f6; color: white; }
+        .status-box { margin: 20px 0; padding: 15px; background: #f3f4f6; border-radius: 5px; }
+        .active-groups { background: #fee2e2; border: 1px solid #fecaca; }
+        .queue-status { background: #dbeafe; border: 1px solid #bfdbfe; }
+        .log { margin-top: 20px; padding: 10px; background: #1f2937; color: #f9fafb; border-radius: 5px; font-family: monospace; font-size: 12px; max-height: 300px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <h1>🧹 Test Przycisków Czyszczenia Kolejki</h1>
+    
+    <div class="status-box active-groups">
+        <h3>🎯 Aktywne grupy w kolejce:</h3>
+        <div id="activeGroups">Ładowanie...</div>
+    </div>
+    
+    <div class="status-box queue-status">
+        <h3>👥 Status kolejki:</h3>
+        <div id="queueStatus">Ładowanie...</div>
+    </div>
+    
+    <h3>🔧 Akcje czyszczenia:</h3>
+    <button class="button btn-danger" onclick="clearQueue('all')">
+        🗑️ Usuń wszystkie grupy
+    </button>
+    <button class="button btn-warning" onclick="clearQueue('scanned')">
+        📱 Usuń skanowanych
+    </button>
+    <button class="button btn-info" onclick="refreshStatus()">
+        🔄 Odśwież status
+    </button>
+    
+    <div class="log" id="log"></div>
+
+    <script>
+        async function clearQueue(type) {
+            const action = type === 'all' ? 'wszystkich grup' : 'skanowanych zawodników';
+            log(`🧹 Czyszczenie ${action}...`);
+            
+            try {
+                const response = await fetch('/api/start-queue/clear', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: type })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    log(`✅ ${result.message}`);
+                    log(`📊 Usunięto: grupy=${result.removed.groups}, skanowani=${result.removed.scanned}, razem=${result.total_removed}`);
+                } else {
+                    log(`❌ Błąd: ${result.message}`);
+                }
+                
+                // Odśwież status po akcji
+                setTimeout(refreshStatus, 1000);
+                
+            } catch (error) {
+                log(`❌ Błąd połączenia: ${error.message}`);
+            }
+        }
+        
+        async function refreshStatus() {
+            log('🔄 Odświeżanie statusu...');
+            await Promise.all([loadActiveGroups(), loadQueueStatus()]);
+        }
+        
+        async function loadActiveGroups() {
+            try {
+                const response = await fetch('/api/start-queue/all-group-statuses');
+                const data = await response.json();
+                
+                const activeGroups = Object.entries(data.statuses)
+                    .filter(([key, status]) => status.is_active)
+                    .map(([key, status]) => `${key}: ${status.count} zawodników`)
+                    .join('<br>');
+                
+                document.getElementById('activeGroups').innerHTML = 
+                    activeGroups || '<em>Brak aktywnych grup</em>';
+                    
+            } catch (error) {
+                document.getElementById('activeGroups').innerHTML = 
+                    `<span style="color: red;">Błąd: ${error.message}</span>`;
+            }
+        }
+        
+        async function loadQueueStatus() {
+            try {
+                const response = await fetch('/api/start-queue');
+                const data = await response.json();
+                
+                const byType = data.queue.reduce((acc, zawodnik) => {
+                    acc[zawodnik.source_type] = (acc[zawodnik.source_type] || 0) + 1;
+                    return acc;
+                }, {});
+                
+                const statusText = Object.entries(byType)
+                    .map(([type, count]) => `${type}: ${count}`)
+                    .join(', ') || 'Pusta kolejka';
+                
+                document.getElementById('queueStatus').innerHTML = 
+                    `<strong>Razem:</strong> ${data.count} zawodników<br>
+                     <strong>Szczegóły:</strong> ${statusText}`;
+                     
+            } catch (error) {
+                document.getElementById('queueStatus').innerHTML = 
+                    `<span style="color: red;">Błąd: ${error.message}</span>`;
+            }
+        }
+        
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `<div>${time}: ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        // Uruchom przy załadowaniu
+        refreshStatus();
+        
+        // Odśwież co 10 sekund
+        setInterval(refreshStatus, 10000);
+    </script>
+</body>
+</html> 

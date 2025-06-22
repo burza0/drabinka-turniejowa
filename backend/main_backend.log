@@ -1,0 +1,288 @@
+nohup: zignorowane dane wejściowe
+ * Serving Flask app 'api_server'
+ * Debug mode: on
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on http://127.0.0.1:5000
+Press CTRL+C to quit
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 128-402-315
+127.0.0.1 - - [10/Jun/2025 16:26:18] "GET /api/kluby HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 16:26:19] "GET /api/zawodnicy HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:26:20] "GET /api/drabinka HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 16:26:21] "GET /api/rankings/individual?season=2025&_t=1749565581933 HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 16:26:21] "GET /api/rankings/clubs/total?season=2025&_t=1749565581934 HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 16:26:21] "GET /api/rankings/clubs/top3?season=2025&_t=1749565581935 HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 16:26:21] "GET /api/rankings/general?season=2025&_t=1749565581934 HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 16:26:21] "GET /api/rankings/medals?season=2025&_t=1749565581935 HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 16:26:25] "GET /api/kluby HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 16:26:25] "GET /api/zawodnicy HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:26:26] "GET /api/drabinka HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 16:26:27] "GET /api/rankings/individual?season=2025&_t=1749565587608 HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 16:26:27] "GET /api/rankings/general?season=2025&_t=1749565587608 HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 16:26:27] "GET /api/rankings/clubs/total?season=2025&_t=1749565587608 HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 16:26:27] "GET /api/rankings/clubs/top3?season=2025&_t=1749565587608 HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 16:26:27] "GET /api/rankings/medals?season=2025&_t=1749565587608 HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 16:26:29] "GET /api/version HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:26:29] "GET /api/grupy-startowe?_t=1749565589335 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:26:29] "GET /api/grupa-aktywna?_t=1749565589445 HTTP/1.1" 500 -
+127.0.0.1 - - [10/Jun/2025 16:26:29] "GET /api/start-queue/all-group-statuses?_t=1749565589767 HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 16:26:29] "GET /api/start-queue?_t=1749565589773 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:26:32] "GET /api/zawodnicy HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:26:35] "GET /api/version HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:26:35] "GET /api/grupy-startowe?_t=1749565595896 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:26:36] "GET /api/grupa-aktywna?_t=1749565595986 HTTP/1.1" 500 -
+127.0.0.1 - - [10/Jun/2025 16:26:36] "GET /api/start-queue/all-group-statuses?_t=1749565596070 HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 16:26:36] "GET /api/start-queue?_t=1749565596074 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:26:40] "GET /api/kluby HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 16:26:40] "GET /api/zawodnicy HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:26:42] "GET /api/rankings/general?season=2025&_t=1749565602933 HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 16:26:42] "GET /api/rankings/individual?season=2025&_t=1749565602933 HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 16:26:42] "GET /api/rankings/clubs/top3?season=2025&_t=1749565602933 HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 16:26:42] "GET /api/rankings/medals?season=2025&_t=1749565602933 HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 16:26:42] "GET /api/rankings/clubs/total?season=2025&_t=1749565602933 HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 16:26:44] "GET /api/drabinka HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 16:26:46] "GET /api/kluby HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 16:26:46] "GET /api/zawodnicy HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:26:48] "GET /api/drabinka HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 16:31:20] "GET /api/rankings/individual?season=2025&_t=1749565880047 HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 16:31:20] "GET /api/rankings/clubs/total?season=2025&_t=1749565880048 HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 16:31:20] "GET /api/rankings/general?season=2025&_t=1749565880047 HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 16:31:20] "GET /api/rankings/clubs/top3?season=2025&_t=1749565880048 HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 16:31:20] "GET /api/rankings/medals?season=2025&_t=1749565880048 HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 16:31:29] "GET /api/version HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:31:29] "GET /api/grupy-startowe?_t=1749565889715 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:31:29] "GET /api/grupa-aktywna?_t=1749565889800 HTTP/1.1" 500 -
+127.0.0.1 - - [10/Jun/2025 16:31:29] "GET /api/start-queue/all-group-statuses?_t=1749565889884 HTTP/1.1" 404 -
+🔍 Wykonuję zapytanie: 
+        SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub, z.qr_code,
+               w.czas_przejazdu_s, w.status
+        FROM zawodnicy z
+        LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+        ORDER BY z.nr_startowy
+    
+✅ Znaleziono 251 wyników
+🔍 Wykonuję zapytanie: 
+        SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub, z.qr_code,
+               w.czas_przejazdu_s, w.status
+        FROM zawodnicy z
+        LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+        ORDER BY z.nr_startowy
+    
+✅ Znaleziono 251 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                q.kategoria,
+                q.plec,
+                q.numer_grupy,
+                q.nazwa,
+                COUNT(z.nr_startowy) as liczba_zawodnikow,
+                q.status,
+                q.estimated_time,
+                STRING_AGG(z.nr_startowy::text, ', ' ORDER BY z.nr_startowy) as numery_startowe,
+                STRING_AGG(z.imie || ' ' || z.nazwisko, ', ' ORDER BY z.nr_startowy) as lista_zawodnikow
+            FROM start_queue q
+            LEFT JOIN zawodnicy z ON z.kategoria = q.kategoria AND z.plec = q.plec
+            GROUP BY q.kategoria, q.plec, q.numer_grupy, q.nazwa, q.status, q.estimated_time
+            ORDER BY q.numer_grupy
+        
+❌ Błąd podczas wykonywania zapytania: column q.kategoria does not exist
+LINE 13: ...           LEFT JOIN zawodnicy z ON z.kategoria = q.kategori...
+                                                              ^
+HINT:  Perhaps you meant to reference the column "z.kategoria".
+
+🔍 Wykonuję zapytanie: 
+            SELECT DISTINCT
+                z.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                z.plec,
+                z.klub,
+                z.qr_code,
+                'AKTYWNA_GRUPA' as source_type,
+                z.ostatni_skan
+            FROM zawodnicy z
+            INNER JOIN start_queue sq ON z.kategoria = sq.kategoria AND z.plec = sq.plec
+            WHERE sq.status = 'ACTIVE'
+            
+            UNION
+            
+            SELECT DISTINCT
+                z.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                z.plec,
+                z.klub,
+                z.qr_code,
+                'SKANOWANY' as source_type,
+                z.ostatni_skan
+            FROM zawodnicy z
+            WHERE z.checked_in = true
+            
+            ORDER BY nr_startowy
+        
+❌ Błąd podczas wykonywania zapytania: column sq.kategoria does not exist
+LINE 13: ...       INNER JOIN start_queue sq ON z.kategoria = sq.kategor...
+                                                              ^
+HINT:  Perhaps you meant to reference the column "z.kategoria".
+
+🔍 Wykonuję zapytanie: 
+        SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub, z.qr_code,
+               w.czas_przejazdu_s, w.status
+        FROM zawodnicy z
+        LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+        ORDER BY z.nr_startowy
+    
+✅ Znaleziono 251 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                q.kategoria,
+                q.plec,
+                q.numer_grupy,
+                q.nazwa,
+                COUNT(z.nr_startowy) as liczba_zawodnikow,
+                q.status,
+                q.estimated_time,
+                STRING_AGG(z.nr_startowy::text, ', ' ORDER BY z.nr_startowy) as numery_startowe,
+                STRING_AGG(z.imie || ' ' || z.nazwisko, ', ' ORDER BY z.nr_startowy) as lista_zawodnikow
+            FROM start_queue q
+            LEFT JOIN zawodnicy z ON z.kategoria = q.kategoria AND z.plec = q.plec
+            GROUP BY q.kategoria, q.plec, q.numer_grupy, q.nazwa, q.status, q.estimated_time
+            ORDER BY q.numer_grupy
+        
+❌ Błąd podczas wykonywania zapytania: column q.kategoria does not exist
+LINE 13: ...           LEFT JOIN zawodnicy z ON z.kategoria = q.kategori...
+                                                              ^
+HINT:  Perhaps you meant to reference the column "z.kategoria".
+
+🔍 Wykonuję zapytanie: 
+            SELECT DISTINCT
+                z.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                z.plec,
+                z.klub,
+                z.qr_code,
+                'AKTYWNA_GRUPA' as source_type,
+                z.ostatni_skan
+            FROM zawodnicy z
+            INNER JOIN start_queue sq ON z.kategoria = sq.kategoria AND z.plec = sq.plec
+            WHERE sq.status = 'ACTIVE'
+            
+            UNION
+            
+            SELECT DISTINCT
+                z.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                z.plec,
+                z.klub,
+                z.qr_code,
+                'SKANOWANY' as source_type,
+                z.ostatni_skan
+            FROM zawodnicy z
+            WHERE z.checked_in = true
+            
+            ORDER BY nr_startowy
+        
+❌ Błąd podczas wykonywania zapytania: column sq.kategoria does not exist
+LINE 13: ...       INNER JOIN start_queue sq ON z.kategoria = sq.kategor...
+                                                              ^
+HINT:  Perhaps you meant to reference the column "z.kategoria".
+
+🔍 Wykonuję zapytanie: 
+        SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub, z.qr_code,
+               w.czas_przejazdu_s, w.status
+        FROM zawodnicy z
+        LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+        ORDER BY z.nr_startowy
+    
+✅ Znaleziono 251 wyników
+🔍 Wykonuję zapytanie: 
+        SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub, z.qr_code,
+               w.czas_przejazdu_s, w.status
+        FROM zawodnicy z
+        LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+        ORDER BY z.nr_startowy
+    
+✅ Znaleziono 251 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT 
+                q.kategoria,
+                q.plec,
+                q.numer_grupy,
+                q.nazwa,
+                COUNT(z.nr_startowy) as liczba_zawodnikow,
+                q.status,
+                q.estimated_time,
+                STRING_AGG(z.nr_startowy::text, ', ' ORDER BY z.nr_startowy) as numery_startowe,
+                STRING_AGG(z.imie || ' ' || z.nazwisko, ', ' ORDER BY z.nr_startowy) as lista_zawodnikow
+            FROM start_queue q
+            LEFT JOIN zawodnicy z ON z.kategoria = q.kategoria AND z.plec = q.plec
+            GROUP BY q.kategoria, q.plec, q.numer_grupy, q.nazwa, q.status, q.estimated_time
+            ORDER BY q.numer_grupy
+        
+❌ Błąd podczas wykonywania zapytania: column q.kategoria does not exist
+LINE 13: ...           LEFT JOIN zawodnicy z ON z.kategoria = q.kategori...
+                                                              ^
+HINT:  Perhaps you meant to reference the column "z.kategoria".
+
+🔍 Wykonuję zapytanie: 
+            SELECT DISTINCT
+                z.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                z.plec,
+                z.klub,
+                z.qr_code,
+                'AKTYWNA_GRUPA' as source_type,
+                z.ostatni_skan
+            FROM zawodnicy z
+            INNER JOIN start_queue sq ON z.kategoria = sq.kategoria AND z.plec = sq.plec
+            WHERE sq.status = 'ACTIVE'
+            
+            UNION
+            
+            SELECT DISTINCT
+                z.nr_startowy,
+                z.imie,
+                z.nazwisko,
+                z.kategoria,
+                z.plec,
+                z.klub,
+                z.qr_code,
+                'SKANOWANY' as source_type,
+                z.ostatni_skan
+            FROM zawodnicy z
+            WHERE z.checked_in = true
+            
+            ORDER BY nr_startowy
+        
+127.0.0.1 - - [10/Jun/2025 16:31:29] "GET /api/start-queue?_t=1749565889890 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:31:32] "GET /api/zawodnicy HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:31:34] "GET /api/qr/dashboard HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 16:31:34] "GET /api/qr/manual-checkins HTTP/1.1" 404 -
+ * Detected change in '/home/mariusz/projekty/drabinka-turniejowa/backend/api_server.py', reloading
+❌ Błąd podczas wykonywania zapytania: column sq.kategoria does not exist
+LINE 13: ...       INNER JOIN start_queue sq ON z.kategoria = sq.kategor...
+                                                              ^
+HINT:  Perhaps you meant to reference the column "z.kategoria".
+
+🔍 Wykonuję zapytanie: 
+        SELECT z.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub, z.qr_code,
+               w.czas_przejazdu_s, w.status
+        FROM zawodnicy z
+        LEFT JOIN wyniki w ON z.nr_startowy = w.nr_startowy
+        ORDER BY z.nr_startowy
+    
+✅ Znaleziono 251 wyników
+ * Restarting with stat
+  File "/home/mariusz/projekty/drabinka-turniejowa/backend/api_server.py", line 833
+    return jsonify({"version": "unknown", "error": str(e)}"), 500
+                                                          ^
+SyntaxError: unterminated string literal (detected at line 833)
