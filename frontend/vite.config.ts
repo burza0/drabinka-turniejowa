@@ -3,7 +3,7 @@ import vue from '@vitejs/plugin-vue'
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
-  const config = {
+  const config: any = {
     plugins: [vue()],
     build: {
       // OPTYMALIZACJA BUNDLE SIZE - v30.5.4
@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => {
         }
       },
       // Kompresja i minifikacja
-      minify: 'terser',
+      minify: true,
       terserOptions: {
         compress: {
           drop_console: mode === 'production', // Usuń console.log w produkcji
@@ -45,7 +45,7 @@ export default defineConfig(({ mode }) => {
     config.server = {
       proxy: {
         '/api': {
-          target: 'http://localhost:5000',
+          target: 'http://localhost:5003',
           changeOrigin: true
         }
       }
