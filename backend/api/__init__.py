@@ -13,6 +13,7 @@ from .zawodnicy import zawodnicy_bp
 from .qr_generation import qr_generation_bp
 from .centrum_startu import centrum_startu_bp
 from .centrum_startu_v2 import centrum_startu_v2_bp
+from .unified_start_api import unified_bp
 from .rankingi import rankingi_bp
 from .drabinka import drabinka_bp
 from .statystyki import statystyki_bp
@@ -40,6 +41,7 @@ def init_app(app: Flask) -> None:
     app.register_blueprint(qr_generation_bp)
     app.register_blueprint(centrum_startu_bp)
     app.register_blueprint(centrum_startu_v2_bp)
+    app.register_blueprint(unified_bp)
     app.register_blueprint(rankingi_bp)
     app.register_blueprint(drabinka_bp)
     app.register_blueprint(statystyki_bp)
@@ -51,6 +53,7 @@ def init_app(app: Flask) -> None:
     print("   🔲 qr_generation_bp - /api/qr/*")
     print("   🏁 centrum_startu_bp - /api/grupy-startowe, /api/scan-qr, /api/grupa-aktywna, /api/start-queue")
     print("   🏁 centrum_startu_v2_bp - /api/v2/* (NOWA WERSJA Z SECTRO)")
+    print("   🚀 unified_bp - /api/unified/* (UNIFIED START CONTROL)")
     print("   📊 rankingi_bp - /api/rankings/*")
     print("   🏆 drabinka_bp - /api/drabinka")
     print("   📈 statystyki_bp - /api/kluby, /api/statystyki, /api/kategorie")

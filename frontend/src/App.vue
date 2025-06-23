@@ -459,9 +459,9 @@
         <SectroView />
       </div>
 
-      <!-- Start Line Scanner -->
-      <div v-if="activeTab === 'start-line'">
-        <StartLineScanner />
+      <!-- Unified Start Control -->
+      <div v-if="activeTab === 'unified-start'">
+        <UnifiedStartControl />
       </div>
 
       <!-- QR Admin Dashboard -->
@@ -527,6 +527,7 @@ import QrPrint from './components/QrPrint.vue'
 import StartLineScanner from './components/StartLineScanner.vue'
 import QrPrintAdvanced from './components/QrPrintAdvanced.vue'
 import Dashboard from './components/Dashboard.vue'
+import UnifiedStartControl from './components/unified/UnifiedStartControl.vue'
 
 
 // Types
@@ -561,7 +562,7 @@ const loading = ref(true)
 const error = ref<string | null>(null)
 const showEditModal = ref(false)
 const selectedZawodnik = ref<Zawodnik | null>(null)
-const activeTab = ref('zawodnicy')
+const activeTab = ref('unified-start')
 const filters = ref({
   kluby: [],
   kategorie: [],
@@ -583,7 +584,7 @@ const tabs = [
   { id: 'drabinka', name: 'Drabinka', icon: TrophyIcon, adminOnly: false },
   { id: 'rankingi', name: 'Rankingi', icon: ListBulletIcon, adminOnly: false },
   { id: 'sectro', name: 'Live Timing', icon: ClockIcon, adminOnly: true },
-  { id: 'start-line', name: 'Centrum Startu', icon: QrCodeIcon, adminOnly: true },
+  { id: 'unified-start', name: 'Unified Start Control', icon: QrCodeIcon, adminOnly: true },
   { id: 'qr-print', name: 'Drukowanie QR', icon: PrinterIcon, adminOnly: true },
   { id: 'qr-dashboard', name: 'QR Dashboard', icon: QrCodeIcon, adminOnly: true },
 ]
