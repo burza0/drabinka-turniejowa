@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-SKATECROSS v35.0 - Centrum Startu v2.0
+SKATECROSS v36.0 - Centrum Startu v2.0
 Zrefaktoryzowana wersja z integracją SECTRO Live Timing
 """
 
@@ -504,4 +504,4 @@ def cleanup_v2():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
-print("🏁 SKATECROSS v35.0 - Centrum Startu v2.0 z integracją SECTRO załadowany!")
+print("🏁 SKATECROSS v36.0 - Centrum Startu v2.0 z integracją SECTRO załadowany!")
