@@ -105,7 +105,7 @@
           <!-- Action button -->
           <div class="space-y-2">
             <button 
-              v-if="!group.is_active && group.liczba_zawodnikow > 0"
+              v-if="group.status !== 'ACTIVE' && group.status !== 'TIMING' && group.liczba_zawodnikow > 0"
               @click="activateGroup(group)"
               :disabled="loading || !!activeGroup"
               class="w-full px-4 py-2 bg-blue-600 disabled:bg-gray-400 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center space-x-2"
@@ -117,7 +117,7 @@
             </button>
             
             <button 
-              v-else-if="group.is_active"
+              v-else-if="group.status === 'ACTIVE' || group.status === 'TIMING'"
               @click="deactivateGroup(group)"
               class="w-full px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors duration-200 flex items-center justify-center space-x-2"
             >
@@ -153,7 +153,7 @@
               
               <button 
                 @click="confirmDeleteGroup(group)"
-                :disabled="group.is_active"
+                :disabled="group.status === 'ACTIVE' || group.status === 'TIMING'"
                 class="flex-1 px-3 py-2 bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg text-sm font-medium hover:bg-red-200 dark:hover:bg-red-900/30 transition-colors duration-200 flex items-center justify-center space-x-1 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -312,12 +312,12 @@ const loadingDetails = ref(false)
 
 // ===== COMPUTED PROPERTIES =====
 const activeGroup = computed(() => 
-  props.groups.find(g => g.is_active)
+  props.groups.find(g => g.status === 'ACTIVE' || g.status === 'TIMING')
 )
 
 // ===== STYLING METHODS =====
 const getGroupCardClass = (group) => {
-  if (group.is_active) {
+  if (group.status === 'ACTIVE' || group.status === 'TIMING') {
     return 'bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border-purple-200 dark:border-purple-700'
   }
   if (group.liczba_zawodnikow > 0) {
@@ -327,7 +327,7 @@ const getGroupCardClass = (group) => {
 }
 
 const getGroupIconClass = (group) => {
-  if (group.is_active) {
+  if (group.status === 'ACTIVE' || group.status === 'TIMING') {
     return 'bg-purple-600 text-white'
   }
   if (group.liczba_zawodnikow > 0) {
@@ -337,7 +337,7 @@ const getGroupIconClass = (group) => {
 }
 
 const getStatusBadgeClass = (group) => {
-  if (group.is_active) {
+  if (group.status === 'ACTIVE' || group.status === 'TIMING') {
     return 'bg-purple-100 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400'
   }
   if (group.liczba_zawodnikow > 0) {
@@ -347,7 +347,9 @@ const getStatusBadgeClass = (group) => {
 }
 
 const getStatusText = (group) => {
-  if (group.is_active) return 'AKTYWNA'
+  if (group.status === 'ACTIVE') return 'AKTYWNA'
+  if (group.status === 'TIMING') return 'POMIARY'
+  if (group.status === 'COMPLETED') return 'ZAKOŃCZONA'
   if (group.liczba_zawodnikow > 0) return 'GOTOWA'
   return 'PUSTA'
 }
@@ -489,7 +491,8 @@ const removeAthleteFromGroup = async (nr_startowy) => {
 }
 
 const confirmDeleteGroup = async (group) => {
-  const message = group.is_active 
+  const isActive = group.status === 'ACTIVE' || group.status === 'TIMING'
+  const message = isActive 
     ? `Grupa "${group.kategoria} ${group.plec}" jest aktywna i ma sesję SECTRO. Czy na pewno chcesz ją wymusić usunięcie?`
     : `Czy na pewno chcesz usunąć grupę "${group.kategoria} ${group.plec}" z ${group.liczba_zawodnikow} zawodnikami?`
   
@@ -497,14 +500,14 @@ const confirmDeleteGroup = async (group) => {
     return
   }
   
-  await deleteGroup(group, group.is_active)
+  await deleteGroup(group, isActive)
 }
 
 const confirmDeleteGroupFromModal = async () => {
   if (!selectedGroup.value || !groupDetails.value) return
   
   const group = selectedGroup.value
-  const isActive = groupDetails.value.group.is_active
+  const isActive = group.status === 'ACTIVE' || group.status === 'TIMING'
   
   const message = isActive
     ? `Grupa ma aktywną sesję SECTRO. Czy na pewno chcesz wymusić usunięcie całej grupy?`

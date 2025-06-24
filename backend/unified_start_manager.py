@@ -388,7 +388,7 @@ class UnifiedStartManager:
         session = get_one("""
             SELECT id, nazwa, status FROM sectro_sessions 
             WHERE kategoria = %s AND plec = %s 
-            AND status IN ('active', 'timing', 'completed')
+            AND status IN ('active', 'timing')
             ORDER BY created_at DESC LIMIT 1
         """, (kategoria, plec))
         
