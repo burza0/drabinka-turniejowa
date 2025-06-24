@@ -249,7 +249,7 @@ class UnifiedStartManager:
                 # Ustaw wyniki jako completed jeśli mają start_time ale nie finish_time
                 execute_query("""
                     UPDATE sectro_results 
-                    SET status = 'completed', finish_time = CURRENT_TIMESTAMP
+                    SET status = 'completed', finish_time = EXTRACT(EPOCH FROM CURRENT_TIMESTAMP)
                     WHERE session_id = %s 
                     AND start_time IS NOT NULL 
                     AND finish_time IS NULL
