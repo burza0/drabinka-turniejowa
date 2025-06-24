@@ -12,7 +12,7 @@
         <div>
           <h2 class="text-xl font-bold text-gray-900 dark:text-white">SECTRO Live Timing</h2>
           <p class="text-sm text-gray-600 dark:text-gray-400">
-            {{ session.kategoria_nazwa }} {{ session.plec }} • {{ session.name }}
+            {{ session.kategoria }} {{ session.plec }} • {{ session.nazwa }}
           </p>
         </div>
       </div>
@@ -47,8 +47,8 @@
         <div class="flex items-center justify-between mb-4">
           <div>
             <div class="text-sm opacity-90">🏃 Aktualnie na trasie:</div>
-            <div class="text-2xl font-bold">{{ currentRunner.imie_nazwisko }}</div>
-            <div class="text-sm opacity-90">{{ currentRunner.klub_nazwa }}</div>
+            <div class="text-2xl font-bold">{{ currentRunner.imie }} {{ currentRunner.nazwisko }}</div>
+            <div class="text-sm opacity-90">{{ currentRunner.klub }}</div>
           </div>
           
           <div class="text-right">
@@ -91,7 +91,7 @@
       <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Kolejka startowa</h3>
       
       <div v-if="queue.length > 0" class="space-y-3">
-        <div v-for="(athlete, index) in queue.slice(0, 10)" :key="athlete.id"
+        <div v-for="(athlete, index) in queue.slice(0, 10)" :key="athlete.nr_startowy"
              :class="getQueueItemClass(athlete, index)"
              class="p-4 rounded-lg border transition-all duration-200">
           
@@ -106,10 +106,10 @@
               <!-- Athlete info -->
               <div>
                 <div class="font-medium text-gray-900 dark:text-white">
-                  {{ athlete.imie_nazwisko }}
+                  {{ athlete.imie }} {{ athlete.nazwisko }} (#{{ athlete.nr_startowy }})
                 </div>
                 <div class="text-sm text-gray-600 dark:text-gray-400">
-                  {{ athlete.klub_nazwa }}
+                  {{ athlete.klub }}
                 </div>
               </div>
             </div>

@@ -107,7 +107,7 @@
             <button 
               v-if="group.status !== 'ACTIVE' && group.status !== 'TIMING' && group.liczba_zawodnikow > 0"
               @click="activateGroup(group)"
-              :disabled="loading || !!activeGroup"
+              :disabled="loading"
               class="w-full px-4 py-2 bg-blue-600 disabled:bg-gray-400 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center space-x-2"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -133,10 +133,7 @@
               Brak zawodników
             </div>
             
-            <div v-else-if="activeGroup && activeGroup.id !== group.id"
-                 class="w-full px-4 py-2 bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 rounded-lg text-center text-sm">
-              Inna grupa aktywna
-            </div>
+
 
             <!-- Management buttons - only show for groups with athletes -->
             <div v-if="group.liczba_zawodnikow > 0" class="flex space-x-2">
@@ -398,14 +395,14 @@ const deactivateGroup = async (group) => {
   console.log('⏹️ Deactivating group:', group)
   
   try {
-    const response = await fetch('/api/unified/activate-group', {
+    const response = await fetch('/api/unified/deactivate-group', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ 
-        kategoria: null,  // Deactivation
-        plec: null 
+        kategoria: group.kategoria,
+        plec: group.plec 
       })
     })
     

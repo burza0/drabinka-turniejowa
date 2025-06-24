@@ -10,7 +10,7 @@ import time
 from datetime import datetime
 
 # Konfiguracja
-BACKEND_URL = "http://localhost:5003"
+BACKEND_URL = "http://localhost:5001"
 TEST_DATA = {
     "test_zawodnik_id": 1,  # ID testowego zawodnika
     "test_kategoria": "Junior B",
