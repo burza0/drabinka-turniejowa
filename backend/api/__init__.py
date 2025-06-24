@@ -51,7 +51,7 @@ def init_app(app: Flask) -> None:
     print("✅ Blueprinty SKATECROSS zarejestrowane:")
     print("   👤 zawodnicy_bp - /api/zawodnicy/*")
     print("   🔲 qr_generation_bp - /api/qr/*")
-    print("   🏁 centrum_startu_bp - /api/grupy-startowe, /api/scan-qr, /api/grupa-aktywna, /api/start-queue")
+    print("   🚫 centrum_startu_bp - LEGACY ENDPOINTS DISABLED (używaj /api/unified/*)")
     print("   🏁 centrum_startu_v2_bp - /api/v2/* (NOWA WERSJA Z SECTRO)")
     print("   🚀 unified_bp - /api/unified/* (UNIFIED START CONTROL)")
     print("   📊 rankingi_bp - /api/rankings/*")

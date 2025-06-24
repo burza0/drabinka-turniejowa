@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 SKATECROSS QR - Centrum Startu API Blueprint
-Wersja: 1.0.0
-System centrum startu i grup startowych
+Wersja: 2.0.0 - v36.1 Legacy Endpoints DISABLED
+System centrum startu - tylko nowoczesne unified API
 """
 
 from flask import Blueprint, jsonify, request
@@ -16,339 +16,74 @@ from utils.database import get_all, get_one, execute_query
 
 centrum_startu_bp = Blueprint('centrum_startu', __name__)
 
-# Cache aktywnej grupy (tymczasowe rozwiązanie)
-aktywna_grupa_cache = {
-    "numer_grupy": None,
-    "kategoria": None,
-    "plec": None,
-    "nazwa": None
-}
+# ==========================================
+# 🚫 LEGACY ENDPOINTS DISABLED v36.1
+# ==========================================
+# Następujące endpoints zostały wyłączone w v36.1:
+# - /api/grupy-startowe → zastąpione przez /api/unified/groups
+# - /api/grupa-aktywna → zastąpione przez /api/unified/activate-group, /api/unified/deactivate-group  
+# - /api/start-queue → zastąpione przez /api/unified/queue
+# - /api/scan-qr → zastąpione przez /api/unified/checkin
 
 @centrum_startu_bp.route('/api/grupy-startowe', methods=['GET'])
-def get_grupy_startowe():
-    """
-    Pobieranie grup startowych z zameldowanymi zawodnikami
-    GET /api/grupy-startowe
-    """
-    try:
-        # Pobierz TYLKO zameldowanych zawodników pogrupowanych po kategoriach i płci
-        # (to jest właściwa logika - grupy startowe to zameldowani zawodnicy!)
-        zawodnicy = get_all("""
-            SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub, qr_code,
-                   COALESCE(checked_in, false) as checked_in
-            FROM zawodnicy 
-            WHERE COALESCE(checked_in, false) = true AND kategoria IS NOT NULL
-            ORDER BY kategoria, plec, nr_startowy
-        """)
-        
-        # Grupuj zawodników po kategoria + plec
-        grupy = {}
-        for zawodnik in zawodnicy:
-            key = f"{zawodnik['kategoria']} {zawodnik['plec']}"
-            if key not in grupy:
-                grupy[key] = []
-            grupy[key].append(zawodnik)
-        
-        # Przekształć na format odpowiedzi z dodatkowymi statystykami
-        grupy_list = []
-        numer_grupy = 1
-        
-        for grupa_nazwa, zawodnicy_list in sorted(grupy.items()):
-            # Wszyscy zawodnicy w tej liście są zameldowani
-            zameldowani_count = len(zawodnicy_list)
-            
-            # Wyodrębnij kategorię i płeć z nazwy grupy
-            kategoria = zawodnicy_list[0]['kategoria']
-            plec = zawodnicy_list[0]['plec']
-            nazwa_grupy = f"Grupa {numer_grupy}: {kategoria} {'Mężczyźni' if plec == 'M' else 'Kobiety'}"
-            
-            grupy_list.append({
-                "numer_grupy": numer_grupy,
-                "nazwa": nazwa_grupy,
-                "kategoria": kategoria,
-                "plec": plec,
-                "zawodnicy": zawodnicy_list,
-                "liczba_zawodnikow": len(zawodnicy_list),
-                "zameldowani": zameldowani_count,
-                "niezameldowani": 0,  # Wszyscy są zameldowani
-                # Dodaj informacje jak w oryginalnej wersji
-                "numery_startowe": ", ".join([str(z["nr_startowy"]) for z in zawodnicy_list]),
-                "lista_zawodnikow": ", ".join([f"{z['imie']} {z['nazwisko']}" for z in zawodnicy_list]),
-                "estimated_time": len(zawodnicy_list) * 20  # sekundy (20s na zawodnika)
-            })
-            numer_grupy += 1
-        
-        return jsonify({
-            "success": True,
-            "data": {
-                "grupy": grupy_list,
-                "total_grup": len(grupy_list),
-                "total_zawodnikow": len(zawodnicy)
+def get_grupy_startowe_disabled():
+    """LEGACY ENDPOINT DISABLED - używaj /api/unified/groups"""
+    return jsonify({
+        "success": False,
+        "error": "Legacy endpoint disabled in v36.1",
+        "migration": {
+            "old_endpoint": "/api/grupy-startowe",
+            "new_endpoint": "/api/unified/groups",
+            "message": "Użyj nowego unified API dla lepszej wydajności i funkcjonalności"
+        }
+    }), 410  # 410 Gone
+
+@centrum_startu_bp.route('/api/grupa-aktywna', methods=['GET', 'POST'])
+def grupa_aktywna_disabled():
+    """LEGACY ENDPOINT DISABLED - używaj unified API"""
+    return jsonify({
+        "success": False,
+        "error": "Legacy endpoint disabled in v36.1",
+        "migration": {
+            "old_endpoint": "/api/grupa-aktywna",
+            "new_endpoints": {
+                "GET": "/api/unified/groups (sprawdź status grup)",
+                "POST activate": "/api/unified/activate-group",
+                "POST deactivate": "/api/unified/deactivate-group"
             },
-            "timestamp": datetime.now().isoformat()
-        })
-        
-    except Exception as e:
-        return jsonify({
-            "success": False,
-            "error": str(e)
-        }), 500
-
-@centrum_startu_bp.route('/api/grupa-aktywna', methods=['GET'])
-def get_grupa_aktywna():
-    """Pobieranie aktywnej grupy"""
-    try:
-        return jsonify({
-            "success": True,
-            "grupa": aktywna_grupa_cache
-        })
-    except Exception as e:
-        return jsonify({
-            "success": False,
-            "error": f"Błąd pobierania aktywnej grupy: {str(e)}"
-        }), 500
-
-@centrum_startu_bp.route('/api/grupa-aktywna', methods=['POST'])
-def set_grupa_aktywna():
-    """Ustawianie/usuwanie aktywnej grupy"""
-    try:
-        data = request.json
-        kategoria = data.get('kategoria')
-        plec = data.get('plec')
-        nazwa = data.get('nazwa')
-        
-        # Sprawdź czy grupa już jest aktywna
-        if (aktywna_grupa_cache["kategoria"] == kategoria and 
-            aktywna_grupa_cache["plec"] == plec):
-            # Deaktywuj grupę
-            aktywna_grupa_cache.update({
-                "numer_grupy": None,
-                "kategoria": None,
-                "plec": None,
-                "nazwa": None
-            })
-            return jsonify({
-                "success": True,
-                "action": "removed",
-                "message": f"Grupa {nazwa} została deaktywowana"
-            })
-        else:
-            # Aktywuj grupę
-            aktywna_grupa_cache.update({
-                "numer_grupy": 1,
-                "kategoria": kategoria,
-                "plec": plec,
-                "nazwa": nazwa
-            })
-            return jsonify({
-                "success": True,
-                "action": "added",
-                "message": f"Grupa {nazwa} została aktywowana"
-            })
-            
-    except Exception as e:
-        return jsonify({
-            "success": False,
-            "error": f"Błąd toggle grupy aktywnej: {str(e)}"
-        }), 500
+            "message": "Unified API zapewnia lepszą kontrolę nad grupami i sesje SECTRO"
+        }
+    }), 410  # 410 Gone
 
 @centrum_startu_bp.route('/api/start-queue', methods=['GET'])
-def get_start_queue():
-    """Pobieranie kolejki startowej"""
-    try:
-        result = []
-        
-        # Dodaj zawodników z aktywnej grupy
-        if aktywna_grupa_cache["kategoria"] and aktywna_grupa_cache["plec"]:
-            zawodnicy_w_grupie = get_all("""
-                SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub, qr_code,
-                       COALESCE(checked_in, false) as checked_in
-                FROM zawodnicy 
-                WHERE kategoria = %s AND plec = %s AND COALESCE(checked_in, false) = true
-                ORDER BY nr_startowy
-            """, (aktywna_grupa_cache["kategoria"], aktywna_grupa_cache["plec"]))
-            
-            for z in zawodnicy_w_grupie:
-                zawodnik_info = dict(z)
-                zawodnik_info["source_type"] = "AKTYWNA_GRUPA"
-                zawodnik_info["ostatni_skan"] = None
-                result.append(zawodnik_info)
-        
-        # Dodaj innych skanowanych zawodników
-        pozostali_zawodnicy = get_all("""
-            SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub, qr_code,
-                   COALESCE(checked_in, false) as checked_in, check_in_time
-            FROM zawodnicy 
-            WHERE COALESCE(checked_in, false) = true
-            ORDER BY check_in_time DESC
-        """)
-        
-        for z in pozostali_zawodnicy:
-            # Usuń duplikaty
-            if not any(r["nr_startowy"] == z["nr_startowy"] for r in result):
-                zawodnik_info = dict(z)
-                zawodnik_info["source_type"] = "SKANOWANY"
-                zawodnik_info["ostatni_skan"] = z.get("check_in_time")
-                result.append(zawodnik_info)
-        
-        return jsonify(result)
-        
-    except Exception as e:
-        return jsonify({"error": f"Błąd pobierania kolejki startowej: {str(e)}"}), 500
-
-@centrum_startu_bp.route('/api/start-queue/all-group-statuses', methods=['GET'])
-def get_all_group_statuses():
-    """Pobieranie statusów wszystkich grup"""
-    try:
-        # Pobierz wszystkie grupy z zawodnikami
-        grupy_stats = get_all("""
-            SELECT 
-                kategoria,
-                plec,
-                COUNT(*) as total_zawodnikow,
-                COUNT(CASE WHEN COALESCE(checked_in, false) = true THEN 1 END) as zameldowani
-            FROM zawodnicy 
-            GROUP BY kategoria, plec
-            ORDER BY kategoria, plec
-        """)
-        
-        result = {}
-        for grupa in grupy_stats:
-            key = f"{grupa['kategoria']} {grupa['plec']}"
-            result[key] = {
-                "total": grupa['total_zawodnikow'],
-                "checked_in": grupa['zameldowani'],
-                "status": "ACTIVE" if (aktywna_grupa_cache["kategoria"] == grupa['kategoria'] and 
-                                    aktywna_grupa_cache["plec"] == grupa['plec']) else "WAITING"
-            }
-        
-        return jsonify(result)
-        
-    except Exception as e:
-        return jsonify({"error": f"Błąd pobierania statusów grup: {str(e)}"}), 500
-
-@centrum_startu_bp.route('/api/start-queue/remove/<int:nr_startowy>', methods=['DELETE'])
-def remove_from_queue(nr_startowy):
-    """Usuwanie zawodnika z kolejki startowej"""
-    try:
-        rows_affected = execute_query("""
-            UPDATE zawodnicy 
-            SET checked_in = false,
-                check_in_time = NULL
-            WHERE nr_startowy = %s
-        """, (nr_startowy,))
-        
-        if rows_affected > 0:
-            return jsonify({
-                "success": True,
-                "message": f"Zawodnik {nr_startowy} usunięty z kolejki"
-            })
-        else:
-            return jsonify({
-                "success": False,
-                "error": "Zawodnik nie znaleziony"
-            }), 404
-            
-    except Exception as e:
-        return jsonify({
-            "success": False,
-            "error": str(e)
-        }), 500
-
-@centrum_startu_bp.route('/api/start-queue/clear', methods=['POST'])
-def clear_queue():
-    """Czyszczenie całej kolejki startowej"""
-    try:
-        rows_affected = execute_query("""
-            UPDATE zawodnicy 
-            SET checked_in = false,
-                check_in_time = NULL
-            WHERE COALESCE(checked_in, false) = true
-        """)
-        
-        return jsonify({
-            "success": True,
-            "message": f"Kolejka wyczyszczona. Usunięto {rows_affected} zawodników."
-        })
-        
-    except Exception as e:
-        return jsonify({
-            "success": False,
-            "error": str(e)
-        }), 500
+def start_queue_disabled():
+    """LEGACY ENDPOINT DISABLED - używaj /api/unified/queue"""
+    return jsonify({
+        "success": False,
+        "error": "Legacy endpoint disabled in v36.1", 
+        "migration": {
+            "old_endpoint": "/api/start-queue",
+            "new_endpoint": "/api/unified/queue",
+            "message": "Nowa kolejka unified zawiera priorytety SECTRO i lepsze sortowanie"
+        }
+    }), 410  # 410 Gone
 
 @centrum_startu_bp.route('/api/scan-qr', methods=['POST'])
-def scan_qr_code():
-    """
-    Endpoint do skanowania kodu QR i meldowania zawodnika
-    POST /api/scan-qr
-    Body: {"qr_code": "QR102", "action": "checkin"}
-    """
-    try:
-        data = request.get_json()
-        
-        if not data or 'qr_code' not in data:
-            return jsonify({
-                "success": False,
-                "error": "Brak kodu QR w żądaniu"
-            }), 400
-        
-        qr_code = data['qr_code']
-        action = data.get('action', 'checkin')  # checkin lub checkout
-        
-        # Znajdź zawodnika po kodzie QR
-        zawodnik = get_one("""
-            SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub, qr_code,
-                   COALESCE(checked_in, false) as checked_in
-            FROM zawodnicy 
-            WHERE qr_code = %s
-        """, (qr_code,))
-        
-        if not zawodnik:
-            return jsonify({
-                "success": False,
-                "error": f"Nie znaleziono zawodnika z kodem QR: {qr_code}"
-            }), 404
-        
-        # Aktualizuj status meldowania
-        new_status = True if action == 'checkin' else False
-        
-        rows_affected = execute_query("""
-            UPDATE zawodnicy 
-            SET checked_in = %s, 
-                check_in_time = CASE WHEN %s = true THEN CURRENT_TIMESTAMP ELSE check_in_time END
-            WHERE qr_code = %s
-        """, (new_status, new_status, qr_code))
-        
-        if rows_affected > 0:
-            # Pobierz zaktualizowane dane zawodnika
-            updated_zawodnik = get_one("""
-                SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub, qr_code,
-                       COALESCE(checked_in, false) as checked_in
-                FROM zawodnicy 
-                WHERE qr_code = %s
-            """, (qr_code,))
-            
-            return jsonify({
-                "success": True,
-                "data": {
-                    "zawodnik": updated_zawodnik,
-                    "action": action,
-                    "message": f"Zawodnik {action}ed pomyślnie"
-                },
-                "timestamp": datetime.now().isoformat()
-            })
-        else:
-            return jsonify({
-                "success": False,
-                "error": "Błąd podczas aktualizacji statusu zawodnika"
-            }), 500
-        
-    except Exception as e:
-        return jsonify({
-            "success": False,
-            "error": str(e)
-        }), 500
+def scan_qr_disabled():
+    """LEGACY ENDPOINT DISABLED - używaj /api/unified/checkin"""
+    return jsonify({
+        "success": False,
+        "error": "Legacy endpoint disabled in v36.1",
+        "migration": {
+            "old_endpoint": "/api/scan-qr",
+            "new_endpoint": "/api/unified/checkin", 
+            "message": "Unified checkin automatycznie dodaje do aktywnych sesji SECTRO"
+        }
+    }), 410  # 410 Gone
+
+# ==========================================
+# ✅ ZACHOWANE NOWOCZESNE ENDPOINTS
+# ==========================================
 
 @centrum_startu_bp.route('/api/centrum-startu/manual-checkin', methods=['POST'])
 def manual_checkin():
@@ -480,4 +215,48 @@ def centrum_stats():
             "error": str(e)
         }), 500
 
-print("🏁 SKATECROSS QR - Moduł Centrum Startu załadowany z Supabase PostgreSQL") 
+# ==========================================
+# 🚫 LEGACY ENDPOINTS CLEANUP (remove from start-queue)
+# ==========================================
+
+@centrum_startu_bp.route('/api/start-queue/remove/<int:nr_startowy>', methods=['DELETE'])
+def remove_from_queue_disabled(nr_startowy):
+    """LEGACY ENDPOINT DISABLED - używaj unified API"""
+    return jsonify({
+        "success": False,
+        "error": "Legacy endpoint disabled in v36.1",
+        "migration": {
+            "old_endpoint": f"/api/start-queue/remove/{nr_startowy}",
+            "new_endpoint": "/api/unified/checkin (z action: checkout)",
+            "message": "Użyj unified checkin/checkout API"
+        }
+    }), 410  # 410 Gone
+
+@centrum_startu_bp.route('/api/start-queue/clear', methods=['POST'])
+def clear_queue_disabled():
+    """LEGACY ENDPOINT DISABLED - używaj unified API"""
+    return jsonify({
+        "success": False,
+        "error": "Legacy endpoint disabled in v36.1",
+        "migration": {
+            "old_endpoint": "/api/start-queue/clear",
+            "new_endpoint": "/api/unified/clear-all (when implemented)",
+            "message": "Bulk operacje dostępne w unified API"
+        }
+    }), 410  # 410 Gone
+
+@centrum_startu_bp.route('/api/start-queue/all-group-statuses', methods=['GET'])
+def get_all_group_statuses_disabled():
+    """LEGACY ENDPOINT DISABLED - używaj /api/unified/groups"""
+    return jsonify({
+        "success": False,
+        "error": "Legacy endpoint disabled in v36.1",
+        "migration": {
+            "old_endpoint": "/api/start-queue/all-group-statuses",
+            "new_endpoint": "/api/unified/groups",
+            "message": "Unified groups API zawiera wszystkie statusy grup z SECTRO"
+        }
+    }), 410  # 410 Gone
+
+print("🏁 SKATECROSS QR - Moduł Centrum Startu załadowany z Supabase PostgreSQL")
+print("🚫 v36.1: Legacy endpoints DISABLED - używaj /api/unified/*") 
