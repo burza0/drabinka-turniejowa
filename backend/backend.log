@@ -28704,3 +28704,155 @@ INFO:werkzeug: * Detected change in '/Users/mariusz/drabinka-turniejowa/backend/
 INFO:werkzeug: * Restarting with stat
 WARNING:werkzeug: * Debugger is active!
 INFO:werkzeug: * Debugger PIN: 518-353-881
+INFO:werkzeug:127.0.0.1 - - [24/Jun/2025 17:16:58] "GET /api/unified/dashboard-data HTTP/1.1" 200 -
+✅ Connection pool zainicjalizowany (1-15 połączeń)
+✅ Connection pool zainicjalizowany (1-15 połączeń)
+🎯 SKATECROSS QR - Połączenie z Supabase PostgreSQL: SUKCES!
+👤 SKATECROSS QR - Moduł Zawodników załadowany z Supabase PostgreSQL
+🔲 SKATECROSS QR - Moduł QR Generation załadowany z Supabase PostgreSQL
+🏁 SKATECROSS QR - Moduł Centrum Startu załadowany z Supabase PostgreSQL
+🚫 v36.1: Legacy endpoints DISABLED - używaj /api/unified/*
+🏁 SKATECROSS v36.0 - Centrum Startu v2.0 z integracją SECTRO załadowany!
+🔄 SKATECROSS QR - Unified Start Manager załadowany
+🔄 SKATECROSS QR - Unified Start API Blueprint załadowany
+📦 SKATECROSS QR - API Module Init loaded
+🔗 Rejestruję blueprinty SKATECROSS...
+✅ Blueprinty SKATECROSS zarejestrowane:
+   👤 zawodnicy_bp - /api/zawodnicy/*
+   🔲 qr_generation_bp - /api/qr/*
+   🚫 centrum_startu_bp - LEGACY ENDPOINTS DISABLED (używaj /api/unified/*)
+   🏁 centrum_startu_v2_bp - /api/v2/* (NOWA WERSJA Z SECTRO)
+   🚀 unified_bp - /api/unified/* (UNIFIED START CONTROL)
+   📊 rankingi_bp - /api/rankings/*
+   🏆 drabinka_bp - /api/drabinka
+   📈 statystyki_bp - /api/kluby, /api/statystyki, /api/kategorie
+   🏅 wyniki_bp - /api/wyniki
+   ℹ️ version endpoint - /api/version
+🔍 Wykonuję zapytanie: 
+                SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub, 
+                       COALESCE(checked_in, false) as checked_in, check_in_time
+                FROM zawodnicy 
+                WHERE COALESCE(checked_in, false) = true 
+                AND kategoria IS NOT NULL 
+                AND plec IS NOT NULL
+                ORDER BY kategoria, plec, nr_startowy
+            
+✅ Znaleziono 5 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT id, nazwa, status, created_at FROM sectro_sessions 
+            WHERE kategoria = %s AND plec = %s 
+            AND status IN ('active', 'timing')
+            ORDER BY created_at DESC
+         z parametrami: ('Junior A', 'M')
+✅ Znaleziono 1 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT id, nazwa, status, created_at FROM sectro_sessions 
+            WHERE kategoria = %s AND plec = %s 
+            AND status IN ('active', 'timing')
+            ORDER BY created_at DESC
+         z parametrami: ('Junior B', 'M')
+ℹ️ Zapytanie nie zwróciło żadnych wyników
+🔍 Wykonuję zapytanie: 
+            SELECT id, nazwa, status, created_at FROM sectro_sessions 
+            WHERE kategoria = %s AND plec = %s 
+            AND status IN ('active', 'timing')
+            ORDER BY created_at DESC
+         z parametrami: ('Junior D', 'K')
+ℹ️ Zapytanie nie zwróciło żadnych wyników
+🔍 Wykonuję zapytanie: 
+            SELECT id, nazwa, status, created_at FROM sectro_sessions 
+            WHERE kategoria = %s AND plec = %s 
+            AND status IN ('active', 'timing')
+            ORDER BY created_at DESC
+         z parametrami: ('Masters', 'K')
+ℹ️ Zapytanie nie zwróciło żadnych wyników
+🔍 Wykonuję zapytanie: 
+                SELECT 
+                    z.nr_startowy,
+                    z.imie,
+                    z.nazwisko, 
+                    z.kategoria,
+                    z.plec,
+                    z.klub,
+                    z.checked_in,
+                    z.check_in_time,
+                    
+                    -- SECTRO data
+                    s.id as session_id,
+                    s.nazwa as session_name,
+                    s.status as session_status,
+                    r.status as sectro_status,
+                    r.start_time,
+                    r.finish_time,
+                    r.total_time,
+                    
+                    -- Unified status calculation
+                    CASE 
+                        WHEN r.total_time IS NOT NULL THEN 'FINISHED'
+                        WHEN r.start_time IS NOT NULL THEN 'TIMING' 
+                        WHEN r.session_id IS NOT NULL THEN 'READY'
+                        WHEN z.checked_in = true THEN 'REGISTERED'
+                        ELSE 'WAITING'
+                    END as unified_status,
+                    
+                    -- Source type
+                    CASE
+                        WHEN s.status IN ('active', 'timing') THEN 'SECTRO_ACTIVE'
+                        WHEN z.checked_in = true THEN 'CHECKED_IN'
+                        ELSE 'MANUAL'
+                    END as source_type,
+                    
+                    -- Priority for sorting
+                    CASE 
+                        WHEN r.start_time IS NOT NULL AND r.finish_time IS NULL THEN 1  -- Currently timing
+                        WHEN s.status = 'active' AND r.session_id IS NOT NULL THEN 2   -- Ready in active session
+                        WHEN z.checked_in = true THEN 3                                -- Checked in
+                        ELSE 4                                                          -- Others
+                    END as priority
+                    
+                FROM zawodnicy z
+                LEFT JOIN sectro_results r ON z.nr_startowy = r.nr_startowy
+                LEFT JOIN sectro_sessions s ON r.session_id = s.id
+                WHERE z.checked_in = true OR r.session_id IS NOT NULL
+                ORDER BY priority ASC, s.created_at DESC, r.start_time DESC, z.check_in_time DESC, z.nr_startowy ASC
+            
+✅ Znaleziono 7 wyników
+🔍 Wykonuję zapytanie: 
+                SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub, 
+                       COALESCE(checked_in, false) as checked_in, check_in_time
+                FROM zawodnicy 
+                WHERE COALESCE(checked_in, false) = true 
+                AND kategoria IS NOT NULL 
+                AND plec IS NOT NULL
+                ORDER BY kategoria, plec, nr_startowy
+            
+✅ Znaleziono 5 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT id, nazwa, status, created_at FROM sectro_sessions 
+            WHERE kategoria = %s AND plec = %s 
+            AND status IN ('active', 'timing')
+            ORDER BY created_at DESC
+         z parametrami: ('Junior A', 'M')
+✅ Znaleziono 1 wyników
+🔍 Wykonuję zapytanie: 
+            SELECT id, nazwa, status, created_at FROM sectro_sessions 
+            WHERE kategoria = %s AND plec = %s 
+            AND status IN ('active', 'timing')
+            ORDER BY created_at DESC
+         z parametrami: ('Junior B', 'M')
+ℹ️ Zapytanie nie zwróciło żadnych wyników
+🔍 Wykonuję zapytanie: 
+            SELECT id, nazwa, status, created_at FROM sectro_sessions 
+            WHERE kategoria = %s AND plec = %s 
+            AND status IN ('active', 'timing')
+            ORDER BY created_at DESC
+         z parametrami: ('Junior D', 'K')
+ℹ️ Zapytanie nie zwróciło żadnych wyników
+🔍 Wykonuję zapytanie: 
+            SELECT id, nazwa, status, created_at FROM sectro_sessions 
+            WHERE kategoria = %s AND plec = %s 
+            AND status IN ('active', 'timing')
+            ORDER BY created_at DESC
+         z parametrami: ('Masters', 'K')
+ℹ️ Zapytanie nie zwróciło żadnych wyników
+INFO:werkzeug:127.0.0.1 - - [24/Jun/2025 17:18:18] "GET /api/unified/dashboard-data HTTP/1.1" 200 -
