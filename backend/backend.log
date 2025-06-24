@@ -25874,3 +25874,213 @@ INFO:werkzeug:127.0.0.1 - - [24/Jun/2025 16:48:13] "GET /api/zawodnicy?limit=100
 INFO:werkzeug:127.0.0.1 - - [24/Jun/2025 16:48:27] "GET /api/zawodnicy?limit=1000 HTTP/1.1" 200 -
 INFO:werkzeug:127.0.0.1 - - [24/Jun/2025 16:48:43] "GET /api/zawodnicy?limit=1000 HTTP/1.1" 200 -
 INFO:werkzeug:127.0.0.1 - - [24/Jun/2025 16:48:57] "GET /api/zawodnicy?limit=1000 HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [24/Jun/2025 16:49:13] "GET /api/zawodnicy?limit=1000 HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [24/Jun/2025 16:50:17] "GET /api/zawodnicy?limit=1000 HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [24/Jun/2025 16:51:37] "GET /api/zawodnicy?limit=1000 HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [24/Jun/2025 16:52:57] "GET /api/zawodnicy?limit=1000 HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [24/Jun/2025 16:53:27] "GET /api/zawodnicy?limit=1000 HTTP/1.1" 200 -
+🔍 Wykonuję zapytanie: 
+                SELECT 
+                    z.nr_startowy,
+                    z.imie,
+                    z.nazwisko, 
+                    z.kategoria,
+                    z.plec,
+                    z.klub,
+                    z.checked_in,
+                    z.check_in_time,
+                    
+                    -- SECTRO data
+                    s.id as session_id,
+                    s.nazwa as session_name,
+                    s.status as session_status,
+                    r.status as sectro_status,
+                    r.start_time,
+                    r.finish_time,
+                    r.total_time,
+                    
+                    -- Unified status calculation
+                    CASE 
+                        WHEN r.total_time IS NOT NULL THEN 'FINISHED'
+                        WHEN r.start_time IS NOT NULL THEN 'TIMING' 
+                        WHEN r.session_id IS NOT NULL THEN 'READY'
+                        WHEN z.checked_in = true THEN 'REGISTERED'
+                        ELSE 'WAITING'
+                    END as unified_status,
+                    
+                    -- Source type
+                    CASE
+                        WHEN s.status IN ('active', 'timing') THEN 'SECTRO_ACTIVE'
+                        WHEN z.checked_in = true THEN 'CHECKED_IN'
+                        ELSE 'MANUAL'
+                    END as source_type,
+                    
+                    -- Priority for sorting
+                    CASE 
+                        WHEN r.start_time IS NOT NULL AND r.finish_time IS NULL THEN 1  -- Currently timing
+                        WHEN s.status = 'active' AND r.session_id IS NOT NULL THEN 2   -- Ready in active session
+                        WHEN z.checked_in = true THEN 3                                -- Checked in
+                        ELSE 4                                                          -- Others
+                    END as priority
+                    
+                FROM zawodnicy z
+                LEFT JOIN sectro_results r ON z.nr_startowy = r.nr_startowy
+                LEFT JOIN sectro_sessions s ON r.session_id = s.id
+                WHERE z.checked_in = true OR r.session_id IS NOT NULL
+                ORDER BY priority ASC, s.created_at DESC, r.start_time DESC, z.check_in_time DESC, z.nr_startowy ASC
+            
+✅ Znaleziono 21 wyników
+🔍 Wykonuję zapytanie: 
+        SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub, qr_code, 
+               COALESCE(checked_in, false) as checked_in
+        FROM zawodnicy 
+        ORDER BY nr_startowy 
+        LIMIT %s OFFSET %s
+     z parametrami: (1000, 0)
+✅ Znaleziono 251 wyników
+🔍 Wykonuję zapytanie: 
+        SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub, qr_code, 
+               COALESCE(checked_in, false) as checked_in
+        FROM zawodnicy 
+        ORDER BY nr_startowy 
+        LIMIT %s OFFSET %s
+     z parametrami: (1000, 0)
+✅ Znaleziono 251 wyników
+🔍 Wykonuję zapytanie: 
+        SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub, qr_code, 
+               COALESCE(checked_in, false) as checked_in
+        FROM zawodnicy 
+        ORDER BY nr_startowy 
+        LIMIT %s OFFSET %s
+     z parametrami: (1000, 0)
+✅ Znaleziono 251 wyników
+🔍 Wykonuję zapytanie: 
+        SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub, qr_code, 
+               COALESCE(checked_in, false) as checked_in
+        FROM zawodnicy 
+        ORDER BY nr_startowy 
+        LIMIT %s OFFSET %s
+     z parametrami: (1000, 0)
+✅ Znaleziono 251 wyników
+🔍 Wykonuję zapytanie: 
+        SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub, qr_code, 
+               COALESCE(checked_in, false) as checked_in
+        FROM zawodnicy 
+        ORDER BY nr_startowy 
+        LIMIT %s OFFSET %s
+     z parametrami: (1000, 0)
+✅ Znaleziono 251 wyników
+🔍 Wykonuję zapytanie: 
+        SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub, qr_code, 
+               COALESCE(checked_in, false) as checked_in
+        FROM zawodnicy 
+        ORDER BY nr_startowy 
+        LIMIT %s OFFSET %s
+     z parametrami: (1000, 0)
+✅ Znaleziono 251 wyników
+🔍 Wykonuję zapytanie: 
+        SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub, qr_code, 
+               COALESCE(checked_in, false) as checked_in
+        FROM zawodnicy 
+        ORDER BY nr_startowy 
+        LIMIT %s OFFSET %s
+     z parametrami: (1000, 0)
+✅ Znaleziono 251 wyników
+🔍 Wykonuję zapytanie: 
+        SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub, qr_code, 
+               COALESCE(checked_in, false) as checked_in
+        FROM zawodnicy 
+        ORDER BY nr_startowy 
+        LIMIT %s OFFSET %s
+     z parametrami: (1000, 0)
+✅ Znaleziono 251 wyników
+🔍 Wykonuję zapytanie: 
+        SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub, qr_code, 
+               COALESCE(checked_in, false) as checked_in
+        FROM zawodnicy 
+        ORDER BY nr_startowy 
+        LIMIT %s OFFSET %s
+     z parametrami: (1000, 0)
+✅ Znaleziono 251 wyników
+🔍 Wykonuję zapytanie: 
+        SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub, qr_code, 
+               COALESCE(checked_in, false) as checked_in
+        FROM zawodnicy 
+        ORDER BY nr_startowy 
+        LIMIT %s OFFSET %s
+     z parametrami: (1000, 0)
+✅ Znaleziono 251 wyników
+🔍 Wykonuję zapytanie: 
+        SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub, qr_code, 
+               COALESCE(checked_in, false) as checked_in
+        FROM zawodnicy 
+        ORDER BY nr_startowy 
+        LIMIT %s OFFSET %s
+     z parametrami: (1000, 0)
+✅ Znaleziono 251 wyników
+🔍 Wykonuję zapytanie: 
+        SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub, qr_code, 
+               COALESCE(checked_in, false) as checked_in
+        FROM zawodnicy 
+        ORDER BY nr_startowy 
+        LIMIT %s OFFSET %s
+     z parametrami: (1000, 0)
+✅ Znaleziono 251 wyników
+🔍 Wykonuję zapytanie: 
+        SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub, qr_code, 
+               COALESCE(checked_in, false) as checked_in
+        FROM zawodnicy 
+        ORDER BY nr_startowy 
+        LIMIT %s OFFSET %s
+     z parametrami: (1000, 0)
+✅ Znaleziono 251 wyników
+🔍 Wykonuję zapytanie: 
+        SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub, qr_code, 
+               COALESCE(checked_in, false) as checked_in
+        FROM zawodnicy 
+        ORDER BY nr_startowy 
+        LIMIT %s OFFSET %s
+     z parametrami: (1000, 0)
+✅ Znaleziono 251 wyników
+🔍 Wykonuję zapytanie: 
+        SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub, qr_code, 
+               COALESCE(checked_in, false) as checked_in
+        FROM zawodnicy 
+        ORDER BY nr_startowy 
+        LIMIT %s OFFSET %s
+     z parametrami: (1000, 0)
+✅ Znaleziono 251 wyników
+🔍 Wykonuję zapytanie: 
+        SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub, qr_code, 
+               COALESCE(checked_in, false) as checked_in
+        FROM zawodnicy 
+        ORDER BY nr_startowy 
+        LIMIT %s OFFSET %s
+     z parametrami: (1000, 0)
+✅ Znaleziono 251 wyników
+🔍 Wykonuję zapytanie: 
+        SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub, qr_code, 
+               COALESCE(checked_in, false) as checked_in
+        FROM zawodnicy 
+        ORDER BY nr_startowy 
+        LIMIT %s OFFSET %s
+     z parametrami: (1000, 0)
+✅ Znaleziono 251 wyników
+🔍 Wykonuję zapytanie: 
+                SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub, 
+                       COALESCE(checked_in, false) as checked_in, check_in_time
+                FROM zawodnicy 
+                WHERE COALESCE(checked_in, false) = true 
+                AND kategoria IS NOT NULL 
+                AND plec IS NOT NULL
+                ORDER BY kategoria, plec, nr_startowy
+            
+✅ Znaleziono 6 wyników
+INFO:werkzeug:127.0.0.1 - - [24/Jun/2025 16:53:29] "GET /api/unified/dashboard-data HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [24/Jun/2025 16:53:29] "GET /api/sectro/sessions/68/results HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [24/Jun/2025 16:53:32] "GET /api/kluby HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [24/Jun/2025 16:53:32] "GET /api/zawodnicy?page=1&limit=50 HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [24/Jun/2025 16:53:33] "GET /api/unified/dashboard-data HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [24/Jun/2025 16:53:33] "GET /api/sectro/sessions/68/results HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [24/Jun/2025 16:53:34] "GET /api/zawodnicy?limit=1000 HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [24/Jun/2025 16:53:47] "[31m[1mPUT /api/zawodnicy/1 HTTP/1.1[0m" 405 -
