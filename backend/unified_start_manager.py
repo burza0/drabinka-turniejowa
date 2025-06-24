@@ -76,6 +76,7 @@ class UnifiedStartManager:
     def activate_group_unified(self, kategoria, plec, nazwa=None):
         """
         Unified aktywacja grupy z automatycznym tworzeniem sesji SECTRO
+        NAPRAWIONE v36.1: Sprawdza duplikaty i blokuje wiele aktywnych sesji
         
         Args:
             kategoria: kategoria zawodników
@@ -83,6 +84,23 @@ class UnifiedStartManager:
             nazwa: opcjonalna nazwa sesji
         """
         try:
+            # 🔥 PUNKT 2.1.1: Sprawdź czy istnieją inne aktywne sesje
+            other_active_sessions = get_all("""
+                SELECT id, nazwa, kategoria, plec, status 
+                FROM sectro_sessions 
+                WHERE status IN ('active', 'timing')
+                AND NOT (kategoria = %s AND plec = %s)
+            """, (kategoria, plec))
+            
+            if other_active_sessions:
+                session_list = [f"#{s['id']} {s['kategoria']}-{s['plec']} ({s['nazwa']})" for s in other_active_sessions]
+                return {
+                    'success': False, 
+                    'error': f'Tylko jedna grupa może być aktywna jednocześnie. Aktywne sesje: {", ".join(session_list)}',
+                    'active_sessions': other_active_sessions,
+                    'action': 'blocked_by_other_active'
+                }
+            
             # Sprawdź zameldowanych zawodników w grupie
             athletes = get_all("""
                 SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub
@@ -94,24 +112,53 @@ class UnifiedStartManager:
             if not athletes:
                 return {'success': False, 'error': 'Brak zameldowanych zawodników w grupie'}
             
-            # Sprawdź czy już istnieje aktywna sesja dla tej grupy
-            existing_session = get_one("""
-                SELECT id, nazwa, status FROM sectro_sessions 
+            # 🔥 PUNKT 2.1.2: Sprawdź czy już istnieje aktywna sesja dla tej grupy (powinno być tylko 1)
+            existing_sessions = get_all("""
+                SELECT id, nazwa, status, created_at FROM sectro_sessions 
                 WHERE kategoria = %s AND plec = %s 
                 AND status IN ('active', 'timing')
-                ORDER BY created_at DESC LIMIT 1
+                ORDER BY created_at DESC
             """, (kategoria, plec))
             
-            if existing_session:
-                return {
-                    'success': True,
-                    'action': 'already_active',
-                    'session': existing_session,
-                    'athletes_count': len(athletes),
-                    'message': f'Grupa już ma aktywną sesję SECTRO #{existing_session["id"]}'
-                }
+            if existing_sessions:
+                if len(existing_sessions) > 1:
+                    # DUPLIKATY! Anuluj starsze
+                    latest_session = existing_sessions[0]
+                    older_sessions = existing_sessions[1:]
+                    
+                    for old_session in older_sessions:
+                        execute_query("""
+                            UPDATE sectro_sessions 
+                            SET status = 'cancelled', end_time = CURRENT_TIMESTAMP
+                            WHERE id = %s
+                        """, (old_session['id'],))
+                        
+                        execute_query("""
+                            INSERT INTO sectro_logs (session_id, log_type, message, created_at)
+                            VALUES (%s, 'WARNING', %s, CURRENT_TIMESTAMP)
+                        """, (old_session['id'], f'AUTO-CANCELLED duplicate session for {kategoria}-{plec}'))
+                    
+                    # Zwróć najnowszą sesję
+                    return {
+                        'success': True,
+                        'action': 'cleaned_duplicates',
+                        'session': latest_session,
+                        'athletes_count': len(athletes),
+                        'cancelled_duplicates': len(older_sessions),
+                        'message': f'Grupa już aktywna w sesji #{latest_session["id"]}. Wyczyszczono {len(older_sessions)} duplikatów.'
+                    }
+                else:
+                    # Tylko 1 sesja - OK
+                    session = existing_sessions[0]
+                    return {
+                        'success': True,
+                        'action': 'already_active',
+                        'session': session,
+                        'athletes_count': len(athletes),
+                        'message': f'Grupa już ma aktywną sesję SECTRO #{session["id"]}'
+                    }
             
-            # Utwórz nową sesję SECTRO automatycznie
+            # 🔥 PUNKT 2.1.3: Utwórz nową sesję SECTRO automatycznie
             if not nazwa:
                 plec_nazwa = 'Mężczyźni' if plec == 'M' else 'Kobiety'
                 nazwa = f'Auto: {kategoria} {plec_nazwa}'
@@ -129,7 +176,8 @@ class UnifiedStartManager:
                     'wejscie_finish': 4,
                     'auto_created': True,
                     'created_from_group': f'{kategoria}_{plec}',
-                    'athletes_count': len(athletes)
+                    'athletes_count': len(athletes),
+                    'created_by': 'unified_start_manager_v36.1'
                 })
             ))
             
@@ -145,7 +193,7 @@ class UnifiedStartManager:
             execute_query("""
                 INSERT INTO sectro_logs (session_id, log_type, message, created_at)
                 VALUES (%s, 'INFO', %s, CURRENT_TIMESTAMP)
-            """, (session_id, f'Auto-created unified session for {nazwa} with {len(athletes)} athletes'))
+            """, (session_id, f'v36.1 Auto-created unified session for {nazwa} with {len(athletes)} athletes'))
             
             # Pobierz utworzoną sesję
             session = get_one("""
@@ -169,40 +217,67 @@ class UnifiedStartManager:
             return {'success': False, 'error': f'Błąd aktywacji grupy: {str(e)}'}
     
     def deactivate_group_unified(self, kategoria, plec):
-        """Deaktywuje grupę i kończy sesję SECTRO"""
+        """
+        Deaktywuje grupę i kończy sesję SECTRO
+        NAPRAWIONE v36.1: Cleanup duplikatów i proper resource cleanup
+        """
         try:
-            # Znajdź aktywną sesję
-            session = get_one("""
-                SELECT id, nazwa FROM sectro_sessions 
+            # 🔥 PUNKT 2.1.5: Znajdź WSZYSTKIE aktywne sesje dla grupy
+            sessions = get_all("""
+                SELECT id, nazwa, status FROM sectro_sessions 
                 WHERE kategoria = %s AND plec = %s 
                 AND status IN ('active', 'timing')
-                ORDER BY created_at DESC LIMIT 1
+                ORDER BY created_at DESC
             """, (kategoria, plec))
             
-            if not session:
+            if not sessions:
                 return {'success': False, 'error': 'Brak aktywnej sesji do deaktywacji'}
             
-            # Zakończ sesję
-            execute_query("""
-                UPDATE sectro_sessions 
-                SET status = 'completed', end_time = CURRENT_TIMESTAMP
-                WHERE id = %s
-            """, (session['id'],))
+            deactivated_count = 0
+            session_names = []
             
-            # Zaloguj
-            execute_query("""
-                INSERT INTO sectro_logs (session_id, log_type, message, created_at)
-                VALUES (%s, 'INFO', %s, CURRENT_TIMESTAMP)
-            """, (session['id'], 'Session manually deactivated via unified system'))
+            # Zakończ WSZYSTKIE aktywne sesje dla grupy
+            for session in sessions:
+                # Zakończ sesję
+                execute_query("""
+                    UPDATE sectro_sessions 
+                    SET status = 'completed', end_time = CURRENT_TIMESTAMP
+                    WHERE id = %s
+                """, (session['id'],))
+                
+                # 🔥 PUNKT 2.1.6: Cleanup powiązanych danych
+                # Ustaw wyniki jako completed jeśli mają start_time ale nie finish_time
+                execute_query("""
+                    UPDATE sectro_results 
+                    SET status = 'completed', finish_time = CURRENT_TIMESTAMP
+                    WHERE session_id = %s 
+                    AND start_time IS NOT NULL 
+                    AND finish_time IS NULL
+                """, (session['id'],))
+                
+                # Zaloguj
+                execute_query("""
+                    INSERT INTO sectro_logs (session_id, log_type, message, created_at)
+                    VALUES (%s, 'INFO', %s, CURRENT_TIMESTAMP)
+                """, (session['id'], f'v36.1 Session manually deactivated via unified system (#{session["id"]} of {len(sessions)} sessions)'))
+                
+                deactivated_count += 1
+                session_names.append(f'#{session["id"]} {session["nazwa"]}')
             
             # Wyczyść cache
             self.active_session_cache = None
             
+            message = f'Grupa deaktywowana: {deactivated_count} sesji zakończonych'
+            if deactivated_count > 1:
+                message += f' (CLEANUP DUPLIKATÓW!)'
+            
             return {
                 'success': True,
                 'action': 'deactivated',
-                'session_id': session['id'],
-                'message': f'Grupa deaktywowana, sesja {session["nazwa"]} zakończona'
+                'sessions_deactivated': deactivated_count,
+                'session_names': session_names,
+                'cleanup_duplicates': deactivated_count > 1,
+                'message': message
             }
             
         except Exception as e:
@@ -384,31 +459,61 @@ class UnifiedStartManager:
         """, (session_id, nr_startowy))
     
     def _get_sectro_info_for_group(self, kategoria, plec):
-        """Pobierz informacje SECTRO dla grupy"""
-        session = get_one("""
-            SELECT id, nazwa, status FROM sectro_sessions 
+        """
+        Pobierz informacje SECTRO dla grupy
+        NAPRAWIONE v36.1: Sprawdza duplikaty i auto-cleanup
+        """
+        sessions = get_all("""
+            SELECT id, nazwa, status, created_at FROM sectro_sessions 
             WHERE kategoria = %s AND plec = %s 
             AND status IN ('active', 'timing')
-            ORDER BY created_at DESC LIMIT 1
+            ORDER BY created_at DESC
         """, (kategoria, plec))
         
-        if session:
-            status_map = {
-                'active': 'ACTIVE',
-                'timing': 'TIMING', 
-                'completed': 'COMPLETED'
-            }
-            return {
-                'session_id': session['id'],
-                'session_name': session['nazwa'],
-                'status': status_map.get(session['status'], 'WAITING')
-            }
-        else:
+        if not sessions:
             return {
                 'session_id': None,
                 'session_name': None,
                 'status': 'WAITING'
             }
+        
+        # 🔥 PUNKT 2.1.4: Auto-cleanup duplikatów w locie
+        if len(sessions) > 1:
+            latest_session = sessions[0]
+            older_sessions = sessions[1:]
+            
+            # Anuluj starsze duplikaty
+            for old_session in older_sessions:
+                try:
+                    execute_query("""
+                        UPDATE sectro_sessions 
+                        SET status = 'cancelled', end_time = CURRENT_TIMESTAMP
+                        WHERE id = %s
+                    """, (old_session['id'],))
+                    
+                    execute_query("""
+                        INSERT INTO sectro_logs (session_id, log_type, message, created_at)
+                        VALUES (%s, 'WARNING', %s, CURRENT_TIMESTAMP)
+                    """, (old_session['id'], f'AUTO-CLEANUP duplicate session for {kategoria}-{plec} via _get_sectro_info_for_group'))
+                except Exception as e:
+                    print(f"⚠️ Błąd auto-cleanup sesji #{old_session['id']}: {e}")
+            
+            print(f"🧹 Auto-cleaned {len(older_sessions)} duplicate sessions for {kategoria}-{plec}")
+            session = latest_session
+        else:
+            session = sessions[0]
+        
+        status_map = {
+            'active': 'ACTIVE',
+            'timing': 'TIMING', 
+            'completed': 'COMPLETED'
+        }
+        
+        return {
+            'session_id': session['id'],
+            'session_name': session['nazwa'],
+            'status': status_map.get(session['status'], 'WAITING')
+        }
     
     def _get_current_active_session(self):
         """Pobierz aktualnie aktywną sesję"""
