@@ -137,7 +137,7 @@ class UnifiedStartManager:
             for athlete in athletes:
                 execute_query("""
                     INSERT INTO sectro_results (session_id, nr_startowy, status, created_at)
-                    VALUES (%s, %s, 'waiting', CURRENT_TIMESTAMP)
+                    VALUES (%s, %s, 'in_progress', CURRENT_TIMESTAMP)
                     ON CONFLICT (session_id, nr_startowy) DO NOTHING
                 """, (session_id, athlete['nr_startowy']))
             
@@ -379,7 +379,7 @@ class UnifiedStartManager:
         """Dodaj zawodnika do sesji SECTRO"""
         execute_query("""
             INSERT INTO sectro_results (session_id, nr_startowy, status, created_at)
-            VALUES (%s, %s, 'waiting', CURRENT_TIMESTAMP)
+            VALUES (%s, %s, 'in_progress', CURRENT_TIMESTAMP)
             ON CONFLICT (session_id, nr_startowy) DO NOTHING
         """, (session_id, nr_startowy))
     
@@ -454,5 +454,218 @@ class UnifiedStartManager:
         except Exception as e:
             print(f"❌ Błąd _get_unified_stats: {e}")
             return {}
+
+    def get_group_details(self, kategoria, plec):
+        """
+        Pobiera szczegóły grupy z listą zawodników
+        
+        Args:
+            kategoria: kategoria zawodników
+            plec: płeć zawodników
+        """
+        try:
+            # Pobierz zameldowanych zawodników w grupie
+            athletes = get_all("""
+                SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub,
+                       COALESCE(checked_in, false) as checked_in, check_in_time
+                FROM zawodnicy 
+                WHERE kategoria = %s AND plec = %s AND COALESCE(checked_in, false) = true
+                ORDER BY nr_startowy
+            """, (kategoria, plec))
+            
+            # Sprawdź sesję SECTRO
+            session = get_one("""
+                SELECT id, nazwa, status, created_at, end_time
+                FROM sectro_sessions 
+                WHERE kategoria = %s AND plec = %s 
+                ORDER BY created_at DESC LIMIT 1
+            """, (kategoria, plec))
+            
+            # Sprawdź wyniki SECTRO dla zawodników w grupie
+            if session:
+                results = get_all("""
+                    SELECT r.nr_startowy, r.status, r.start_time, r.finish_time, r.total_time
+                    FROM sectro_results r
+                    WHERE r.session_id = %s
+                    ORDER BY r.nr_startowy
+                """, (session['id'],))
+            else:
+                results = []
+            
+            return {
+                'success': True,
+                'data': {
+                    'group': {
+                        'kategoria': kategoria,
+                        'plec': plec,
+                        'athletes_count': len(athletes),
+                        'is_active': session and session['status'] in ['active', 'timing'] if session else False
+                    },
+                    'athletes': athletes,
+                    'session': session,
+                    'results': results
+                }
+            }
+            
+        except Exception as e:
+            return {'success': False, 'error': f'Błąd pobierania szczegółów grupy: {str(e)}'}
+
+    def remove_athlete_from_group(self, nr_startowy, kategoria=None, plec=None):
+        """
+        Usuwa zawodnika z grupy (check-out)
+        
+        Args:
+            nr_startowy: numer startowy zawodnika
+            kategoria: opcjonalna kategoria (do walidacji)
+            plec: opcjonalna płeć (do walidacji)
+        """
+        try:
+            # Znajdź zawodnika
+            athlete = get_one("""
+                SELECT nr_startowy, imie, nazwisko, kategoria, plec, 
+                       COALESCE(checked_in, false) as checked_in
+                FROM zawodnicy 
+                WHERE nr_startowy = %s
+            """, (nr_startowy,))
+            
+            if not athlete:
+                return {'success': False, 'error': 'Zawodnik nie znaleziony'}
+            
+            if not athlete['checked_in']:
+                return {'success': False, 'error': 'Zawodnik nie jest zameldowany'}
+            
+            # Walidacja kategorii/płci jeśli podane
+            if kategoria and athlete['kategoria'] != kategoria:
+                return {'success': False, 'error': 'Nieprawidłowa kategoria zawodnika'}
+            
+            if plec and athlete['plec'] != plec:
+                return {'success': False, 'error': 'Nieprawidłowa płeć zawodnika'}
+            
+            # Sprawdź czy zawodnik jest w aktywnej sesji SECTRO
+            active_result = get_one("""
+                SELECT r.id, s.nazwa as session_name, r.status, r.start_time, r.finish_time
+                FROM sectro_results r
+                JOIN sectro_sessions s ON r.session_id = s.id
+                WHERE r.nr_startowy = %s AND s.status IN ('active', 'timing')
+                AND r.start_time IS NOT NULL AND r.finish_time IS NULL
+            """, (nr_startowy,))
+            
+            if active_result:
+                return {
+                    'success': False, 
+                    'error': f'Zawodnik jest obecnie w trakcie pomiaru w sesji "{active_result["session_name"]}". Nie można usunąć z grupy.'
+                }
+            
+            # Usuń z meldowania
+            execute_query("""
+                UPDATE zawodnicy 
+                SET checked_in = false, check_in_time = NULL
+                WHERE nr_startowy = %s
+            """, (nr_startowy,))
+            
+            # Usuń z sesji SECTRO jeśli nie ma pomiarów
+            execute_query("""
+                DELETE FROM sectro_results 
+                WHERE nr_startowy = %s 
+                AND start_time IS NULL AND finish_time IS NULL
+            """, (nr_startowy,))
+            
+            return {
+                'success': True,
+                'athlete': athlete,
+                'message': f'Zawodnik #{nr_startowy} {athlete["imie"]} {athlete["nazwisko"]} usunięty z grupy'
+            }
+            
+        except Exception as e:
+            return {'success': False, 'error': f'Błąd usuwania zawodnika z grupy: {str(e)}'}
+
+    def delete_group(self, kategoria, plec, force=False):
+        """
+        Usuwa całą grupę (check-out wszystkich zawodników)
+        
+        Args:
+            kategoria: kategoria grupy
+            plec: płeć grupy
+            force: czy wymusić usunięcie aktywnej grupy
+        """
+        try:
+            # Znajdź zawodników w grupie
+            athletes = get_all("""
+                SELECT nr_startowy, imie, nazwisko, COALESCE(checked_in, false) as checked_in
+                FROM zawodnicy 
+                WHERE kategoria = %s AND plec = %s AND COALESCE(checked_in, false) = true
+                ORDER BY nr_startowy
+            """, (kategoria, plec))
+            
+            if not athletes:
+                return {'success': False, 'error': 'Brak zameldowanych zawodników w grupie'}
+            
+            # Sprawdź aktywną sesję
+            active_session = get_one("""
+                SELECT id, nazwa, status FROM sectro_sessions 
+                WHERE kategoria = %s AND plec = %s 
+                AND status IN ('active', 'timing')
+                ORDER BY created_at DESC LIMIT 1
+            """, (kategoria, plec))
+            
+            if active_session and not force:
+                return {
+                    'success': False, 
+                    'error': f'Grupa ma aktywną sesję SECTRO "{active_session["nazwa"]}". Użyj force=true aby wymusić usunięcie.'
+                }
+            
+            # Sprawdź czy ktoś jest w trakcie pomiaru
+            athletes_timing = get_all("""
+                SELECT r.nr_startowy, z.imie, z.nazwisko, s.nazwa as session_name
+                FROM sectro_results r
+                JOIN sectro_sessions s ON r.session_id = s.id
+                JOIN zawodnicy z ON r.nr_startowy = z.nr_startowy
+                WHERE z.kategoria = %s AND z.plec = %s
+                AND s.status IN ('active', 'timing')
+                AND r.start_time IS NOT NULL AND r.finish_time IS NULL
+            """, (kategoria, plec))
+            
+            if athletes_timing and not force:
+                names = [f"#{a['nr_startowy']} {a['imie']} {a['nazwisko']}" for a in athletes_timing]
+                return {
+                    'success': False,
+                    'error': f'Zawodnicy w trakcie pomiaru: {", ".join(names)}. Użyj force=true aby wymusić usunięcie.'
+                }
+            
+            removed_count = 0
+            errors = []
+            
+            # Usuń każdego zawodnika z grupy
+            for athlete in athletes:
+                result = self.remove_athlete_from_group(athlete['nr_startowy'], kategoria, plec)
+                if result['success']:
+                    removed_count += 1
+                else:
+                    errors.append(f"#{athlete['nr_startowy']}: {result['error']}")
+            
+            # Jeśli force i aktywna sesja, zakończ ją
+            if force and active_session:
+                execute_query("""
+                    UPDATE sectro_sessions 
+                    SET status = 'cancelled', end_time = CURRENT_TIMESTAMP
+                    WHERE id = %s
+                """, (active_session['id'],))
+                
+                execute_query("""
+                    INSERT INTO sectro_logs (session_id, log_type, message, created_at)
+                    VALUES (%s, 'WARNING', %s, CURRENT_TIMESTAMP)
+                """, (active_session['id'], 'Session force-cancelled due to group deletion'))
+            
+            return {
+                'success': True,
+                'removed_athletes': removed_count,
+                'total_athletes': len(athletes),
+                'errors': errors,
+                'session_cancelled': bool(force and active_session),
+                'message': f'Grupa {kategoria} {plec} usunięta: {removed_count}/{len(athletes)} zawodników'
+            }
+            
+        except Exception as e:
+            return {'success': False, 'error': f'Błąd usuwania grupy: {str(e)}'}
 
 print("🔄 SKATECROSS QR - Unified Start Manager załadowany") 

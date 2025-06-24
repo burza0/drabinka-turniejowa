@@ -552,9 +552,13 @@ const countStats = computed(() => {
 const loadZawodnicy = async () => {
   isLoading.value = true
   try {
-    const response = await fetch('/api/zawodnicy')
+    // Pobierz wszystkich zawodników (nie tylko 50)
+    const response = await fetch('/api/zawodnicy?limit=1000')
     if (response.ok) {
-      zawodnicy.value = await response.json()
+      const data = await response.json()
+      // API zwraca { success: true, data: [...], meta: {...} }
+      zawodnicy.value = data.data || data || []
+      console.log(`🔍 QrPrint: Załadowano ${zawodnicy.value.length} zawodników`)
     }
   } catch (error) {
     console.error('Błąd podczas ładowania zawodników:', error)
@@ -667,13 +671,13 @@ const generateSelected = async () => {
   
   isGenerating.value = true
   try {
-    const response = await fetch('/api/qr/generate-bulk', {
+    const response = await fetch('/api/qr/bulk-generate', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        zawodnicy_ids: selectedZawodnicyWithoutQr.value
+        numery_startowe: selectedZawodnicyWithoutQr.value
       })
     })
     
@@ -681,7 +685,7 @@ const generateSelected = async () => {
       const data = await response.json()
       // Dodaj nowo wygenerowane QR kody do istniejących
       const existingIds = generatedQrCodes.value.map(qr => qr.zawodnik.nr_startowy)
-      const newQrCodes = data.qr_codes.filter(qr => !existingIds.includes(qr.zawodnik.nr_startowy))
+      const newQrCodes = data.data.codes.filter((code: any) => !existingIds.includes(code.zawodnik.nr_startowy))
       generatedQrCodes.value = [...generatedQrCodes.value, ...newQrCodes]
       
       // Odśwież dane zawodników aby pobrać nowe QR kody
@@ -775,19 +779,19 @@ const toggleSelectAll = () => {
 const generateSingleQr = async (nr_startowy: number) => {
   isGenerating.value = true
   try {
-    const response = await fetch('/api/qr/generate-bulk', {
+    const response = await fetch('/api/qr/bulk-generate', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        zawodnicy_ids: [nr_startowy]
+        numery_startowe: [nr_startowy]
       })
     })
     
     if (response.ok) {
       const data = await response.json()
-      generatedQrCodes.value = [...generatedQrCodes.value, ...data.qr_codes]
+      generatedQrCodes.value = [...generatedQrCodes.value, ...data.data.codes]
       
       // Odśwież dane zawodników
       await loadZawodnicy()

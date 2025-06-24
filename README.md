@@ -1,243 +1,305 @@
-# 🏁 SKATECROSS QR - Drabinka Turniejowa
+# 🏁 SKATECROSS v36.0 - Unified Tournament Management System
 
-> **Profesjonalny system zarządzania zawodami SKATECROSS** z systemem QR kodów, drabiną turniejową i live timingiem.
+**Profesjonalny system zarządzania turniejami skatecross z integracją QR, pomiarami czasu SECTRO i zaawansowanym centrum startu.**
 
-![Version](https://img.shields.io/badge/version-1.0.0-green.svg)
-![Flask](https://img.shields.io/badge/flask-3.0-blue.svg)
-![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
+## 🚀 Najważniejsze funkcje
 
-## 🌟 GŁÓWNE FUNKCJONALNOŚCI
+### 📊 **Unified Start Control** (FAZA 3 - UKOŃCZONA)
+- **Centrum Startu + SECTRO** - zintegrowany system meldowania i pomiarów
+- **Zarządzanie grupami startowymi** - tworzenie, moderowanie, usuwanie grup
+- **Real-time dashboard** - 251 zawodników, 14 klubów, dynamiczne statusy
+- **QR Scanner** - automatyczne meldowanie przez skanowanie kodów
+- **Backup meldowanie** - ręczne meldowanie z powodami organizatora
 
-### 🏁 **Centrum Startu**
-- **Grupy startowe** - Zarządzanie grupami zawodników
-- **QR Scanner** - Skanowanie kodów QR przed startem
-- **Live Status** - Status zawodników w czasie rzeczywistym
+### 🔲 **System QR**
+- **Bulk generowanie** - kody QR dla wszystkich 251 zawodników
+- **Drukowanie etykiet** - profesjonalne naklejki z danymi zawodnika
+- **Admin Dashboard** - statystyki, zarządzanie, historia meldowań
+- **Advanced Print** - zaawansowane opcje druku i formatowania
 
-### 👥 **Zarządzanie Zawodnikami**
-- **Rejestracja zawodników** - Kompletna baza danych
-- **Generowanie QR kodów** - Unikalne kody dla każdego zawodnika
-- **Filtrowanie i sortowanie** - Zaawansowane wyszukiwanie
+### ⏱️ **Integracja SECTRO**
+- **Automatyczne sesje** - tworzenie sesji pomiarowych dla grup
+- **Real-time pomiary** - start, finish, total time
+- **Status tracking** - WAITING → REGISTERED → READY → TIMING → FINISHED
+- **Priority system** - sortowanie według statusu i czasu
 
-### 🏆 **Drabinka Turniejowa**
-- **System eliminacji** - Pełna drabinka pucharowa
-- **Ranking zawodników** - Automatyczne sortowanie wyników
-- **Statystyki** - Kompletne statystyki zawodów
+### 📈 **Analityka i Raporty**
+- **Dashboard główny** - przegląd systemu, statystyki turnieju
+- **Rankingi** - kategorie, kluby, czasy przejazdu
+- **Eksport danych** - CSV, raporty, backup
+- **Historia aktywności** - szczegółowe logi systemowe
 
-### 📊 **Live Timing (SECTRO)**
-- **Pomiar czasów** - Precyzyjny timing przejazdu
-- **Real-time wyniki** - Na żywo aktualizowane rezultaty
-- **Ranking na żywo** - Bieżące pozycje zawodników
+## 🛠️ **Architektura Techniczna**
 
----
-
-## 🏗️ ARCHITEKTURA SYSTEMU
-
-### 📁 **Backend Flask**
+### **Backend (Python/Flask)**
 ```
-backend/
-├── api/
-│   ├── zawodnicy.py        👤 Zarządzanie zawodnikami
-│   ├── qr_generation.py    🔲 Generowanie QR kodów
-│   ├── centrum_startu.py   🏁 Centrum startu i grupy
-│   └── __init__.py         🔧 Konfiguracja API
-├── sectro/
-│   └── sectro_api.py       ⏱️ SECTRO Live Timing
-├── utils/
-│   └── database.py         🗄️ Baza danych PostgreSQL
-└── requirements.txt        📦 Zależności
+📦 Backend Architecture
+├── 🐍 Flask API Server (Python 3.11+)
+├── 🗄️ Supabase PostgreSQL (Cloud Database)
+├── 🔄 Unified Start Manager (Core Logic)
+├── 📊 SECTRO Integration (Time Measurements)
+├── 🔲 QR Generation System
+├── 🏁 Tournament Management
+└── 📈 Analytics & Reporting
 ```
 
-### 🌐 **Frontend Vue 3**
+**Główne moduły:**
+- `unified_start_manager.py` - logika biznesowa unified systemu
+- `api/unified_start_api.py` - endpointy REST API
+- `api/zawodnicy.py` - zarządzanie zawodnikami
+- `api/qr_generation.py` - system kodów QR
+- `utils/database.py` - connection pool PostgreSQL
+
+### **Frontend (Vue 3/TypeScript)**
 ```
-frontend/
-├── src/
-│   ├── components/
-│   │   ├── Dashboard.vue           📊 Główny dashboard
-│   │   ├── QrAdminDashboard.vue    🔲 Panel QR
-│   │   ├── StartLineScanner.vue    🏁 Skaner centrum startu
-│   │   ├── DrabinkaPucharowa.vue   🏆 Drabinka turniejowa
-│   │   └── Rankingi.vue           📈 Rankingi i statystyki
-│   └── views/
-│       └── SectroView.vue          ⏱️ Live Timing SECTRO
-└── package.json
+📦 Frontend Architecture
+├── ⚡ Vue 3 + TypeScript + Vite
+├── 🎨 Tailwind CSS (Modern UI)
+├── 📱 Responsive Design
+├── 🔄 Real-time Updates
+├── 🧩 Component Architecture
+└── 🚀 Hot Reload Development
 ```
 
----
+**Kluczowe komponenty:**
+- `UnifiedStartControl.vue` - centrum zarządzania startem
+- `StartGroupsCard.vue` - grupy startowe z zarządzaniem
+- `QRScannerCard.vue` - skaner QR z backup opcjami
+- `QrAdminDashboard.vue` - admin panel systemu QR
+- `Dashboard.vue` - główny dashboard systemu
 
-## 🚀 QUICK START
+## 🔧 **Instalacja i Uruchomienie**
 
-### **1. Uruchom Backend**
+### **Wymagania systemowe:**
+- **Python 3.11+** z pip
+- **Node.js 24.2.0+** z npm
+- **Supabase PostgreSQL** (cloud database)
+- **macOS/Linux/Windows**
+
+### **Backend Setup:**
 ```bash
-# Aktywuj środowisko wirtualne
+# 1. Przejdź do katalogu backend
+cd /Users/mariusz/drabinka-turniejowa/backend
+
+# 2. Aktywuj środowisko wirtualne
 source venv/bin/activate
 
-# Uruchom serwer
-python3 api_server_simple.py
-# Backend dostępny: http://localhost:5001
+# 3. Uruchom serwer API
+python3 api_server.py
 ```
+**✅ Backend działa na: http://localhost:5001**
 
-### **2. Uruchom Frontend**
+### **Frontend Setup:**
 ```bash
-# Przejdź do katalogu frontend
-cd frontend
+# 1. Przejdź do katalogu frontend
+cd /Users/mariusz/drabinka-turniejowa/frontend
 
-# Uruchom dev server
-npm run dev
-# Frontend dostępny: http://localhost:5173
+# 2. Skonfiguruj Node.js
+source ~/.nvm/nvm.sh
+nvm use v24.2.0
+
+# 3. Uruchom serwer dev
+npm run dev -- --port 5173
+```
+**✅ Frontend działa na: http://localhost:5173**
+
+### **⚠️ Kolejność uruchomienia:**
+1. **NAJPIERW** - Backend (port 5001)
+2. **POTEM** - Frontend (port 5173)
+
+*Backend musi być uruchomiony przed frontendem - inaczej proxy errors!*
+
+## 📊 **Baza Danych**
+
+### **Główne tabele:**
+```sql
+-- Zawodnicy (251 rekordów)
+zawodnicy: nr_startowy, imie, nazwisko, kategoria, plec, klub, 
+           qr_code, checked_in, check_in_time
+
+-- Sesje SECTRO
+sectro_sessions: id, nazwa, status, created_at, start_time, end_time
+
+-- Wyniki pomiarów
+sectro_results: nr_startowy, session_id, start_time, finish_time, 
+                total_time, status
+
+-- Grupy startowe  
+grupy_startowe: kategoria, plec, status, created_at
 ```
 
-### **3. Lub użyj skryptu automatycznego**
-```bash
-# Uruchom oba serwery jednocześnie
-./start_servers.sh
+### **Statystyki systemu:**
+- **251 zawodników** z 14 klubów
+- **6 kategorii** (Junior A-D, Masters, Senior)
+- **Unified API** - 15+ endpointów REST
+- **Real-time updates** co 30 sekund
 
-# Zatrzymaj serwery
-./stop_servers.sh
+## 🔗 **API Endpoints**
+
+### **Unified Start Control:**
+```http
+GET    /api/unified/dashboard-data    # Dashboard z grupami i statystykami
+POST   /api/unified/register-athlete  # Meldowanie zawodnika (QR/manual)
+GET    /api/unified/group-details     # Szczegóły grupy z zawodnikami
+POST   /api/unified/remove-athlete    # Usunięcie zawodnika z grupy
+POST   /api/unified/delete-group      # Usunięcie całej grupy
+GET    /api/unified/health           # Status systemu
 ```
 
----
-
-## 🛒 API ENDPOINTS
-
-### **👥 ZAWODNICY**
-```bash
-GET  /api/zawodnicy                   # Lista wszystkich zawodników
-POST /api/zawodnicy                   # Dodaj nowego zawodnika
-PUT  /api/zawodnicy/{id}              # Edytuj zawodnika
-DELETE /api/zawodnicy/{id}            # Usuń zawodnika
+### **Zarządzanie zawodnikami:**
+```http
+GET    /api/zawodnicy                # Lista zawodników (z paginacją)
+GET    /api/zawodnicy/{nr}           # Szczegóły zawodnika
+POST   /api/zawodnicy                # Dodanie zawodnika
+PUT    /api/zawodnicy/{nr}           # Edycja zawodnika
+DELETE /api/zawodnicy/{nr}           # Usunięcie zawodnika
 ```
 
-### **🔲 QR KODY**
-```bash
-GET  /api/qr/dashboard               # Dashboard QR
-POST /api/qr/generate                # Generuj kod QR
-GET  /api/qr/manual-checkins         # Ręczne zameldowania
+### **System QR:**
+```http
+GET    /api/qr/generate/{nr}         # Generowanie pojedynczego QR
+POST   /api/qr/bulk-generate         # Bulk generowanie QR kodów
+GET    /api/qr/dashboard             # Dashboard QR (DEPRECATED)
 ```
 
-### **🏁 CENTRUM STARTU**
-```bash
-GET  /api/grupy-startowe             # Lista grup startowych
-POST /api/scan-qr                    # Skanuj QR kod
-GET  /api/start-status               # Status centrum startu
-```
+## 🏆 **Funkcjonalności Biznesowe**
 
-### **⏱️ SECTRO TIMING**
-```bash
-POST /api/sectro/sessions            # Nowa sesja timing'u
-GET  /api/sectro/results             # Wyniki live timing
-POST /api/sectro/checkpoint          # Dodaj checkpoint
-```
+### **1. Zarządzanie Turniejem**
+- ✅ Import zawodników z CSV
+- ✅ Kategoryzacja (kategoria + płeć)
+- ✅ Zarządzanie klubami
+- ✅ Generowanie numerów startowych
+- ✅ Export danych i raportów
 
-### **📊 RANKINGI**
-```bash
-GET  /api/rankings/individual        # Ranking indywidualny
-GET  /api/rankings/general           # Ranking generalny
-GET  /api/rankings/clubs/total       # Ranking klubów
-GET  /api/rankings/medals            # Statystyki medali
-```
+### **2. System Meldowania**
+- ✅ QR Code scanning (automaty)
+- ✅ Ręczne meldowanie (backup)
+- ✅ Powody meldowania (awaria, brak QR, decyzja organizatora)
+- ✅ Walidacja i zabezpieczenia
+- ✅ Historia meldowań
+
+### **3. Grupy Startowe**
+- ✅ Automatyczne tworzenie grup (kategoria + płeć)
+- ✅ Moderowanie zawartości grup
+- ✅ Usuwanie zawodników z grup
+- ✅ Usuwanie całych grup
+- ✅ Integracja z sesjami SECTRO
+
+### **4. Pomiary Czasu**
+- ✅ Integracja z systemem SECTRO
+- ✅ Automatyczne sesje dla grup
+- ✅ Real-time pomiary (start/finish/total)
+- ✅ Status tracking zawodników
+- ✅ Priority system wyświetlania
+
+### **5. Monitoring i Analityka**
+- ✅ Real-time dashboard
+- ✅ Statystyki turnieju
+- ✅ Historia aktywności
+- ✅ Performance monitoring
+- ✅ Error handling i recovery
+
+## 🔒 **Bezpieczeństwo**
+
+### **Walidacja danych:**
+- ✅ Sprawdzanie istnienia zawodników
+- ✅ Zapobieganie podwójnemu meldowaniu
+- ✅ Walidacja sesji SECTRO
+- ✅ Zabezpieczenie przed usunięciem podczas pomiarów
+
+### **Error handling:**
+- ✅ Graceful fallbacks
+- ✅ Retry mechanisms
+- ✅ Connection pooling
+- ✅ SSL database connections
+- ✅ Detailed error logging
+
+### **Data integrity:**
+- ✅ Transaction safety
+- ✅ Backup procedures
+- ✅ Data validation
+- ✅ Audit trails
+
+## 📱 **Interfejs Użytkownika**
+
+### **Modern Design:**
+- 🎨 **Tailwind CSS** - modern utility-first framework
+- 📱 **Responsive** - adaptuje się do wszystkich urządzeń
+- 🌙 **Dark Mode** - wsparcie trybu ciemnego
+- ⚡ **Real-time** - aktualizacje bez odświeżania
+- 🧩 **Component-based** - modularna architektura
+
+### **Główne widoki:**
+1. **Dashboard** - przegląd systemu, statystyki
+2. **Start Control** - unified centrum zarządzania startem
+3. **QR Admin** - zarządzanie kodami QR, meldowania
+4. **QR Print** - drukowanie etykiet (251 zawodników)
+5. **Zawodnicy** - CRUD, edycja, paginacja
+
+## 🚧 **Historia Rozwoju**
+
+### **v36.0 (Aktualna) - Unified Start Control**
+- ✅ Integracja Centrum Startu + SECTRO
+- ✅ Zarządzanie grupami startowymi
+- ✅ Naprawa wszystkich starych API endpoints
+- ✅ Unified system meldowania
+- ✅ Kompletna migracja z v2 na unified
+
+### **v35.0 - SECTRO Integration**
+- ✅ Integracja systemu pomiarów SECTRO
+- ✅ Real-time status tracking
+- ✅ Automatyczne sesje pomiarowe
+- ✅ Priority system wyświetlania
+
+### **v30.0 - QR System**
+- ✅ System kodów QR
+- ✅ Bulk generowanie i drukowanie
+- ✅ Admin dashboard
+- ✅ Scanning interface
+
+### **v1.0-29.0 - Foundation**
+- ✅ Podstawowe zarządzanie turniejami
+- ✅ CRUD zawodników
+- ✅ Baza danych PostgreSQL
+- ✅ Vue.js frontend
+
+## 🔮 **Roadmap**
+
+### **v37.0 - Enhanced Analytics**
+- 📊 Zaawansowane raporty i wykresy
+- 📈 Performance analytics
+- 🎯 Predictive insights
+- 📱 Mobile app companion
+
+### **v38.0 - Multi-Tournament**
+- 🏟️ Obsługa wielu turniejów jednocześnie
+- 👥 Zarządzanie organizatorami
+- 🔐 Role-based permissions
+- ☁️ Cloud deployment
+
+### **v39.0 - IoT Integration**
+- 📡 Integracja z urządzeniami IoT
+- 📸 Automatic photo capture
+- 🔊 Audio announcements
+- 📺 Live streaming integration
+
+## 📞 **Wsparcie**
+
+### **Kontakt:**
+- 📧 Email: [kontakt@skatecross.pl]
+- 📱 Phone: [+48 XXX XXX XXX]
+- 💬 Discord: [SKATECROSS Community]
+- 📋 Issues: [GitHub Issues]
+
+### **Dokumentacja:**
+- 📖 **README.md** - ten plik
+- 📝 **QUICK_START.md** - szybki start
+- 🔧 **API_DOCS.md** - dokumentacja API
+- 🏗️ **ARCHITECTURE.md** - architektura systemu
 
 ---
 
-## 🎯 STRUKTURA ZAWODÓW
+**© 2025 SKATECROSS Tournament Management System v36.0**  
+*Professional software for skatecross tournament management with QR integration, SECTRO time measurements, and unified start control.*
 
-### **📋 Fazy Zawodów:**
-1. **Rejestracja** - Dodawanie zawodników do systemu
-2. **Generowanie QR** - Unikalne kody dla każdego zawodnika
-3. **Centrum Startu** - Skanowanie QR przed startem
-4. **Live Timing** - Pomiar czasów na trasie (SECTRO)
-5. **Drabinka** - System eliminacji i finały
-6. **Rankingi** - Końcowe wyniki i statystyki
-
-### **🏆 System Punktowy:**
-- **Miejsca 1-3** - Punkty za podium
-- **Finał** - Dodatkowe punkty za udział
-- **Ranking klubów** - Suma punktów zawodników
-- **Statystyki** - DNF, DSQ, ukończenia
-
----
-
-## 🔧 KONFIGURACJA
-
-### **📊 Dashboard**
-- **Port Backend:** 5001
-- **Port Frontend:** 5173
-- **Baza danych:** PostgreSQL (Supabase)
-- **Środowisko:** Development/Production
-
-### **🏁 Centrum Startu**
-- **Skaner QR** - Automatyczne rozpoznawanie kodów
-- **Grupy startowe** - Podział zawodników
-- **Status tracking** - Monitoring postępów
-
-### **⏱️ SECTRO Integration**
-- **Live Timing** - Połączenie z systemem SECTRO
-- **Checkpointy** - Pomiar czasów na trasie
-- **Real-time results** - Wyniki na żywo
-
----
-
-## 📱 UŻYTKOWANIE
-
-### **🔒 Tryb Admin**
-- **Zarządzanie zawodnikami** - Dodawanie, edycja, usuwanie
-- **Generowanie QR** - Masowe operacje na kodach
-- **Centrum Startu** - Kontrola przystupu do startu
-- **Live Timing** - Monitoring czasów w temps réel
-
-### **👁️ Tryb Widza**
-- **Dashboard** - Przegląd statystyk
-- **Rankingi** - Aktualne wyniki
-- **Drabinka** - Struktura zawodów
-- **Live Results** - Wyniki na żywo
-
----
-
-## 🛠️ STACK TECHNOLOGICZNY
-
-### **Backend:**
-- **Flask 3.0** - Framework web
-- **Python 3.11+** - Język programowania
-- **PostgreSQL** - Baza danych
-- **qrcode 7.4.2** - Generowanie QR
-
-### **Frontend:**
-- **Vue 3** - Framework JavaScript
-- **Vite** - Build tool i dev server
-- **Tailwind CSS** - Framework CSS
-- **TypeScript** - Tipowanie statyczne
-
----
-
-## 🏆 TYPY ZAWODÓW
-
-### **📊 Kategorie Wiekowe:**
-- **Junior A/B** - Młodzież
-- **Senior** - Dorośli
-- **Master** - Weterani
-- **Open** - Otwarta kategoria
-
-### **⚡ Formaty Wyścigów:**
-- **Time Trial** - Jazda na czas
-- **Elimination** - System eliminacyjny
-- **Final** - Finały kategorii
-- **Team** - Zawody drużynowe
-
----
-
-## 📋 WYMAGANIA SYSTEMOWE
-
-### **🖥️ Serwer:**
-- **Python 3.11+**
-- **Node.js 18+**
-- **PostgreSQL 14+**
-- **2GB RAM minimum**
-
-### **📱 Klient:**
-- **Nowoczesna przeglądarka** (Chrome 90+, Firefox 88+)
-- **Obsługa JavaScript**
-- **Połączenie internetowe**
-- **Skaner QR** (opcjonalnie kamera)
-
----
-
-*Made with 🏁 for SKATECROSS racing • SKATECROSS QR v1.0.0* 
+**🔥 System gotowy do profesjonalnego użytku na turniejach skatecross! 🏁** 

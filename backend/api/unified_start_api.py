@@ -24,6 +24,24 @@ manager = UnifiedStartManager()
 # UNIFIED API ENDPOINTS
 # ===============================================
 
+@unified_bp.route('/api/unified/health', methods=['GET'])
+def health_check():
+    """Health check endpoint dla unified system"""
+    try:
+        return jsonify({
+            'success': True,
+            'status': 'healthy',
+            'manager': 'ready',
+            'timestamp': datetime.now().isoformat(),
+            'message': 'Unified Start Control działa poprawnie'
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'status': 'error',
+            'error': str(e)
+        }), 500
+
 @unified_bp.route('/api/unified/dashboard-data', methods=['GET'])
 def get_dashboard_data():
     """
@@ -151,6 +169,96 @@ def deactivate_group():
         return jsonify({
             'success': False,
             'error': f'Błąd deaktywacji grupy: {str(e)}'
+        }), 500
+
+@unified_bp.route('/api/unified/group-details/<kategoria>/<plec>', methods=['GET'])
+def get_group_details(kategoria, plec):
+    """
+    Pobieranie szczegółów grupy z listą zawodników
+    GET /api/unified/group-details/{kategoria}/{plec}
+    """
+    try:
+        result = manager.get_group_details(kategoria, plec)
+        return jsonify(result)
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Błąd pobierania szczegółów grupy: {str(e)}'
+        }), 500
+
+@unified_bp.route('/api/unified/remove-athlete-from-group', methods=['POST'])
+def remove_athlete_from_group():
+    """
+    Usuwanie zawodnika z grupy (check-out)
+    POST /api/unified/remove-athlete-from-group
+    
+    Body:
+    {
+        "nr_startowy": 123,
+        "kategoria": "Junior A",
+        "plec": "M"
+    }
+    """
+    try:
+        data = request.get_json()
+        
+        if not data or 'nr_startowy' not in data:
+            return jsonify({
+                'success': False,
+                'error': 'Brak nr_startowy w żądaniu'
+            }), 400
+        
+        nr_startowy = data['nr_startowy']
+        kategoria = data.get('kategoria')
+        plec = data.get('plec')
+        
+        result = manager.remove_athlete_from_group(nr_startowy, kategoria, plec)
+        
+        status_code = 200 if result['success'] else 400
+        return jsonify(result), status_code
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Błąd usuwania zawodnika z grupy: {str(e)}'
+        }), 500
+
+@unified_bp.route('/api/unified/delete-group', methods=['POST'])
+def delete_group():
+    """
+    Usuwanie całej grupy (check-out wszystkich zawodników)
+    POST /api/unified/delete-group
+    
+    Body:
+    {
+        "kategoria": "Junior A",
+        "plec": "M",
+        "force": false  // true = wymusza usunięcie aktywnej grupy
+    }
+    """
+    try:
+        data = request.get_json()
+        
+        if not data or not all(k in data for k in ['kategoria', 'plec']):
+            return jsonify({
+                'success': False,
+                'error': 'Brak kategoria lub plec w żądaniu'
+            }), 400
+        
+        kategoria = data['kategoria']
+        plec = data['plec']
+        force = data.get('force', False)
+        
+        result = manager.delete_group(kategoria, plec, force)
+        
+        status_code = 200 if result['success'] else 400
+        return jsonify(result), status_code
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Błąd usuwania grupy: {str(e)}'
         }), 500
 
 @unified_bp.route('/api/unified/queue', methods=['GET'])

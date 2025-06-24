@@ -254,7 +254,7 @@ const processQRCode = async (qrCode) => {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ qr_code: qrCode })
+      body: JSON.stringify({ identifier: qrCode })
     })
     
     const data = await response.json()
@@ -265,7 +265,7 @@ const processQRCode = async (qrCode) => {
       timestamp: new Date(),
       success: data.success,
       message: data.message,
-      athleteName: data.athlete?.imie_nazwisko,
+      athleteName: data.athlete ? `${data.athlete.imie} ${data.athlete.nazwisko}` : null,
       status: data.athlete?.status
     }
     

@@ -24,7 +24,7 @@ def generate_qr_code(nr_startowy):
     
     # Pobierz zawodnika z bazy PostgreSQL
     zawodnik = get_one("""
-        SELECT id, nr_startowy, imie, nazwisko, kategoria, plec, klub, qr_code
+        SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub, qr_code
         FROM zawodnicy 
         WHERE nr_startowy = %s
     """, (nr_startowy,))
@@ -85,7 +85,7 @@ def bulk_generate_qr():
         try:
             # Pobierz zawodnika
             zawodnik = get_one("""
-                SELECT id, nr_startowy, imie, nazwisko, kategoria, plec, klub, qr_code
+                SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub, qr_code
                 FROM zawodnicy 
                 WHERE nr_startowy = %s
             """, (nr,))
@@ -131,7 +131,7 @@ def qr_dashboard():
     
     # Pobierz przykładowych zawodników
     sample_zawodnicy = get_all("""
-        SELECT id, nr_startowy, imie, nazwisko, kategoria, plec, klub, qr_code,
+        SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub, qr_code,
                COALESCE(checked_in, false) as checked_in
         FROM zawodnicy 
         ORDER BY nr_startowy 
@@ -160,7 +160,7 @@ def get_manual_checkins():
     
     # Pobierz niezameldowanych zawodników
     niezameldowani = get_all("""
-        SELECT id, nr_startowy, imie, nazwisko, kategoria, plec, klub, qr_code,
+        SELECT nr_startowy, imie, nazwisko, kategoria, plec, klub, qr_code,
                COALESCE(checked_in, false) as checked_in
         FROM zawodnicy 
         WHERE COALESCE(checked_in, false) = false

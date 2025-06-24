@@ -334,9 +334,10 @@ const loadStats = async () => {
   try {
     loading.value = true
     
-    // Pobierz dane zawodników
-    const zawodnicyResponse = await axios.get('/api/zawodnicy')
+    // Pobierz dane wszystkich zawodników (nie tylko 50)
+    const zawodnicyResponse = await axios.get('/api/zawodnicy?limit=1000')
     const zawodnicy = zawodnicyResponse.data.data || []
+    console.log(`📊 Dashboard: Załadowano ${zawodnicy.length} zawodników`)
     
     // Oblicz statystyki
     stats.value.totalZawodnicy = zawodnicy.length

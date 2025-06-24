@@ -71,11 +71,11 @@
             <div class="flex items-center space-x-2">
               <div :class="getGroupIconClass(group)" 
                    class="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold">
-                {{ group.kategoria_skrot }}
+                {{ getKategoriaSkrot(group) }}
               </div>
               <div>
                 <div class="font-semibold text-gray-900 dark:text-white">
-                  {{ group.kategoria_nazwa }}
+                  {{ group.kategoria }}
                 </div>
                 <div class="text-sm text-gray-600 dark:text-gray-400">
                   {{ group.plec }}
@@ -137,14 +137,39 @@
                  class="w-full px-4 py-2 bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 rounded-lg text-center text-sm">
               Inna grupa aktywna
             </div>
+
+            <!-- Management buttons - only show for groups with athletes -->
+            <div v-if="group.liczba_zawodnikow > 0" class="flex space-x-2">
+              <button 
+                @click="showGroupDetails(group)"
+                class="flex-1 px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200 flex items-center justify-center space-x-1"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+                <span>Szczegóły</span>
+              </button>
+              
+              <button 
+                @click="confirmDeleteGroup(group)"
+                :disabled="group.is_active"
+                class="flex-1 px-3 py-2 bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg text-sm font-medium hover:bg-red-200 dark:hover:bg-red-900/30 transition-colors duration-200 flex items-center justify-center space-x-1 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                <span>Usuń</span>
+              </button>
+            </div>
           </div>
 
           <!-- Athletes list preview -->
           <div v-if="group.liczba_zawodnikow > 0" class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
             <div class="text-xs text-gray-500 dark:text-gray-400 mb-2">Zameldowani zawodnicy:</div>
             <div class="text-xs text-gray-700 dark:text-gray-300 max-h-16 overflow-y-auto">
-              <div v-for="athlete in group.zawodnicy?.slice(0, 3)" :key="athlete.id" class="truncate">
-                • {{ athlete.imie_nazwisko }}
+              <div v-for="athlete in group.zawodnicy?.slice(0, 3)" :key="athlete.nr_startowy" class="truncate">
+                • {{ athlete.imie }} {{ athlete.nazwisko }} (#{{ athlete.nr_startowy }})
               </div>
               <div v-if="group.zawodnicy?.length > 3" class="text-gray-500 dark:text-gray-400">
                 ... i {{ group.zawodnicy.length - 3 }} więcej
@@ -152,6 +177,95 @@
             </div>
           </div>
 
+        </div>
+      </div>
+    </div>
+
+    <!-- Group Details Modal -->
+    <div v-if="showModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" @click="closeModal">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden" @click.stop>
+        
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+          <div>
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white">
+              Szczegóły grupy: {{ selectedGroup?.kategoria }} {{ selectedGroup?.plec }}
+            </h3>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              {{ groupDetails?.group?.athletes_count }} zawodników
+            </p>
+          </div>
+          <button @click="closeModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Modal Content -->
+        <div class="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+          
+          <!-- Session Info -->
+          <div v-if="groupDetails?.session" class="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+            <h4 class="font-semibold text-blue-900 dark:text-blue-100 mb-2">Sesja SECTRO</h4>
+            <div class="text-sm text-blue-800 dark:text-blue-200">
+              <p><strong>Nazwa:</strong> {{ groupDetails.session.nazwa }}</p>
+              <p><strong>Status:</strong> {{ groupDetails.session.status }}</p>
+              <p><strong>Utworzona:</strong> {{ formatDate(groupDetails.session.created_at) }}</p>
+            </div>
+          </div>
+
+          <!-- Athletes List -->
+          <div>
+            <h4 class="font-semibold text-gray-900 dark:text-white mb-4">Lista zawodników</h4>
+            
+            <div v-if="groupDetails?.athletes?.length > 0" class="space-y-2">
+              <div v-for="athlete in groupDetails.athletes" :key="athlete.nr_startowy" 
+                   class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                
+                <div class="flex items-center space-x-3">
+                  <div class="w-8 h-8 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center text-sm font-bold text-blue-600 dark:text-blue-400">
+                    {{ athlete.nr_startowy }}
+                  </div>
+                  <div>
+                    <div class="font-medium text-gray-900 dark:text-white">
+                      {{ athlete.imie }} {{ athlete.nazwisko }}
+                    </div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400">
+                      {{ athlete.klub }} • Zameldowany: {{ formatDate(athlete.check_in_time) }}
+                    </div>
+                  </div>
+                </div>
+
+                <button 
+                  @click="removeAthleteFromGroup(athlete.nr_startowy)"
+                  class="px-3 py-1 bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg text-sm font-medium hover:bg-red-200 dark:hover:bg-red-900/30 transition-colors duration-200"
+                >
+                  Usuń
+                </button>
+              </div>
+            </div>
+            
+            <div v-else class="text-center py-8 text-gray-500 dark:text-gray-400">
+              Brak zawodników w grupie
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="flex items-center justify-between p-6 border-t border-gray-200 dark:border-gray-700">
+          <button 
+            v-if="groupDetails?.group?.athletes_count > 0"
+            @click="confirmDeleteGroupFromModal"
+            class="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors duration-200"
+          >
+            Usuń całą grupę
+          </button>
+          <div v-else></div>
+          
+          <button @click="closeModal" class="px-4 py-2 bg-gray-600 text-white rounded-lg font-medium hover:bg-gray-700 transition-colors duration-200">
+            Zamknij
+          </button>
         </div>
       </div>
     </div>
@@ -189,6 +303,12 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['group-activated', 'group-deactivated', 'refresh-requested'])
+
+// ===== REACTIVE DATA =====
+const showModal = ref(false)
+const selectedGroup = ref(null)
+const groupDetails = ref(null)
+const loadingDetails = ref(false)
 
 // ===== COMPUTED PROPERTIES =====
 const activeGroup = computed(() => 
@@ -230,6 +350,11 @@ const getStatusText = (group) => {
   if (group.is_active) return 'AKTYWNA'
   if (group.liczba_zawodnikow > 0) return 'GOTOWA'
   return 'PUSTA'
+}
+
+const getKategoriaSkrot = (group) => {
+  if (!group.kategoria) return ''
+  return group.kategoria.substring(0, 3)
 }
 
 // ===== ACTION METHODS =====
@@ -302,6 +427,143 @@ const deactivateGroup = async (group) => {
 
 const refreshGroups = () => {
   emit('refresh-requested')
+}
+
+// ===== GROUP MANAGEMENT METHODS =====
+const showGroupDetails = async (group) => {
+  selectedGroup.value = group
+  loadingDetails.value = true
+  showModal.value = true
+  
+  try {
+    const response = await fetch(`/api/unified/group-details/${encodeURIComponent(group.kategoria)}/${encodeURIComponent(group.plec)}`)
+    const data = await response.json()
+    
+    if (data.success) {
+      groupDetails.value = data.data
+    } else {
+      console.error('❌ Group details failed:', data.error)
+      alert(`Błąd pobierania szczegółów: ${data.error}`)
+    }
+  } catch (error) {
+    console.error('❌ Group details error:', error)
+    alert('Błąd połączenia podczas pobierania szczegółów grupy')
+  } finally {
+    loadingDetails.value = false
+  }
+}
+
+const removeAthleteFromGroup = async (nr_startowy) => {
+  if (!confirm(`Czy na pewno chcesz usunąć zawodnika #${nr_startowy} z grupy?`)) {
+    return
+  }
+  
+  try {
+    const response = await fetch('/api/unified/remove-athlete-from-group', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        nr_startowy: nr_startowy,
+        kategoria: selectedGroup.value?.kategoria,
+        plec: selectedGroup.value?.plec
+      })
+    })
+    
+    const data = await response.json()
+    
+    if (data.success) {
+      alert(`✅ ${data.message}`)
+      // Odśwież szczegóły grupy
+      await showGroupDetails(selectedGroup.value)
+      // Odśwież główne dane
+      emit('refresh-requested')
+    } else {
+      alert(`❌ ${data.error}`)
+    }
+  } catch (error) {
+    console.error('❌ Remove athlete error:', error)
+    alert('Błąd połączenia podczas usuwania zawodnika')
+  }
+}
+
+const confirmDeleteGroup = async (group) => {
+  const message = group.is_active 
+    ? `Grupa "${group.kategoria} ${group.plec}" jest aktywna i ma sesję SECTRO. Czy na pewno chcesz ją wymusić usunięcie?`
+    : `Czy na pewno chcesz usunąć grupę "${group.kategoria} ${group.plec}" z ${group.liczba_zawodnikow} zawodnikami?`
+  
+  if (!confirm(message)) {
+    return
+  }
+  
+  await deleteGroup(group, group.is_active)
+}
+
+const confirmDeleteGroupFromModal = async () => {
+  if (!selectedGroup.value || !groupDetails.value) return
+  
+  const group = selectedGroup.value
+  const isActive = groupDetails.value.group.is_active
+  
+  const message = isActive
+    ? `Grupa ma aktywną sesję SECTRO. Czy na pewno chcesz wymusić usunięcie całej grupy?`
+    : `Czy na pewno chcesz usunąć całą grupę z ${groupDetails.value.group.athletes_count} zawodnikami?`
+  
+  if (!confirm(message)) {
+    return
+  }
+  
+  closeModal()
+  await deleteGroup(group, isActive)
+}
+
+const deleteGroup = async (group, force = false) => {
+  try {
+    const response = await fetch('/api/unified/delete-group', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        kategoria: group.kategoria,
+        plec: group.plec,
+        force: force
+      })
+    })
+    
+    const data = await response.json()
+    
+    if (data.success) {
+      let message = `✅ ${data.message}`
+      if (data.errors && data.errors.length > 0) {
+        message += `\n\nBłędy:\n${data.errors.join('\n')}`
+      }
+      if (data.session_cancelled) {
+        message += '\n\n⚠️ Sesja SECTRO została anulowana'
+      }
+      alert(message)
+      
+      // Odśwież dane
+      emit('refresh-requested')
+    } else {
+      alert(`❌ ${data.error}`)
+    }
+  } catch (error) {
+    console.error('❌ Delete group error:', error)
+    alert('Błąd połączenia podczas usuwania grupy')
+  }
+}
+
+const closeModal = () => {
+  showModal.value = false
+  selectedGroup.value = null
+  groupDetails.value = null
+}
+
+const formatDate = (dateString) => {
+  if (!dateString) return 'Brak danych'
+  return new Date(dateString).toLocaleString('pl-PL')
 }
 </script>
 

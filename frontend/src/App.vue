@@ -441,6 +441,108 @@
               </tbody>
             </table>
           </div>
+          
+          <!-- Kontrolki paginacji -->
+          <div v-if="totalPages > 1" class="bg-white dark:bg-gray-800 px-4 py-3 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 sm:px-6">
+            <div class="flex-1 flex justify-between sm:hidden">
+              <!-- Mobile pagination -->
+              <button 
+                @click="prevPage"
+                :disabled="currentPage <= 1"
+                class="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Poprzednie 50
+              </button>
+              <button 
+                @click="nextPage"
+                :disabled="currentPage >= totalPages"
+                class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Następne 50
+              </button>
+            </div>
+            
+            <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+              <!-- Desktop pagination info -->
+              <div>
+                <p class="text-sm text-gray-700 dark:text-gray-300">
+                  Pokazano
+                  <span class="font-medium">{{ ((currentPage - 1) * itemsPerPage) + 1 }}</span>
+                  do
+                  <span class="font-medium">{{ Math.min(currentPage * itemsPerPage, totalItems) }}</span>
+                  z
+                  <span class="font-medium">{{ totalItems }}</span>
+                  wyników
+                </p>
+              </div>
+              
+              <!-- Desktop pagination controls -->
+              <div>
+                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                  <!-- First page -->
+                  <button 
+                    @click="firstPage"
+                    :disabled="currentPage <= 1"
+                    class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <span class="sr-only">Pierwsza strona</span>
+                    «
+                  </button>
+                  
+                  <!-- Previous page -->
+                  <button 
+                    @click="prevPage"
+                    :disabled="currentPage <= 1"
+                    class="relative inline-flex items-center px-2 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <span class="sr-only">Poprzednia strona</span>
+                    ‹
+                  </button>
+                  
+                  <!-- Page numbers -->
+                  <template v-for="page in Math.min(5, totalPages)" :key="page">
+                    <button 
+                      v-if="page <= totalPages"
+                      @click="goToPage(page)"
+                      :class="[
+                        'relative inline-flex items-center px-4 py-2 border text-sm font-medium',
+                        page === currentPage 
+                          ? 'z-10 bg-indigo-50 dark:bg-indigo-900 border-indigo-500 text-indigo-600 dark:text-indigo-200' 
+                          : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      ]"
+                    >
+                      {{ page }}
+                    </button>
+                  </template>
+                  
+                  <!-- Show dots if there are more pages -->
+                  <span v-if="totalPages > 5" class="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    ...
+                  </span>
+                  
+                  <!-- Next page -->
+                  <button 
+                    @click="nextPage"
+                    :disabled="currentPage >= totalPages"
+                    class="relative inline-flex items-center px-2 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <span class="sr-only">Następna strona</span>
+                    ›
+                  </button>
+                  
+                  <!-- Last page -->
+                  <button 
+                    @click="lastPage"
+                    :disabled="currentPage >= totalPages"
+                    class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <span class="sr-only">Ostatnia strona</span>
+                    »
+                  </button>
+                </nav>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -452,11 +554,6 @@
       <!-- Rankingi -->
       <div v-if="activeTab === 'rankingi'">
         <Rankingi />
-      </div>
-
-      <!-- SECTRO Live Timing -->
-      <div v-if="activeTab === 'sectro'">
-        <SectroView />
       </div>
 
       <!-- Unified Start Control -->
@@ -521,10 +618,9 @@ import ZawodnikCard from './components/ZawodnikCard.vue'
 import DrabinkaPucharowa from './components/DrabinkaPucharowa.vue'
 import EditZawodnikModal from './components/EditZawodnikModal.vue'
 import Rankingi from './components/Rankingi.vue'
-import SectroView from './views/SectroView.vue'
+
 import QrAdminDashboard from './components/QrAdminDashboard.vue'
 import QrPrint from './components/QrPrint.vue'
-import StartLineScanner from './components/StartLineScanner.vue'
 import QrPrintAdvanced from './components/QrPrintAdvanced.vue'
 import Dashboard from './components/Dashboard.vue'
 import UnifiedStartControl from './components/unified/UnifiedStartControl.vue'
@@ -577,14 +673,19 @@ const zawodnicyFilters = ref({
 })
 const selectedZawodnicy = ref<number[]>([])
 
+// Paginacja
+const currentPage = ref(1)
+const itemsPerPage = 50
+const totalItems = ref(0)
+const totalPages = computed(() => Math.ceil(totalItems.value / itemsPerPage))
+
 // Tabs configuration
 const tabs = [
   { id: 'dashboard', name: 'Dashboard', icon: ChartBarIcon, adminOnly: false },
   { id: 'zawodnicy', name: 'Zawodnicy', icon: UsersIcon, adminOnly: false },
   { id: 'drabinka', name: 'Drabinka', icon: TrophyIcon, adminOnly: false },
   { id: 'rankingi', name: 'Rankingi', icon: ListBulletIcon, adminOnly: false },
-  { id: 'sectro', name: 'Live Timing', icon: ClockIcon, adminOnly: true },
-  { id: 'unified-start', name: 'Unified Start Control', icon: QrCodeIcon, adminOnly: true },
+  { id: 'unified-start', name: 'Start Control', icon: ClockIcon, adminOnly: true },
   { id: 'qr-print', name: 'Drukowanie QR', icon: PrinterIcon, adminOnly: true },
   { id: 'qr-dashboard', name: 'QR Dashboard', icon: QrCodeIcon, adminOnly: true },
 ]
@@ -757,14 +858,23 @@ const formatTime = (seconds: number): string => {
   return `${mins}:${secs.padStart(5, '0')}`
 }
 
-const fetchZawodnicy = async () => {
+const fetchZawodnicy = async (page = 1) => {
   try {
     loading.value = true
-    const response = await axios.get('/api/zawodnicy')
-    // Backend zwraca obiekt z data i count, więc wyciągamy data
-    zawodnicy.value = response.data.data || response.data
+    const response = await axios.get(`/api/zawodnicy?page=${page}&limit=${itemsPerPage}`)
+    
+    // Backend zwraca obiekt z paginacją
+    if (response.data.success) {
+      zawodnicy.value = response.data.data || []
+      totalItems.value = response.data.meta?.total || 0
+      currentPage.value = response.data.meta?.page || 1
+    } else {
+      // Fallback dla starszego formatu
+      zawodnicy.value = response.data.data || response.data || []
+    }
   } catch (error) {
     console.error('Błąd podczas pobierania zawodników:', error)
+    error.value = 'Nie udało się pobrać danych zawodników'
   } finally {
     loading.value = false
   }
@@ -935,6 +1045,33 @@ const clearSelection = () => {
 
 const handleDashboardNavigation = (section: string) => {
   activeTab.value = section
+}
+
+// Funkcje paginacji
+const goToPage = (page: number) => {
+  if (page >= 1 && page <= totalPages.value) {
+    fetchZawodnicy(page)
+  }
+}
+
+const nextPage = () => {
+  if (currentPage.value < totalPages.value) {
+    goToPage(currentPage.value + 1)
+  }
+}
+
+const prevPage = () => {
+  if (currentPage.value > 1) {
+    goToPage(currentPage.value - 1)
+  }
+}
+
+const firstPage = () => {
+  goToPage(1)
+}
+
+const lastPage = () => {
+  goToPage(totalPages.value)
 }
 
 // Lifecycle

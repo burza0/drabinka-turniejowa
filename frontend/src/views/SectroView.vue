@@ -25,14 +25,64 @@
     <!-- Main Content -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       
-      <!-- Setup Phase -->
-      <SectroSetup 
-        v-if="!currentSession" 
-        @session-created="onSessionCreated"
-      />
+      <!-- Unified System Notice -->
+      <div v-if="!currentSession" class="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl border border-blue-200 dark:border-blue-700 p-8 text-center">
+        <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center mx-auto mb-6">
+          <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+        </div>
+        
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+          🚀 Unified Start Control
+        </h2>
+        
+        <p class="text-lg text-gray-600 dark:text-gray-400 mb-6 max-w-2xl mx-auto">
+          System SECTRO został zintegrowany z Centrum Startu! <br>
+          Sesje są teraz tworzone <strong>automatycznie</strong> przy aktywacji grup startowych.
+        </p>
+        
+        <div class="bg-white dark:bg-gray-800 rounded-lg p-6 mb-6 text-left max-w-2xl mx-auto border border-gray-200 dark:border-gray-700">
+          <h3 class="font-bold text-gray-900 dark:text-white mb-3">💡 Nowy workflow:</h3>
+          <ol class="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+            <li class="flex items-center space-x-2">
+              <span class="w-6 h-6 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center text-xs font-bold">1</span>
+              <span>Skanuj QR → meldowanie zawodników</span>
+            </li>
+            <li class="flex items-center space-x-2">
+              <span class="w-6 h-6 bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center text-xs font-bold">2</span>
+              <span>Aktywuj grupę → automatyczne tworzenie sesji SECTRO</span>
+            </li>
+            <li class="flex items-center space-x-2">
+              <span class="w-6 h-6 bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-400 rounded-full flex items-center justify-center text-xs font-bold">3</span>
+              <span>Live timing → automatyczne pomiary</span>
+            </li>
+          </ol>
+        </div>
+        
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <a href="#" @click="$emit('switch-to-unified')" 
+             class="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-xl">
+            🚀 Przejdź do Unified System
+          </a>
+          
+          <button @click="showManualForm = !showManualForm"
+                  class="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 px-6 py-3 rounded-lg font-medium transition-all duration-200">
+            ⚙️ Utwórz sesję ręcznie (zaawansowane)
+          </button>
+        </div>
+      </div>
+      
+      <!-- Manual Session Form (collapsed by default) -->
+      <div v-if="!currentSession && showManualForm" class="mt-6">
+        <SectroSetup 
+          @session-created="onSessionCreated"
+          @cancel="showManualForm = false"
+        />
+      </div>
       
       <!-- Active Session -->
-      <div v-else class="space-y-6">
+      <div v-else-if="currentSession" class="space-y-6">
         
         <!-- Session Controls -->
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
@@ -100,6 +150,7 @@ export default {
   setup() {
     const currentSession = ref(null)
     const sessionResults = ref([])
+    const showManualForm = ref(false)
 
     const onSessionCreated = (session) => {
       currentSession.value = session
@@ -242,6 +293,7 @@ export default {
     return {
       currentSession,
       sessionResults,
+      showManualForm,
       onSessionCreated,
       startSession,
       endSession,
