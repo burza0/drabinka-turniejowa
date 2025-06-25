@@ -1,25 +1,30 @@
+# -*- coding: utf-8 -*-
+"""
+SKATECROSS QR - Database Demo Module
+Wersja: 1.0.0
+Data demo w pamięci dla QR systemu
+"""
+
 import psycopg2
 import os
-from dotenv import load_dotenv
 from psycopg2 import pool
 import atexit
 
-load_dotenv()
+# Hardcoded Supabase URL - dla bezpieczeństwa powinno być w .env
+DATABASE_URL = "postgresql://postgres.dfjhfaqvbynrhgdbvjfh:Minimum1!@aws-0-eu-north-1.pooler.supabase.com:6543/postgres"
 
-DB_URL = os.getenv("DATABASE_URL")
-
-# WERSJA 30.3.6: CONNECTION POOLING dla wydajności na Heroku
+# CONNECTION POOLING dla wydajności
 connection_pool = None
 
 def init_db_pool():
-    """Inicjalizuje pulę połączeń z optymalizacją dla Heroku"""
+    """Inicjalizuje pulę połączeń z Supabase"""
     global connection_pool
     if connection_pool is None:
         try:
             connection_pool = psycopg2.pool.SimpleConnectionPool(
-                1, 15,  # min 1, max 15 połączeń (Heroku hobby-dev limit = 20)
-                DB_URL,
-                connect_timeout=10  # 10 sekund timeout
+                1, 15,  # min 1, max 15 połączeń
+                DATABASE_URL,
+                connect_timeout=10
             )
             print("✅ Connection pool zainicjalizowany (1-15 połączeń)")
         except Exception as e:
@@ -27,7 +32,7 @@ def init_db_pool():
             connection_pool = None
 
 def get_db_connection():
-    """Pobiera połączenie z puli z timeout handling"""
+    """Pobiera połączenie z puli"""
     global connection_pool
     if connection_pool is None:
         init_db_pool()
@@ -36,8 +41,7 @@ def get_db_connection():
         if connection_pool:
             return connection_pool.getconn()
         else:
-            # Fallback do prostego połączenia
-            return psycopg2.connect(DB_URL, connect_timeout=10)
+            return psycopg2.connect(DATABASE_URL, connect_timeout=10)
     except Exception as e:
         print(f"❌ Błąd pobierania połączenia: {e}")
         return None
@@ -50,14 +54,13 @@ def return_db_connection(conn):
             connection_pool.putconn(conn)
         except Exception as e:
             print(f"⚠️ Błąd zwracania połączenia do puli: {e}")
-            # Spróbuj zamknąć połączenie bezpośrednio
             try:
                 conn.close()
             except:
                 pass
 
 def get_all(query, params=None):
-    """WERSJA 30.3.6: Pobiera wszystkie rekordy używając connection pool"""
+    """Pobiera wszystkie rekordy z Supabase PostgreSQL"""
     conn = None
     try:
         conn = get_db_connection()
@@ -97,7 +100,7 @@ def get_all(query, params=None):
             return_db_connection(conn)
 
 def get_one(query, params=None):
-    """WERSJA 30.3.6: Pobiera pojedynczy rekord używając connection pool"""
+    """Pobiera pojedynczy rekord z Supabase PostgreSQL"""
     conn = None
     try:
         conn = get_db_connection()
@@ -127,7 +130,7 @@ def get_one(query, params=None):
             return_db_connection(conn)
 
 def execute_query(query, params=None):
-    """WERSJA 30.3.6: Wykonuje zapytanie używając connection pool"""
+    """Wykonuje zapytanie w Supabase PostgreSQL"""
     conn = None
     try:
         conn = get_db_connection()
@@ -168,4 +171,19 @@ def cleanup_db_pool():
 init_db_pool()
 
 # Zarejestruj cleanup funkcję przy shutdown aplikacji
-atexit.register(cleanup_db_pool) 
+atexit.register(cleanup_db_pool)
+
+# Sprawdź połączenie przy starcie
+try:
+    test_conn = get_db_connection()
+    if test_conn:
+        cur = test_conn.cursor()
+        cur.execute("SELECT 1")
+        result = cur.fetchone()
+        cur.close()
+        return_db_connection(test_conn)
+        print("🎯 SKATECROSS QR - Połączenie z Supabase PostgreSQL: SUKCES!")
+    else:
+        print("❌ SKATECROSS QR - Nie udało się połączyć z Supabase PostgreSQL")
+except Exception as e:
+    print(f"❌ SKATECROSS QR - Błąd połączenia z Supabase: {e}") 

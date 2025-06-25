@@ -182,19 +182,15 @@
           <div class="flex flex-wrap gap-2">
             <button 
               @click="clearQueue('all')"
-              :disabled="appState.loading"
-              class="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium flex items-center space-x-1"
+              class="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium"
             >
-              <span v-if="appState.loading">🔄</span>
-              <span>Usuń wszystkie grupy</span>
+              Wyczyść kolejkę
             </button>
             <button 
               @click="clearQueue('scanned')"
-              :disabled="appState.loading"
-              class="px-3 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium flex items-center space-x-1"
+              class="px-3 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 text-sm font-medium"
             >
-              <span v-if="appState.loading">🔄</span>
-              <span>Usuń skanowanych</span>
+              Usuń skanowanych
             </button>
           </div>
         </div>
@@ -205,7 +201,7 @@
         
         <!-- QR Scanner -->
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-      <div class="text-center">
+          <div class="text-center">
             <div class="w-16 h-16 mx-auto mb-4 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center">
               <QrCodeIcon class="h-8 w-8 text-green-600 dark:text-green-400" />
         </div>
@@ -360,7 +356,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { 
   QrCodeIcon, 
   UsersIcon,
@@ -424,10 +420,7 @@ const kolejka_zawodnikow = ref<Zawodnik[]>([])
 const selectedGrupa = ref<number | null>(null)
 const manualQrCode = ref('')
 const lastVerification = ref<VerificationResult | null>(null)
-const apiVersion = ref('32.0.0')
-
-// NOWY: Stan statusów grup z backendu
-const grupyStatuses = ref<Record<string, { is_active: boolean; count: number }>>({})
+const apiVersion = ref('30.5.0')
 
 // Computed properties
 const totalZawodnikow = computed(() => {
@@ -448,30 +441,23 @@ const kolejkaStatus = computed(() => {
   return { total, skanowani, aktywnaGrupa }
 })
 
-// TOGGLE: Aktywacja/Deaktywacja grupy z systemem toggle
+// IMPROVED: Optymistyczne aktualizacje dla aktywnej grupy
 const setAktywnaGrupa = async (grupa: Grupa) => {
   if (!grupa || appState.value.activatingGroupId) return
   
-  const groupKey = `${grupa.kategoria}_${grupa.plec}`
-  const isCurrentlyActive = grupyStatuses.value[groupKey]?.is_active || false
-  const action = isCurrentlyActive ? 'deaktywacja' : 'aktywacja'
+  console.log('🎯 Aktywacja grupy:', grupa.nazwa)
   
-  console.log(`🎯 ${action} grupy:`, grupa.nazwa, { currentlyActive: isCurrentlyActive })
-  
-  // OPTYMISTIC UPDATE: Od razu zaktualizuj UI
+  // OPTYMISTIC UPDATE: Zapisz ID aktywowanej grupy
+  appState.value.optimisticActiveGroupId = grupa.numer_grupy
   appState.value.activatingGroupId = grupa.numer_grupy
   appState.value.error = null
-  
-  // Optymistyczna aktualizacja statusu
-  if (grupyStatuses.value[groupKey]) {
-    grupyStatuses.value[groupKey].is_active = !isCurrentlyActive
-  }
   
   try {
     const response = await fetch('/api/grupa-aktywna', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        numer_grupy: grupa.numer_grupy,
         kategoria: grupa.kategoria,
         plec: grupa.plec,
         nazwa: grupa.nazwa
@@ -483,29 +469,30 @@ const setAktywnaGrupa = async (grupa: Grupa) => {
       throw new Error(`Backend error: ${response.status} - ${errorText}`)
     }
     
-    const result = await response.json()
-    console.log(`✅ ${result.action === 'added' ? 'Dodano' : 'Usunięto'} grupę:`, grupa.nazwa)
+    // Po sukcesie ustaw prawdziwą aktywną grupę
+    aktualna_grupa.value = grupa
     
-    // Synchronizuj dane w tle
+    // SYNC: Po aktywacji synchronizuj dane w tle (z loading indicator)
+    console.log('✅ Grupa aktywowana, synchronizuję dane...')
     setTimeout(async () => {
-      appState.value.syncingData = true
       try {
-        await syncAllData('po toggle grupy')
+        appState.value.syncingData = true
+        await syncAllData('po aktywacji grupy')
+      } catch (error) {
+        console.error('❌ Błąd synchronizacji po aktywacji:', error)
       } finally {
         appState.value.syncingData = false
       }
-    }, 300)
+    }, 500) // Krótsze opóźnienie
+    
+    showSuccess(`✅ Aktywowano grupę: ${grupa.nazwa}`)
     
   } catch (error) {
-    console.error('❌ Błąd toggle grupy:', error)
-    
-    // ROLLBACK: Cofnij optymistyczną zmianę
-    if (grupyStatuses.value[groupKey]) {
-      grupyStatuses.value[groupKey].is_active = isCurrentlyActive
-    }
-    
+    console.error('❌ Błąd aktywacji grupy:', error)
+    // ROLLBACK: W przypadku błędu, cofnij optymistyczną zmianę
+    appState.value.optimisticActiveGroupId = null
     appState.value.error = error.message
-    console.error(`Błąd: ${error.message}`)
+    showError(`Błąd aktywacji: ${error.message}`)
   } finally {
     appState.value.activatingGroupId = null
   }
@@ -542,7 +529,7 @@ const clearAktywnaGrupa = async () => {
       }
     }, 500)
     
-    console.log('🧹 Wyczyszczono aktywną grupę')
+    showSuccess('🧹 Wyczyszczono aktywną grupę')
     
   } catch (error) {
     console.error('❌ Błąd czyszczenia grupy:', error)
@@ -550,7 +537,7 @@ const clearAktywnaGrupa = async () => {
     aktualna_grupa.value = previousGroup
     appState.value.optimisticActiveGroupId = previousGroup?.numer_grupy || null
     appState.value.error = error.message
-    console.error(`Błąd: ${error.message}`)
+    showError(`Błąd: ${error.message}`)
   } finally {
     appState.value.activatingGroupId = null
   }
@@ -574,12 +561,12 @@ const syncAllData = async (reason = 'manual') => {
   
   try {
     // 1. API Version (tylko raz przy starcie)
-    if (!apiVersion.value || apiVersion.value === '32.0.0') {
+    if (!apiVersion.value || apiVersion.value === '30.5.0') {
       try {
         const versionResponse = await fetch('/api/version')
         if (versionResponse.ok) {
           const versionData = await versionResponse.json()
-          apiVersion.value = versionData.version || '32.0.0'
+          apiVersion.value = versionData.version || '30.4.0'
         }
       } catch (e) {
         console.warn('⚠️ Nie można pobrać wersji API')
@@ -587,15 +574,15 @@ const syncAllData = async (reason = 'manual') => {
     }
     
     // 2. Grupy startowe
-    const grupyResponse = await fetch(`/api/grupy-startowe?_t=${Date.now()}`)
+    const grupyResponse = await fetch('/api/grupy-startowe')
     if (!grupyResponse.ok) throw new Error('Błąd ładowania grup')
     const grupyData = await grupyResponse.json()
     grupy.value = grupyData.grupy || []
     
-    // 3. Aktywna grupa - ZAWSZE ładuj z backend (cache-busting)
-    {
+    // 3. Aktywna grupa (tylko jeśli nie ma optymistycznej)
+    if (!appState.value.optimisticActiveGroupId) {
       try {
-        const aktywnaResponse = await fetch(`/api/grupa-aktywna?_t=${Date.now()}`)
+        const aktywnaResponse = await fetch('/api/grupa-aktywna')
         if (aktywnaResponse.ok) {
           const aktywnaData = await aktywnaResponse.json()
           if (aktywnaData.success && aktywnaData.aktywna_grupa) {
@@ -617,19 +604,8 @@ const syncAllData = async (reason = 'manual') => {
       }
     }
     
-    // 4. Statusy grup (dla przycisków toggle)
-    try {
-      const statusyResponse = await fetch(`/api/start-queue/all-group-statuses?_t=${Date.now()}`)
-      if (statusyResponse.ok) {
-        const statusyData = await statusyResponse.json()
-        grupyStatuses.value = statusyData.statuses || {}
-      }
-    } catch (e) {
-      console.warn('⚠️ Błąd ładowania statusów grup:', e)
-    }
-
-    // 5. Kolejka startowa
-    const kolejkaResponse = await fetch(`/api/start-queue?_t=${Date.now()}`)
+    // 4. Kolejka startowa
+    const kolejkaResponse = await fetch('/api/start-queue')
     if (!kolejkaResponse.ok) throw new Error('Błąd ładowania kolejki')
     const kolejkaData = await kolejkaResponse.json()
     kolejka_zawodnikow.value = kolejkaData.queue || []
@@ -702,8 +678,9 @@ const handleQRCode = async () => {
 
 // IMPROVED: Remove z optymistyczną aktualizacją
 const removeFromQueue = async (zawodnik: Zawodnik) => {
+  const confirmMessage = `Czy na pewno chcesz usunąć zawodnika #${zawodnik.nr_startowy} ${zawodnik.imie} ${zawodnik.nazwisko} z kolejki?`
   
-  // if (!confirm(...)) return  // USUNIĘTO DIALOG
+  if (!confirm(confirmMessage)) return
   
   // OPTYMISTIC UPDATE: Od razu usuń z lokalnej listy
   const originalQueue = [...kolejka_zawodnikow.value]
@@ -720,7 +697,7 @@ const removeFromQueue = async (zawodnik: Zawodnik) => {
       setTimeout(async () => {
         appState.value.syncingQueue = true
         try {
-          const kolejkaResponse = await fetch(`/api/start-queue?_t=${Date.now()}`)
+          const kolejkaResponse = await fetch('/api/start-queue')
           if (kolejkaResponse.ok) {
             const kolejkaData = await kolejkaResponse.json()
             kolejka_zawodnikow.value = kolejkaData.queue || []
@@ -730,7 +707,7 @@ const removeFromQueue = async (zawodnik: Zawodnik) => {
         }
       }, 1000)
       
-      console.log(`Usunięto zawodnika #${zawodnik.nr_startowy} z kolejki`)
+      showSuccess(`Usunięto zawodnika #${zawodnik.nr_startowy} z kolejki`)
     } else {
       const error = await response.json()
       throw new Error(error.message || 'Błąd usuwania')
@@ -739,32 +716,17 @@ const removeFromQueue = async (zawodnik: Zawodnik) => {
     console.error('Błąd usuwania:', error)
     // ROLLBACK: Przywróć oryginalną kolejkę
     kolejka_zawodnikow.value = originalQueue
-    console.error(`Błąd: ${error.message}`)
+    showError(`Błąd: ${error.message}`)
   }
 }
 
-// ENHANCED: Clear queue - usuwa wszystkie grupy z kolejki
+// SIMPLIFIED: Clear queue
 const clearQueue = async (type: 'all' | 'scanned') => {
-  console.log(`🧹 Czyszczenie kolejki: ${type}`)
+  const confirmMessage = type === 'all' 
+    ? 'Czy na pewno chcesz wyczyścić całą kolejkę startową?'
+    : 'Czy na pewno chcesz usunąć wszystkich skanowanych zawodników z kolejki?'
   
-  // OPTYMISTIC UPDATE: Od razu wyczyść lokalny stan
-  const originalQueue = [...kolejka_zawodnikow.value]
-  const originalStatuses = { ...grupyStatuses.value }
-  
-  if (type === 'all') {
-    // Wyczyść wszystko
-    kolejka_zawodnikow.value = []
-    // Ustaw wszystkie grupy jako nieaktywne
-    Object.keys(grupyStatuses.value).forEach(key => {
-      if (grupyStatuses.value[key]) {
-        grupyStatuses.value[key].is_active = false
-        grupyStatuses.value[key].count = 0
-      }
-    })
-  } else if (type === 'scanned') {
-    // Usuń tylko skanowanych
-    kolejka_zawodnikow.value = kolejka_zawodnikow.value.filter(z => z.source_type !== 'SKANOWANY')
-  }
+  if (!confirm(confirmMessage)) return
   
   appState.value.loading = true
   try {
@@ -775,29 +737,14 @@ const clearQueue = async (type: 'all' | 'scanned') => {
     })
     
     if (response.ok) {
-      const result = await response.json()
-      console.log(`✅ ${result.message}`)
-      
-      // Synchronizuj dane w tle żeby potwierdzić zmiany
-      setTimeout(async () => {
-        appState.value.syncingData = true
-        try {
-          await syncAllData('po czyszczeniu kolejki')
-        } finally {
-          appState.value.syncingData = false
-        }
-      }, 500)
+      await syncAllData('po czyszczeniu kolejki')
+      showSuccess(`Wyczyszczono kolejkę: ${type}`)
     } else {
       throw new Error('Błąd czyszczenia kolejki')
     }
   } catch (error) {
-    console.error('❌ Błąd czyszczenia kolejki:', error)
-    
-    // ROLLBACK: Przywróć oryginalny stan
-    kolejka_zawodnikow.value = originalQueue
-    grupyStatuses.value = originalStatuses
-    
-    console.error(`Błąd: ${error.message}`)
+    console.error('Błąd czyszczenia kolejki:', error)
+    showError(`Błąd: ${error.message}`)
   } finally {
     appState.value.loading = false
   }
@@ -872,18 +819,17 @@ const currentActiveGroup = computed(() => {
   return aktualna_grupa.value
 })
 
-// TOGGLE: Helper do sprawdzania stanu przycisku grupy na podstawie statusów z backendu
+// NOWE: Helper do sprawdzania stanu przycisku grupy
 const getGroupButtonState = (grupa: Grupa) => {
-  const groupKey = `${grupa.kategoria}_${grupa.plec}`
-  const isActive = grupyStatuses.value[groupKey]?.is_active || false
+  const isCurrentActive = currentActiveGroup.value?.numer_grupy === grupa.numer_grupy
   const isActivating = appState.value.activatingGroupId === grupa.numer_grupy
   const isAnyActivating = appState.value.activatingGroupId !== null
   
   return {
-    isActive: isActive && !isActivating,
+    isActive: isCurrentActive,
     isActivating: isActivating,
-    isDisabled: isAnyActivating,
-    text: isActivating ? 'Przetwarzam...' : isActive ? 'Aktywna' : 'Aktywuj',
+    isDisabled: isCurrentActive || isAnyActivating,
+    text: isCurrentActive ? 'Aktywna' : isActivating ? 'Aktywuję...' : 'Aktywuj',
     showSpinner: isActivating
   }
 }

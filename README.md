@@ -1,444 +1,305 @@
-# 🏆 SKATECROSS Tournament System
+# 🏁 SKATECROSS v36.0 - Unified Tournament Management System
 
-> **Profesjonalny system zarządzania turniejami łyżwiarskich** z funkcjami QR kodów, rankingami i drabinką turniejową.
+**Profesjonalny system zarządzania turniejami skatecross z integracją QR, pomiarami czasu SECTRO i zaawansowanym centrum startu.**
 
-![Version](https://img.shields.io/badge/version-v30.5.4-blue.svg)
-![Backend](https://img.shields.io/badge/backend-Flask_3.0-green.svg)
-![Frontend](https://img.shields.io/badge/frontend-Vue_3.5-brightgreen.svg)
-![Database](https://img.shields.io/badge/database-PostgreSQL-blue.svg)
-![Deploy](https://img.shields.io/badge/deploy-Heroku-purple.svg)
+## 🚀 Najważniejsze funkcje
 
-## 📖 Spis treści
+### 📊 **Unified Start Control** (FAZA 3 - UKOŃCZONA)
+- **Centrum Startu + SECTRO** - zintegrowany system meldowania i pomiarów
+- **Zarządzanie grupami startowymi** - tworzenie, moderowanie, usuwanie grup
+- **Real-time dashboard** - 251 zawodników, 14 klubów, dynamiczne statusy
+- **QR Scanner** - automatyczne meldowanie przez skanowanie kodów
+- **Backup meldowanie** - ręczne meldowanie z powodami organizatora
 
-- [🎯 Funkcjonalności](#-funkcjonalności)
-- [🛠️ Stack technologiczny](#️-stack-technologiczny)
-- [🚀 Szybki start](#-szybki-start)
-- [📁 Struktura projektu](#-struktura-projektu)
-- [🔧 Instalacja i konfiguracja](#-instalacja-i-konfiguracja)
-- [🌐 Deployment](#-deployment)
-- [📊 API Dokumentacja](#-api-dokumentacja)
-- [⚡ Optymalizacje wydajności](#-optymalizacje-wydajności)
-- [🎨 Screenshots](#-screenshots)
-- [🤝 Contributing](#-contributing)
+### 🔲 **System QR**
+- **Bulk generowanie** - kody QR dla wszystkich 251 zawodników
+- **Drukowanie etykiet** - profesjonalne naklejki z danymi zawodnika
+- **Admin Dashboard** - statystyki, zarządzanie, historia meldowań
+- **Advanced Print** - zaawansowane opcje druku i formatowania
 
-## 🎯 Funkcjonalności
+### ⏱️ **Integracja SECTRO**
+- **Automatyczne sesje** - tworzenie sesji pomiarowych dla grup
+- **Real-time pomiary** - start, finish, total time
+- **Status tracking** - WAITING → REGISTERED → READY → TIMING → FINISHED
+- **Priority system** - sortowanie według statusu i czasu
 
-### 👥 Zarządzanie zawodnikami
-- ✅ **CRUD zawodników** - dodawanie, edycja, usuwanie
-- 🏷️ **Kategorie i kluby** - organizacja zawodników
-- 📊 **Statystyki** - liczniki, rekordy, podsumowania
-- 🔍 **Zaawansowane filtrowanie** - po kategorii, klubie, płci, statusie
-- 📱 **Responsive design** - działanie na wszystkich urządzeniach
+### 📈 **Analityka i Raporty**
+- **Dashboard główny** - przegląd systemu, statystyki turnieju
+- **Rankingi** - kategorie, kluby, czasy przejazdu
+- **Eksport danych** - CSV, raporty, backup
+- **Historia aktywności** - szczegółowe logi systemowe
 
-### 🏆 Drabinka turniejowa
-- 🌳 **Wizualizacja drabinki** - graficzne drzewo turniejowe
-- ⚡ **Aktualizacja na żywo** - natychmiastowe odświeżanie wyników
-- 🎯 **Zarządzanie meczami** - rozpoczynanie, finalizowanie
-- 📈 **Progresja** - śledzenie postępu zawodników
+## 🛠️ **Architektura Techniczna**
 
-### 📊 System rankingów
-- 🥇 **Ranking indywidualny** - najlepsi zawodnicy
-- 🏟️ **Ranking klubów** - punktacja zespołowa
-- 🏅 **Ranking medalowy** - podium w kategoriach
-- 📈 **System punktowy** - automatyczne naliczanie
-
-### 🔲 System QR kodów
-- 📱 **Generator QR** - masowe generowanie kodów
-- 📲 **Skaner mobilny** - odczytywanie na urządzeniach
-- ✅ **Check-in system** - rejestracja uczestników
-- 🖨️ **Drukowanie** - gotowe do wydruku etykiety
-- 🔄 **Synchronizacja** - real-time updates
-
-### 🎛️ Panel administracyjny
-- 👤 **Tryb admin** - zaawansowane funkcje
-- 📊 **Dashboard** - przegląd systemu
-- ⚙️ **Konfiguracja** - ustawienia turniejów
-- 📱 **Centrum startu** - zarządzanie linią startową
-
-## 🛠️ Stack technologiczny
-
-### Backend
+### **Backend (Python/Flask)**
 ```
-Flask 3.0          # Framework webowy
-PostgreSQL         # Baza danych
-SQLAlchemy 2.0     # ORM
-Flask-Compress     # Kompresja gzip
-Gunicorn          # WSGI server
-ReportLab         # Generowanie PDF
+📦 Backend Architecture
+├── 🐍 Flask API Server (Python 3.11+)
+├── 🗄️ Supabase PostgreSQL (Cloud Database)
+├── 🔄 Unified Start Manager (Core Logic)
+├── 📊 SECTRO Integration (Time Measurements)
+├── 🔲 QR Generation System
+├── 🏁 Tournament Management
+└── 📈 Analytics & Reporting
 ```
 
-### Frontend
+**Główne moduły:**
+- `unified_start_manager.py` - logika biznesowa unified systemu
+- `api/unified_start_api.py` - endpointy REST API
+- `api/zawodnicy.py` - zarządzanie zawodnikami
+- `api/qr_generation.py` - system kodów QR
+- `utils/database.py` - connection pool PostgreSQL
+
+### **Frontend (Vue 3/TypeScript)**
 ```
-Vue 3.5           # Framework UI
-TypeScript 5.8    # Typowanie
-Vite 6.3          # Build tool
-TailwindCSS 3.4   # Styling
-Heroicons 2.2     # Ikony
-Axios 1.9         # HTTP client
-QRCode.js 1.5     # Generator QR
+📦 Frontend Architecture
+├── ⚡ Vue 3 + TypeScript + Vite
+├── 🎨 Tailwind CSS (Modern UI)
+├── 📱 Responsive Design
+├── 🔄 Real-time Updates
+├── 🧩 Component Architecture
+└── 🚀 Hot Reload Development
 ```
 
-### Infrastructure
-```
-Heroku            # Platform deployment
-PostgreSQL        # Managed database
-GitHub Actions    # CI/CD (opcjonalnie)
-```
+**Kluczowe komponenty:**
+- `UnifiedStartControl.vue` - centrum zarządzania startem
+- `StartGroupsCard.vue` - grupy startowe z zarządzaniem
+- `QRScannerCard.vue` - skaner QR z backup opcjami
+- `QrAdminDashboard.vue` - admin panel systemu QR
+- `Dashboard.vue` - główny dashboard systemu
 
-## 🚀 Szybki start
+## 🔧 **Instalacja i Uruchomienie**
 
-### Wymagania
-- Python 3.11+
-- Node.js 18+
-- PostgreSQL 14+
-- Git
+### **Wymagania systemowe:**
+- **Python 3.11+** z pip
+- **Node.js 24.2.0+** z npm
+- **Supabase PostgreSQL** (cloud database)
+- **macOS/Linux/Windows**
 
-### 1. Klonowanie repozytorium
+### **Backend Setup:**
 ```bash
-git clone https://github.com/your-username/drabinka-turniejowa.git
-cd drabinka-turniejowa
+# 1. Przejdź do katalogu backend
+cd /Users/mariusz/drabinka-turniejowa/backend
+
+# 2. Aktywuj środowisko wirtualne
+source venv/bin/activate
+
+# 3. Uruchom serwer API
+python3 api_server.py
 ```
+**✅ Backend działa na: http://localhost:5001**
 
-### 2. Uruchomienie środowiska deweloperskiego
-
-#### Backend
+### **Frontend Setup:**
 ```bash
-# Utworzenie virtual environment
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# venv\Scripts\activate   # Windows
+# 1. Przejdź do katalogu frontend
+cd /Users/mariusz/drabinka-turniejowa/frontend
 
-# Instalacja dependencies
-cd backend
-pip install -r requirements.txt
+# 2. Skonfiguruj Node.js
+source ~/.nvm/nvm.sh
+nvm use v24.2.0
 
-# Konfiguracja bazy danych
-cp .env.example .env
-# Edytuj .env z właściwymi danymi
-
-# Uruchomienie serwera
-python api_server.py
+# 3. Uruchom serwer dev
+npm run dev -- --port 5173
 ```
+**✅ Frontend działa na: http://localhost:5173**
 
-#### Frontend
-```bash
-# Instalacja dependencies
-cd frontend
-npm install
+### **⚠️ Kolejność uruchomienia:**
+1. **NAJPIERW** - Backend (port 5001)
+2. **POTEM** - Frontend (port 5173)
 
-# Uruchomienie dev server
-npm run dev
-```
+*Backend musi być uruchomiony przed frontendem - inaczej proxy errors!*
 
-### 3. Dostęp do aplikacji
-- **Frontend**: http://localhost:5173
-- **Backend API**: http://localhost:5000
-- **Admin panel**: Toggle w prawym górnym rogu
+## 📊 **Baza Danych**
 
-## 📁 Struktura projektu
-
-```
-drabinka-turniejowa/
-├── 📂 backend/                 # Serwer Flask
-│   ├── 📄 api_server.py       # Główny serwer API
-│   ├── 📄 cache.py            # System cache'owania
-│   ├── 📄 optimize_db_performance.py  # Optymalizacje DB
-│   ├── 📄 requirements.txt    # Python dependencies
-│   └── 📂 migrations/         # Migracje bazy danych
-│
-├── 📂 frontend/               # Aplikacja Vue
-│   ├── 📂 src/
-│   │   ├── 📂 components/     # Komponenty Vue
-│   │   │   ├── 📄 DrabinkaPucharowa.vue
-│   │   │   ├── 📄 QrAdminDashboard.vue
-│   │   │   ├── 📄 Rankingi.vue
-│   │   │   └── 📄 StartLineScanner.vue
-│   │   ├── 📂 composables/    # Logika biznesowa
-│   │   └── 📄 App.vue         # Główny komponent
-│   ├── 📄 package.json        # Node dependencies
-│   ├── 📄 vite.config.ts      # Konfiguracja Vite
-│   └── 📄 tailwind.config.js  # Konfiguracja TailwindCSS
-│
-├── 📄 Procfile               # Konfiguracja Heroku
-├── 📄 requirements.txt       # Python dependencies (root)
-└── 📄 README.md             # Ten plik
-```
-
-## 🔧 Instalacja i konfiguracja
-
-### Konfiguracja bazy danych
-
-1. **Tworzenie bazy PostgreSQL**:
+### **Główne tabele:**
 ```sql
-CREATE DATABASE skatecross_tournament;
-CREATE USER tournament_user WITH PASSWORD 'your_password';
-GRANT ALL PRIVILEGES ON DATABASE skatecross_tournament TO tournament_user;
+-- Zawodnicy (251 rekordów)
+zawodnicy: nr_startowy, imie, nazwisko, kategoria, plec, klub, 
+           qr_code, checked_in, check_in_time
+
+-- Sesje SECTRO
+sectro_sessions: id, nazwa, status, created_at, start_time, end_time
+
+-- Wyniki pomiarów
+sectro_results: nr_startowy, session_id, start_time, finish_time, 
+                total_time, status
+
+-- Grupy startowe  
+grupy_startowe: kategoria, plec, status, created_at
 ```
 
-2. **Plik środowiskowy** (`.env`):
-```env
-DATABASE_URL=postgresql://tournament_user:your_password@localhost/skatecross_tournament
-FLASK_ENV=development
-FLASK_SECRET_KEY=your-secret-key-here
+### **Statystyki systemu:**
+- **251 zawodników** z 14 klubów
+- **6 kategorii** (Junior A-D, Masters, Senior)
+- **Unified API** - 15+ endpointów REST
+- **Real-time updates** co 30 sekund
+
+## 🔗 **API Endpoints**
+
+### **Unified Start Control:**
+```http
+GET    /api/unified/dashboard-data    # Dashboard z grupami i statystykami
+POST   /api/unified/register-athlete  # Meldowanie zawodnika (QR/manual)
+GET    /api/unified/group-details     # Szczegóły grupy z zawodnikami
+POST   /api/unified/remove-athlete    # Usunięcie zawodnika z grupy
+POST   /api/unified/delete-group      # Usunięcie całej grupy
+GET    /api/unified/health           # Status systemu
 ```
 
-3. **Inicjalizacja tabel**:
-```bash
-python backend/create_tables.py
+### **Zarządzanie zawodnikami:**
+```http
+GET    /api/zawodnicy                # Lista zawodników (z paginacją)
+GET    /api/zawodnicy/{nr}           # Szczegóły zawodnika
+POST   /api/zawodnicy                # Dodanie zawodnika
+PUT    /api/zawodnicy/{nr}           # Edycja zawodnika
+DELETE /api/zawodnicy/{nr}           # Usunięcie zawodnika
 ```
 
-### Zmienne środowiskowe
-
-| Zmienna | Opis | Przykład |
-|---------|------|----------|
-| `DATABASE_URL` | URL bazy PostgreSQL | `postgresql://user:pass@host/db` |
-| `FLASK_ENV` | Środowisko Flask | `development`/`production` |
-| `FLASK_SECRET_KEY` | Klucz szyfrowania | `random-secret-key` |
-
-### Indeksy bazy danych
-
-System automatycznie tworzy optymalne indeksy:
-```bash
-python backend/optimize_db_performance.py
+### **System QR:**
+```http
+GET    /api/qr/generate/{nr}         # Generowanie pojedynczego QR
+POST   /api/qr/bulk-generate         # Bulk generowanie QR kodów
+GET    /api/qr/dashboard             # Dashboard QR (DEPRECATED)
 ```
 
-Tworzone indeksy:
-- `idx_zawodnicy_nr_startowy` - JOIN performance
-- `idx_zawodnicy_kategoria` - filtrowanie kategorii
-- `idx_zawodnicy_klub` - filtrowanie klubów
-- `idx_wyniki_czas` - sortowanie czasów
-- `idx_wyniki_status` - filtrowanie statusów
+## 🏆 **Funkcjonalności Biznesowe**
 
-## 🌐 Deployment
+### **1. Zarządzanie Turniejem**
+- ✅ Import zawodników z CSV
+- ✅ Kategoryzacja (kategoria + płeć)
+- ✅ Zarządzanie klubami
+- ✅ Generowanie numerów startowych
+- ✅ Export danych i raportów
 
-### Heroku Deployment
+### **2. System Meldowania**
+- ✅ QR Code scanning (automaty)
+- ✅ Ręczne meldowanie (backup)
+- ✅ Powody meldowania (awaria, brak QR, decyzja organizatora)
+- ✅ Walidacja i zabezpieczenia
+- ✅ Historia meldowań
 
-1. **Przygotowanie**:
-```bash
-# Zalogowanie do Heroku
-heroku login
+### **3. Grupy Startowe**
+- ✅ Automatyczne tworzenie grup (kategoria + płeć)
+- ✅ Moderowanie zawartości grup
+- ✅ Usuwanie zawodników z grup
+- ✅ Usuwanie całych grup
+- ✅ Integracja z sesjami SECTRO
 
-# Tworzenie aplikacji
-heroku create your-app-name
+### **4. Pomiary Czasu**
+- ✅ Integracja z systemem SECTRO
+- ✅ Automatyczne sesje dla grup
+- ✅ Real-time pomiary (start/finish/total)
+- ✅ Status tracking zawodników
+- ✅ Priority system wyświetlania
 
-# Dodanie PostgreSQL
-heroku addons:create heroku-postgresql:mini
-```
+### **5. Monitoring i Analityka**
+- ✅ Real-time dashboard
+- ✅ Statystyki turnieju
+- ✅ Historia aktywności
+- ✅ Performance monitoring
+- ✅ Error handling i recovery
 
-2. **Deployment**:
-```bash
-# Deploy
-git push heroku master
+## 🔒 **Bezpieczeństwo**
 
-# Migracje
-heroku run python backend/create_tables.py
-```
+### **Walidacja danych:**
+- ✅ Sprawdzanie istnienia zawodników
+- ✅ Zapobieganie podwójnemu meldowaniu
+- ✅ Walidacja sesji SECTRO
+- ✅ Zabezpieczenie przed usunięciem podczas pomiarów
 
-3. **Zmienne środowiskowe**:
-```bash
-heroku config:set FLASK_ENV=production
-heroku config:set FLASK_SECRET_KEY=your-production-key
-```
+### **Error handling:**
+- ✅ Graceful fallbacks
+- ✅ Retry mechanisms
+- ✅ Connection pooling
+- ✅ SSL database connections
+- ✅ Detailed error logging
 
-### Struktura plików deployment
+### **Data integrity:**
+- ✅ Transaction safety
+- ✅ Backup procedures
+- ✅ Data validation
+- ✅ Audit trails
 
-- `Procfile` - Konfiguracja Heroku
-- `requirements.txt` - Python dependencies
-- `runtime.txt` - Wersja Python
+## 📱 **Interfejs Użytkownika**
 
-## 📊 API Dokumentacja
+### **Modern Design:**
+- 🎨 **Tailwind CSS** - modern utility-first framework
+- 📱 **Responsive** - adaptuje się do wszystkich urządzeń
+- 🌙 **Dark Mode** - wsparcie trybu ciemnego
+- ⚡ **Real-time** - aktualizacje bez odświeżania
+- 🧩 **Component-based** - modularna architektura
 
-### Endpoints zawodników
+### **Główne widoki:**
+1. **Dashboard** - przegląd systemu, statystyki
+2. **Start Control** - unified centrum zarządzania startem
+3. **QR Admin** - zarządzanie kodami QR, meldowania
+4. **QR Print** - drukowanie etykiet (251 zawodników)
+5. **Zawodnicy** - CRUD, edycja, paginacja
 
-| Method | Endpoint | Opis |
-|--------|----------|------|
-| `GET` | `/api/zawodnicy` | Lista wszystkich zawodników |
-| `POST` | `/api/zawodnicy` | Dodanie nowego zawodnika |
-| `GET` | `/api/zawodnicy/{id}` | Szczegóły zawodnika |
-| `PUT` | `/api/zawodnicy/{id}` | Aktualizacja zawodnika |
-| `DELETE` | `/api/zawodnicy/{id}` | Usunięcie zawodnika |
+## 🚧 **Historia Rozwoju**
 
-### Endpoints drabinki
+### **v36.0 (Aktualna) - Unified Start Control**
+- ✅ Integracja Centrum Startu + SECTRO
+- ✅ Zarządzanie grupami startowymi
+- ✅ Naprawa wszystkich starych API endpoints
+- ✅ Unified system meldowania
+- ✅ Kompletna migracja z v2 na unified
 
-| Method | Endpoint | Opis |
-|--------|----------|------|
-| `GET` | `/api/drabinka` | Struktura drabinki |
-| `POST` | `/api/drabinka/mecz` | Aktualizacja wyniku meczu |
+### **v35.0 - SECTRO Integration**
+- ✅ Integracja systemu pomiarów SECTRO
+- ✅ Real-time status tracking
+- ✅ Automatyczne sesje pomiarowe
+- ✅ Priority system wyświetlania
 
-### Endpoints rankingów
+### **v30.0 - QR System**
+- ✅ System kodów QR
+- ✅ Bulk generowanie i drukowanie
+- ✅ Admin dashboard
+- ✅ Scanning interface
 
-| Method | Endpoint | Opis |
-|--------|----------|------|
-| `GET` | `/api/rankings/individual` | Ranking indywidualny |
-| `GET` | `/api/rankings/clubs/total` | Ranking klubów |
-| `GET` | `/api/rankings/medals` | Ranking medalowy |
+### **v1.0-29.0 - Foundation**
+- ✅ Podstawowe zarządzanie turniejami
+- ✅ CRUD zawodników
+- ✅ Baza danych PostgreSQL
+- ✅ Vue.js frontend
 
-### Endpoints QR
+## 🔮 **Roadmap**
 
-| Method | Endpoint | Opis |
-|--------|----------|------|
-| `POST` | `/api/qr/generate/{id}` | Generowanie QR dla zawodnika |
-| `POST` | `/api/qr/generate-bulk` | Masowe generowanie QR |
-| `GET` | `/api/qr/stats` | Statystyki QR |
-| `POST` | `/api/qr/check-in` | Check-in zawodnika |
+### **v37.0 - Enhanced Analytics**
+- 📊 Zaawansowane raporty i wykresy
+- 📈 Performance analytics
+- 🎯 Predictive insights
+- 📱 Mobile app companion
 
-### Przykłady użycia
+### **v38.0 - Multi-Tournament**
+- 🏟️ Obsługa wielu turniejów jednocześnie
+- 👥 Zarządzanie organizatorami
+- 🔐 Role-based permissions
+- ☁️ Cloud deployment
 
-#### Pobranie zawodników
-```javascript
-const response = await axios.get('/api/zawodnicy');
-console.log(response.data); // Array zawodników
-```
+### **v39.0 - IoT Integration**
+- 📡 Integracja z urządzeniami IoT
+- 📸 Automatic photo capture
+- 🔊 Audio announcements
+- 📺 Live streaming integration
 
-#### Dodanie zawodnika
-```javascript
-const newZawodnik = {
-  nr_startowy: 101,
-  imie: "Jan",
-  nazwisko: "Kowalski",
-  kategoria: "Senior",
-  plec: "M",
-  klub: "RC Warszawa"
-};
+## 📞 **Wsparcie**
 
-const response = await axios.post('/api/zawodnicy', newZawodnik);
-```
+### **Kontakt:**
+- 📧 Email: [kontakt@skatecross.pl]
+- 📱 Phone: [+48 XXX XXX XXX]
+- 💬 Discord: [SKATECROSS Community]
+- 📋 Issues: [GitHub Issues]
 
-#### Generowanie QR kodu
-```javascript
-const response = await axios.post(`/api/qr/generate/${zawodnikId}`);
-console.log(response.data.qr_code); // Generated QR code
-```
-
-## ⚡ Optymalizacje wydajności
-
-### v30.5.4 Performance Improvements
-
-#### Backend optimizations
-- ✅ **PostgreSQL indexes** - 10x szybsze queries
-- ✅ **Connection pooling** - efektywne zarządzanie połączeniami
-- ✅ **Gzip compression** - 85% redukcja rozmiaru API responses
-- ✅ **Query optimization** - optymalne zapytania SQL
-
-#### Frontend optimizations
-- ✅ **Bundle splitting** - 57% redukcja initial bundle size
-- ✅ **Vendor chunking** - cache-friendly vendor libraries
-- ✅ **Lazy loading** - komponenty ładowane on-demand
-- ✅ **Tree shaking** - eliminacja unused code
-
-#### Performance metrics
-```
-API Response Times:
-├── /api/zawodnicy: 1.2s → 0.8s (-33%)
-├── /api/drabinka: 1.1s → 0.7s (-36%)
-└── /api/rankings: 0.5s → 0.3s (-40%)
-
-Bundle Sizes:
-├── Main JS: 267KB → 154KB (-42%)
-├── Gzipped: 74KB → 32KB (-57%)
-└── Vendor chunks: Cached separately
-```
-
-### Monitoring i cache
-
-```bash
-# Cache statistics
-curl /api/admin/cache-stats
-
-# Performance metrics
-curl /api/admin/performance-metrics
-```
-
-## 🎨 Screenshots
-
-### Dashboard główny
-![Dashboard](docs/screenshots/dashboard.png)
-
-### Zarządzanie zawodnikami
-![Zawodnicy](docs/screenshots/zawodnicy.png)
-
-### Drabinka turniejowa
-![Drabinka](docs/screenshots/drabinka.png)
-
-### System QR kodów
-![QR System](docs/screenshots/qr-system.png)
-
-### Panel rankingów
-![Rankingi](docs/screenshots/rankingi.png)
-
-## 🤝 Contributing
-
-### Jak wnieść wkład
-
-1. **Fork** repozytorium
-2. **Utwórz** branch dla swojej funkcji (`git checkout -b feature/amazing-feature`)
-3. **Commituj** zmiany (`git commit -m 'Add amazing feature'`)
-4. **Push** do branch (`git push origin feature/amazing-feature`)
-5. **Otwórz** Pull Request
-
-### Konwencje
-
-#### Commit messages
-```
-feat: dodanie nowej funkcjonalności
-fix: naprawa błędu
-docs: aktualizacja dokumentacji
-style: zmiany formatowania
-refactor: refaktoryzacja kodu
-test: dodanie testów
-chore: zmiany w konfiguracji
-```
-
-#### Code style
-- **Backend**: PEP 8 (Python)
-- **Frontend**: ESLint + Prettier
-- **TypeScript**: Strict mode
-- **CSS**: TailwindCSS utility-first
-
-### Rozwój lokalny
-
-```bash
-# Uruchomienie z hot reload
-npm run dev     # Frontend
-python api_server.py  # Backend
-
-# Linting
-npm run lint    # Frontend
-pylint backend/ # Backend
-
-# Testy
-npm test        # Frontend
-pytest backend/ # Backend
-```
-
-## 📜 Licencja
-
-Ten projekt jest licencjonowany na licencji MIT - zobacz plik [LICENSE](LICENSE) dla szczegółów.
-
-## 🔗 Linki
-
-- **Live Demo**: [https://drabinka-turniejowa-skatecross.herokuapp.com](https://drabinka-turniejowa-skatecross.herokuapp.com)
-- **API Docs**: [/api/docs](https://drabinka-turniejowa-skatecross.herokuapp.com/api/docs)
-- **Issues**: [GitHub Issues](https://github.com/your-username/drabinka-turniejowa/issues)
-
-## 👥 Autorzy
-
-- **Mariusz** - *Initial work* - [GitHub](https://github.com/your-username)
-
-## 🙏 Podziękowania
-
-- Społeczność **SKATECROSS** za feedback i testowanie
-- **Vue.js** team za wspaniały framework
-- **Flask** community za solidne podstawy
-- **TailwindCSS** za piękne style
-- **Heroku** za prostą platformę deployment
+### **Dokumentacja:**
+- 📖 **README.md** - ten plik
+- 📝 **QUICK_START.md** - szybki start
+- 🔧 **API_DOCS.md** - dokumentacja API
+- 🏗️ **ARCHITECTURE.md** - architektura systemu
 
 ---
 
-<div align="center">
+**© 2025 SKATECROSS Tournament Management System v36.0**  
+*Professional software for skatecross tournament management with QR integration, SECTRO time measurements, and unified start control.*
 
-**[⬆ Powrót na górę](#-skatecross-tournament-system)**
-
-Made with ❤️ for SKATECROSS community
-
-</div>
+**🔥 System gotowy do profesjonalnego użytku na turniejach skatecross! 🏁** 

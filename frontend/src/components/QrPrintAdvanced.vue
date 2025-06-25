@@ -101,17 +101,17 @@
           <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
             <tr 
               v-for="zawodnik in filteredZawodnicy" 
-              :key="zawodnik.id"
+              :key="zawodnik.nr_startowy"
               :class="[
                 'hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200',
-                selectedZawodnicy.includes(zawodnik.id) ? 'bg-indigo-50 dark:bg-indigo-900/20' : ''
+                selectedZawodnicy.includes(zawodnik.nr_startowy) ? 'bg-indigo-50 dark:bg-indigo-900/20' : ''
               ]"
             >
               <td class="px-6 py-4 whitespace-nowrap">
                 <input 
                   type="checkbox" 
-                  :checked="selectedZawodnicy.includes(zawodnik.id)"
-                  @change="toggleZawodnik(zawodnik.id)"
+                  :checked="selectedZawodnicy.includes(zawodnik.nr_startowy)"
+                  @change="toggleZawodnik(zawodnik.nr_startowy)"
                   class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                 />
               </td>
@@ -165,11 +165,11 @@ import { useUniversalFilters, type FilterState } from '../composables/useUnivers
 
 // Mock data - w rzeczywistej aplikacji pobieramy z API
 const zawodnicy = ref([
-  { id: 1, nr_startowy: 101, imie: 'Anna', nazwisko: 'Kowalska', kategoria: 'Open Women', klub: 'SKC Kraków', qr_code: null, plec: 'K' },
-  { id: 2, nr_startowy: 102, imie: 'Piotr', nazwisko: 'Nowak', kategoria: 'Open Men', klub: 'RC Warszawa', qr_code: 'QR123', plec: 'M' },
-  { id: 3, nr_startowy: 103, imie: 'Marta', nazwisko: 'Wiśniewska', kategoria: 'Open Women', klub: 'SKC Kraków', qr_code: null, plec: 'K' },
-  { id: 4, nr_startowy: 104, imie: 'Tomasz', nazwisko: 'Zieliński', kategoria: 'Junior Men', klub: 'Gdańsk Roller', qr_code: 'QR124', plec: 'M' },
-  { id: 5, nr_startowy: 105, imie: 'Karolina', nazwisko: 'Mazur', kategoria: 'Junior Women', klub: 'RC Warszawa', qr_code: null, plec: 'K' },
+  { nr_startowy: 101, imie: 'Anna', nazwisko: 'Kowalska', kategoria: 'Open Women', klub: 'SKC Kraków', qr_code: null, plec: 'K' },
+  { nr_startowy: 102, imie: 'Piotr', nazwisko: 'Nowak', kategoria: 'Open Men', klub: 'RC Warszawa', qr_code: 'QR123', plec: 'M' },
+  { nr_startowy: 103, imie: 'Marta', nazwisko: 'Wiśniewska', kategoria: 'Open Women', klub: 'SKC Kraków', qr_code: null, plec: 'K' },
+  { nr_startowy: 104, imie: 'Tomasz', nazwisko: 'Zieliński', kategoria: 'Junior Men', klub: 'Gdańsk Roller', qr_code: 'QR124', plec: 'M' },
+  { nr_startowy: 105, imie: 'Karolina', nazwisko: 'Mazur', kategoria: 'Junior Women', klub: 'RC Warszawa', qr_code: null, plec: 'K' },
 ])
 
 // State
@@ -287,21 +287,21 @@ const filteredZawodnicy = computed(() => {
 
 const selectedZawodnicyWithQr = computed(() => 
   selectedZawodnicy.value.filter(id => {
-    const zawodnik = zawodnicy.value.find(z => z.id === id)
+    const zawodnik = zawodnicy.value.find(z => z.nr_startowy === id)
     return zawodnik?.qr_code
   })
 )
 
 const selectedZawodnicyWithoutQr = computed(() => 
   selectedZawodnicy.value.filter(id => {
-    const zawodnik = zawodnicy.value.find(z => z.id === id)
+    const zawodnik = zawodnicy.value.find(z => z.nr_startowy === id)
     return !zawodnik?.qr_code
   })
 )
 
 const allFilteredSelected = computed(() => 
   filteredZawodnicy.value.length > 0 && 
-  filteredZawodnicy.value.every(z => selectedZawodnicy.value.includes(z.id))
+  filteredZawodnicy.value.every(z => selectedZawodnicy.value.includes(z.nr_startowy))
 )
 
 const debugInfo = computed(() => ({
@@ -330,7 +330,7 @@ const handleGroupOperation = (operation: string, data?: any) => {
       if (filters.category) {
         const categoryZawodnicy = filteredZawodnicy.value
           .filter(z => z.kategoria === filters.category)
-          .map(z => z.id)
+          .map(z => z.nr_startowy)
         
         const allCategorySelected = categoryZawodnicy.every(id => selectedZawodnicy.value.includes(id))
         
@@ -352,7 +352,7 @@ const handleGroupOperation = (operation: string, data?: any) => {
       if (filters.club) {
         const clubZawodnicy = filteredZawodnicy.value
           .filter(z => z.klub === filters.club)
-          .map(z => z.id)
+          .map(z => z.nr_startowy)
         
         const allClubSelected = clubZawodnicy.every(id => selectedZawodnicy.value.includes(id))
         
@@ -371,7 +371,7 @@ const handleGroupOperation = (operation: string, data?: any) => {
     case 'toggle_without_qr':
       const withoutQrZawodnicy = filteredZawodnicy.value
         .filter(z => !z.qr_code)
-        .map(z => z.id)
+        .map(z => z.nr_startowy)
       
       const allWithoutQrSelected = withoutQrZawodnicy.every(id => selectedZawodnicy.value.includes(id))
       
@@ -400,13 +400,13 @@ const handleClearFilters = () => {
 const toggleAllFiltered = () => {
   if (allFilteredSelected.value) {
     // Odznacz wszystkie przefiltrowane
-    const filteredIds = filteredZawodnicy.value.map(z => z.id)
+    const filteredIds = filteredZawodnicy.value.map(z => z.nr_startowy)
     selectedZawodnicy.value = selectedZawodnicy.value.filter(id => !filteredIds.includes(id))
   } else {
     // Zaznacz wszystkie przefiltrowane
     filteredZawodnicy.value.forEach(z => {
-      if (!selectedZawodnicy.value.includes(z.id)) {
-        selectedZawodnicy.value.push(z.id)
+      if (!selectedZawodnicy.value.includes(z.nr_startowy)) {
+        selectedZawodnicy.value.push(z.nr_startowy)
       }
     })
   }
@@ -428,7 +428,7 @@ const generateSelected = () => {
   // Simulate API call
   setTimeout(() => {
     selectedZawodnicyWithoutQr.value.forEach(id => {
-      const zawodnik = zawodnicy.value.find(z => z.id === id)
+      const zawodnik = zawodnicy.value.find(z => z.nr_startowy === id)
       if (zawodnik) {
         zawodnik.qr_code = `QR${Date.now()}_${id}`
       }

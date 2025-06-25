@@ -657,10 +657,21 @@ const maxHourlyActivity = computed(() => {
 })
 
 const canPerformManualCheckIn = computed(() => {
-  return manualCheckInForm.value.nr_startowy > 0 && 
-         manualCheckInForm.value.powod !== '' &&
-         previewZawodnik.value !== null &&
-         !previewZawodnik.value.checked_in
+  const hasNumber = manualCheckInForm.value.nr_startowy > 0;
+  const hasReason = manualCheckInForm.value.powod !== '';
+  const hasPreview = previewZawodnik.value !== null;
+  const notCheckedIn = previewZawodnik.value ? !previewZawodnik.value.checked_in : false;
+  
+  console.log('🔍 canPerformManualCheckIn debug:', {
+    hasNumber,
+    hasReason,
+    hasPreview,
+    notCheckedIn,
+    manualCheckInForm: manualCheckInForm.value,
+    previewZawodnik: previewZawodnik.value
+  });
+  
+  return hasNumber && hasReason && hasPreview && notCheckedIn;
 })
 
 // Watchers
@@ -682,15 +693,24 @@ watch(() => manualCheckInForm.value.nr_startowy, (newValue) => {
 const fetchDashboardData = async () => {
   try {
     loading.value = true
-    const response = await axios.get('/api/qr/dashboard')
+    const response = await axios.get('/api/unified/dashboard-data')
     
     if (response.data.success) {
-      basicStats.value = response.data.basic_stats
-      recentCheckpoints.value = response.data.recent_checkpoints
-      deviceActivity.value = response.data.device_activity
-      categoryStats.value = response.data.category_stats
-      hourlyProgress.value = response.data.hourly_progress
-      issues.value = response.data.issues
+      // Mapowanie danych z unified API na format QR Dashboard
+      basicStats.value = {
+        total_zawodnikow: response.data.stats.zawodnicy.total_zawodnicy,
+        z_qr_kodami: response.data.stats.zawodnicy.total_zawodnicy, // Wszyscy mają QR
+        zameldowanych: response.data.stats.zawodnicy.zameldowani,
+        bez_qr_kodow: 0, // Brak danych o brakujących QR
+        procent_zameldowanych: Math.round((response.data.stats.zawodnicy.zameldowani / response.data.stats.zawodnicy.total_zawodnicy) * 100)
+      }
+      
+      // Reset pozostałych danych (nie ma ich w unified API)
+      recentCheckpoints.value = []
+      deviceActivity.value = []
+      categoryStats.value = []
+      hourlyProgress.value = []
+      issues.value = []
     }
   } catch (error) {
     console.error('Błąd podczas pobierania danych dashboard:', error)
@@ -705,7 +725,8 @@ const refreshData = () => {
 
 const exportData = async () => {
   try {
-    window.open('/api/qr/export', '_blank')
+    // TODO: Unified API nie ma jeszcze export endpointu
+    console.log('Export functionality temporarily disabled - waiting for unified API endpoint')
   } catch (error) {
     console.error('Błąd podczas eksportu:', error)
   }
@@ -771,7 +792,7 @@ const fetchZawodnikPreview = async (nr_startowy: number) => {
     const response = await axios.get(`/api/zawodnicy/${nr_startowy}`)
     
     if (response.data.success) {
-      previewZawodnik.value = response.data.zawodnik
+      previewZawodnik.value = response.data.data
     } else {
       previewZawodnik.value = null
     }
@@ -784,7 +805,12 @@ const fetchZawodnikPreview = async (nr_startowy: number) => {
 }
 
 const performManualCheckIn = async () => {
+  console.log('🔍 performManualCheckIn called, canPerformManualCheckIn:', canPerformManualCheckIn.value)
+  console.log('🔍 manualCheckInForm:', manualCheckInForm.value)
+  console.log('🔍 previewZawodnik:', previewZawodnik.value)
+  
   if (!canPerformManualCheckIn.value) {
+    console.log('❌ Cannot perform manual check-in')
     return
   }
 
@@ -792,14 +818,15 @@ const performManualCheckIn = async () => {
     manualCheckInLoading.value = true
     
     const payload = {
-      nr_startowy: manualCheckInForm.value.nr_startowy,
-      device_id: 'manual-admin',
-      manual: true,
-      reason: manualCheckInForm.value.powod,
-      description: manualCheckInForm.value.opis || null
+      identifier: manualCheckInForm.value.nr_startowy,
+      action: 'checkin'
     }
+    
+    console.log('🚀 Sending payload:', payload)
 
-    const response = await axios.post('/api/qr/check-in', payload)
+    const response = await axios.post('/api/unified/register-athlete', payload)
+    
+    console.log('✅ Response received:', response.data)
     
     if (response.data.success) {
       // Sukces - odśwież dane
@@ -822,6 +849,8 @@ const performManualCheckIn = async () => {
         timestamp: new Date().toISOString()
       })
       
+      console.log('✅ Manual check-in successful, resetting form')
+      
       // Reset formularza
       manualCheckInForm.value = {
         nr_startowy: 0,
@@ -829,12 +858,12 @@ const performManualCheckIn = async () => {
         opis: ''
       }
     } else {
-      console.log("Manual check-in failed")
+      console.log("❌ Manual check-in failed:", response.data)
     }
   } catch (error: any) {
-    console.error('Błąd podczas ręcznego zameldowania:', error)
+    console.error('❌ Błąd podczas ręcznego zameldowania:', error)
     const errorMsg = error.response?.data?.message || 'Nieznany błąd serwera'
-    console.error("Manual check-in error:", errorMsg)
+    console.error("❌ Manual check-in error:", errorMsg)
   } finally {
     manualCheckInLoading.value = false
   }
@@ -842,10 +871,9 @@ const performManualCheckIn = async () => {
 
 const fetchManualCheckIns = async () => {
   try {
-    const response = await axios.get('/api/qr/manual-checkins')
-    if (response.data.success) {
-      manualCheckIns.value = response.data.manual_checkins
-    }
+    // TODO: Unified API nie ma jeszcze manual-checkins endpointu  
+    console.log('Manual check-ins history temporarily disabled - waiting for unified API endpoint')
+    manualCheckIns.value = []
   } catch (error) {
     console.error('Błąd podczas pobierania ręcznych zameldowań:', error)
   }

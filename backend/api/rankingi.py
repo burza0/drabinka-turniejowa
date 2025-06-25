@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
 from utils.database import get_all
+from utils.api_response import APIResponse, handle_api_errors, validate_season, validate_pagination
 
 rankingi_bp = Blueprint('rankingi', __name__)
 
@@ -259,110 +260,177 @@ def calculate_medal_ranking(season=None):
 
 # --- Endpointy rankingowe ---
 @rankingi_bp.route("/api/rankings/individual")
+@handle_api_errors
 def get_individual_ranking():
-    try:
-        season = request.args.get('season')
-        if season:
-            try:
-                season = int(season)
-            except ValueError:
-                return jsonify({"error": "Nieprawidłowy format sezonu"}), 400
-        ranking = calculate_individual_ranking(season)
-        return jsonify(ranking), 200
-    except Exception as e:
-        print(f"Błąd w individual ranking: {e}")
-        return jsonify({"error": str(e)}), 500
+    """
+    Endpoint zwracający ranking indywidualny zawodników
+    GET /api/rankings/individual?season=2025&page=1&limit=50
+    """
+    season = validate_season(request.args.get('season'))
+    page, limit = validate_pagination(
+        request.args.get('page'),
+        request.args.get('limit')
+    )
+    
+    ranking = calculate_individual_ranking(season)
+    
+    # Paginacja
+    start_idx = (page - 1) * limit
+    end_idx = start_idx + limit
+    paginated_data = ranking[start_idx:end_idx]
+    
+    return APIResponse.paginated(
+        data=paginated_data,
+        page=page,
+        limit=limit,
+        total=len(ranking),
+        message=f"Ranking indywidualny pobrany pomyślnie"
+    )
 
 @rankingi_bp.route("/api/rankings/general")
+@handle_api_errors
 def get_general_ranking():
-    try:
-        season = request.args.get('season')
-        if season:
-            try:
-                season = int(season)
-            except ValueError:
-                return jsonify({"error": "Nieprawidłowy format sezonu"}), 400
-        ranking = calculate_general_ranking_n2(season)
-        return jsonify(ranking), 200
-    except Exception as e:
-        print(f"Błąd w general ranking: {e}")
-        return jsonify({"error": str(e)}), 500
+    """
+    Endpoint zwracający ranking generalny zawodników (n-2)
+    GET /api/rankings/general?season=2025&page=1&limit=50
+    """
+    season = validate_season(request.args.get('season'))
+    page, limit = validate_pagination(
+        request.args.get('page'),
+        request.args.get('limit')
+    )
+    
+    ranking = calculate_general_ranking_n2(season)
+    
+    # Paginacja
+    start_idx = (page - 1) * limit
+    end_idx = start_idx + limit
+    paginated_data = ranking[start_idx:end_idx]
+    
+    return APIResponse.paginated(
+        data=paginated_data,
+        page=page,
+        limit=limit,
+        total=len(ranking),
+        message=f"Ranking generalny pobrany pomyślnie"
+    )
 
 @rankingi_bp.route("/api/rankings/clubs/total")
+@handle_api_errors
 def get_club_ranking_total():
-    try:
-        season = request.args.get('season')
-        if season:
-            try:
-                season = int(season)
-            except ValueError:
-                return jsonify({"error": "Nieprawidłowy format sezonu"}), 400
-        ranking = calculate_club_ranking_total(season)
-        return jsonify(ranking), 200
-    except Exception as e:
-        print(f"Błąd w club ranking total: {e}")
-        return jsonify({"error": str(e)}), 500
+    """
+    Endpoint zwracający ranking klubów (wszyscy zawodnicy)
+    GET /api/rankings/clubs/total?season=2025&page=1&limit=50
+    """
+    season = validate_season(request.args.get('season'))
+    page, limit = validate_pagination(
+        request.args.get('page'),
+        request.args.get('limit')
+    )
+    
+    ranking = calculate_club_ranking_total(season)
+    
+    # Paginacja
+    start_idx = (page - 1) * limit
+    end_idx = start_idx + limit
+    paginated_data = ranking[start_idx:end_idx]
+    
+    return APIResponse.paginated(
+        data=paginated_data,
+        page=page,
+        limit=limit,
+        total=len(ranking),
+        message=f"Ranking klubów (total) pobrany pomyślnie"
+    )
 
 @rankingi_bp.route("/api/rankings/clubs/top3")
+@handle_api_errors
 def get_club_ranking_top3():
-    try:
-        season = request.args.get('season')
-        if season:
-            try:
-                season = int(season)
-            except ValueError:
-                return jsonify({"error": "Nieprawidłowy format sezonu"}), 400
-        ranking = calculate_club_ranking_top3(season)
-        return jsonify(ranking), 200
-    except Exception as e:
-        print(f"Błąd w club ranking top3: {e}")
-        return jsonify({"error": str(e)}), 500
+    """
+    Endpoint zwracający ranking klubów (top 3 z każdej kategorii)
+    GET /api/rankings/clubs/top3?season=2025&page=1&limit=50
+    """
+    season = validate_season(request.args.get('season'))
+    page, limit = validate_pagination(
+        request.args.get('page'),
+        request.args.get('limit')
+    )
+    
+    ranking = calculate_club_ranking_top3(season)
+    
+    # Paginacja
+    start_idx = (page - 1) * limit
+    end_idx = start_idx + limit
+    paginated_data = ranking[start_idx:end_idx]
+    
+    return APIResponse.paginated(
+        data=paginated_data,
+        page=page,
+        limit=limit,
+        total=len(ranking),
+        message=f"Ranking klubów (top3) pobrany pomyślnie"
+    )
 
 @rankingi_bp.route("/api/rankings/medals")
+@handle_api_errors
 def get_medal_ranking():
-    try:
-        season = request.args.get('season')
-        if season:
-            try:
-                season = int(season)
-            except ValueError:
-                return jsonify({"error": "Nieprawidłowy format sezonu"}), 400
-        ranking = calculate_medal_ranking(season)
-        return jsonify(ranking), 200
-    except Exception as e:
-        print(f"Błąd w medal ranking: {e}")
-        return jsonify({"error": str(e)}), 500
+    """
+    Endpoint zwracający ranking medalowy klubów
+    GET /api/rankings/medals?season=2025&page=1&limit=50
+    """
+    season = validate_season(request.args.get('season'))
+    page, limit = validate_pagination(
+        request.args.get('page'),
+        request.args.get('limit')
+    )
+    
+    ranking = calculate_medal_ranking(season)
+    
+    # Paginacja
+    start_idx = (page - 1) * limit
+    end_idx = start_idx + limit
+    paginated_data = ranking[start_idx:end_idx]
+    
+    return APIResponse.paginated(
+        data=paginated_data,
+        page=page,
+        limit=limit,
+        total=len(ranking),
+        message=f"Ranking medalowy pobrany pomyślnie"
+    )
 
 @rankingi_bp.route("/api/rankings/summary")
+@handle_api_errors
 def get_rankings_summary():
-    try:
-        season = request.args.get('season')
-        if season:
-            try:
-                season = int(season)
-            except ValueError:
-                return jsonify({"error": "Nieprawidłowy format sezonu"}), 400
-        individual = calculate_individual_ranking(season)
-        general = calculate_general_ranking_n2(season)
-        clubs_total = calculate_club_ranking_total(season)
-        clubs_top3 = calculate_club_ranking_top3(season)
-        medals = calculate_medal_ranking(season)
-        summary = {
-            "season": season or "wszystkie",
-            "stats": {
-                "zawodnicy_total": len(individual),
-                "zawodnicy_general": len(general),
-                "kluby_total": len(clubs_total),
-                "kluby_top3": len(clubs_top3),
-                "kluby_z_medalami": len(medals)
-            },
-            "top_zawodnik": individual[0] if individual else None,
-            "top_general": general[0] if general else None,
-            "top_klub_total": clubs_total[0] if clubs_total else None,
-            "top_klub_top3": clubs_top3[0] if clubs_top3 else None,
-            "top_medals": medals[0] if medals else None
-        }
-        return jsonify(summary), 200
-    except Exception as e:
-        print(f"Błąd w rankings summary: {e}")
-        return jsonify({"error": str(e)}), 500 
+    """
+    Endpoint zwracający podsumowanie wszystkich rankingów
+    GET /api/rankings/summary?season=2025
+    """
+    season = validate_season(request.args.get('season'))
+    
+    individual = calculate_individual_ranking(season)
+    general = calculate_general_ranking_n2(season)
+    clubs_total = calculate_club_ranking_total(season)
+    clubs_top3 = calculate_club_ranking_top3(season)
+    medals = calculate_medal_ranking(season)
+    
+    summary = {
+        "season": season or "wszystkie",
+        "stats": {
+            "zawodnicy_total": len(individual),
+            "zawodnicy_general": len(general),
+            "kluby_total": len(clubs_total),
+            "kluby_top3": len(clubs_top3),
+            "kluby_z_medalami": len(medals)
+        },
+        "top_zawodnik": individual[0] if individual else None,
+        "top_general": general[0] if general else None,
+        "top_klub_total": clubs_total[0] if clubs_total else None,
+        "top_klub_top3": clubs_top3[0] if clubs_top3 else None,
+        "top_medals": medals[0] if medals else None
+    }
+    
+    return APIResponse.success(
+        data=summary,
+        message="Podsumowanie rankingów pobrane pomyślnie"
+    ) 

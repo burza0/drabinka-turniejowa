@@ -1,0 +1,28 @@
+✅ Connection pool zainicjalizowany (1-15 połączeń)
+✅ Connection pool zainicjalizowany (1-15 połączeń)
+🎯 SKATECROSS QR - Połączenie z Supabase PostgreSQL: SUKCES!
+👤 SKATECROSS QR - Moduł Zawodników załadowany z Supabase PostgreSQL
+🔲 SKATECROSS QR - Moduł QR Generation załadowany z Supabase PostgreSQL
+🏁 SKATECROSS QR - Moduł Centrum Startu załadowany z Supabase PostgreSQL
+🏁 SKATECROSS v35.0 - Centrum Startu v2.0 z integracją SECTRO załadowany!
+🔄 SKATECROSS QR - Unified Start Manager załadowany
+🔄 SKATECROSS QR - Unified Start API Blueprint załadowany
+📦 SKATECROSS QR - API Module Init loaded
+🔗 Rejestruję blueprinty SKATECROSS...
+✅ Blueprinty SKATECROSS zarejestrowane:
+   👤 zawodnicy_bp - /api/zawodnicy/*
+   🔲 qr_generation_bp - /api/qr/*
+   🏁 centrum_startu_bp - /api/grupy-startowe, /api/scan-qr, /api/grupa-aktywna, /api/start-queue
+   🏁 centrum_startu_v2_bp - /api/v2/* (NOWA WERSJA Z SECTRO)
+   🚀 unified_bp - /api/unified/* (UNIFIED START CONTROL)
+   📊 rankingi_bp - /api/rankings/*
+   🏆 drabinka_bp - /api/drabinka
+   📈 statystyki_bp - /api/kluby, /api/statystyki, /api/kategorie
+   🏅 wyniki_bp - /api/wyniki
+   ℹ️ version endpoint - /api/version
+ * Serving Flask app 'api_server'
+ * Debug mode: on
+Address already in use
+Port 5003 is in use by another program. Either identify and stop that program, or start the server with a different port.
+🧹 Connection pool zamknięty przy shutdown
+🧹 Connection pool zamknięty przy shutdown

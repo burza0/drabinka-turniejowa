@@ -37,23 +37,9 @@ def home():
     frontend_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'frontend', 'dist')
     return send_from_directory(frontend_path, 'index.html')
 
-@app.route("/api/version")
-def get_version():
-    """Endpoint zwracający wersję systemu"""
-    try:
-        return jsonify({
-            "version": SYSTEM_VERSION,
-            "name": SYSTEM_NAME,
-            "features": SYSTEM_FEATURES,
-            "status": "production",
-            "sectro": "integrated",
-            "environment": "production" if os.getenv("PRODUCTION") else "development"
-        })
-    except Exception as e:
-        print(f"Błąd przy endpoincie wersji: {e}")
-        return jsonify({"version": "unknown", "error": str(e)}), 500
+# Endpoint /api/version jest zdefiniowany w api/__init__.py - usunięto duplikat żeby uniknąć konfliktu
 
 # ... reszta endpointów, które jeszcze nie zostały przeniesione ...
 
 if __name__ == "__main__":
-    app.run(debug=True) 
+    port = int(os.getenv("PORT", 5003)); app.run(debug=True, port=port, host="0.0.0.0") 

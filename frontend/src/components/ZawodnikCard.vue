@@ -34,7 +34,7 @@
           {{ zawodnik.czas_przejazdu_s ? formatTime(zawodnik.czas_przejazdu_s) : '-' }}
         </span>
       </div>
-      <StatusBadge :status="zawodnik.status" />
+      <StatusBadge :status="zawodnik.status" :checked_in="zawodnik.checked_in" />
     </div>
 
     <!-- Akcje admin (jeśli admin mode) -->
