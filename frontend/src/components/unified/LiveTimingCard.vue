@@ -474,7 +474,27 @@ onMounted(() => {
   timeInterval.value = setInterval(() => {
     // Force reactivity by updating a dummy value that triggers currentRunner recomputation
     realtimeCurrentTime.value = Date.now()
-  }, 100) // Update every 100ms for smooth timing
+    
+    // DEBUG: sprawdź czy timer działa i czy jest currentRunner
+    const currentRunnerData = currentRunner.value
+    if (currentRunnerData) {
+      console.log('⏱️ Timer tick:', {
+        name: `${currentRunnerData.imie} ${currentRunnerData.nazwisko}`,
+        start_time: currentRunnerData.start_time,
+        current_time: currentRunnerData.current_time,
+        unified_status: currentRunnerData.unified_status
+      })
+    } else {
+      console.log('⏱️ Timer tick: Brak currentRunner')
+      console.log('📊 Queue data:', props.queue.map(q => ({
+        nr: q.nr_startowy,
+        name: `${q.imie} ${q.nazwisko}`,
+        status: q.unified_status,
+        start_time: q.start_time,
+        finish_time: q.finish_time
+      })))
+    }
+  }, 1000) // Change to 1 second for debugging
 })
 
 onUnmounted(() => {
