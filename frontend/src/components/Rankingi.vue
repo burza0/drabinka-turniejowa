@@ -74,6 +74,25 @@
             </button>
           </div>
 
+          <!-- Wyszukiwanie -->
+          <div class="mb-6">
+            <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+              <span class="flex items-center space-x-2">
+                <span>🔍</span>
+                <span>Wyszukaj zawodnika</span>
+              </span>
+            </label>
+            <input
+              v-model="searchQueryTime"
+              type="text"
+              placeholder="Wpisz imię lub nazwisko..."
+              class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg"
+            />
+            <div v-if="searchQueryTime" class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              Wyszukujesz: "{{ searchQueryTime }}" - {{ paginationDataTime.total_results }} wyników
+            </div>
+          </div>
+
           <!-- Filtry w grid layout -->
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <!-- Filtr kategorii -->
@@ -164,34 +183,37 @@
               </select>
             </div>
 
-            <!-- Sortowanie -->
+            <!-- Wyników na stronę -->
             <div>
               <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
                 <span class="flex items-center space-x-2">
-                  <span>🔄</span>
-                  <span>Sortowanie</span>
+                  <span>📄</span>
+                  <span>Na stronę</span>
                 </span>
               </label>
               <select 
-                v-model="sortByTime" 
+                v-model="perPageTime" 
+                @change="changePerPageTime"
                 class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg"
               >
-                <option value="time_asc">Czas (rosnąco)</option>
-                <option value="time_desc">Czas (malejąco)</option>
-                <option value="name_asc">Nazwisko (A-Z)</option>
-                <option value="name_desc">Nazwisko (Z-A)</option>
-                <option value="kategoria_asc">Kategoria (A-Z)</option>
-                <option value="klub_asc">Klub (A-Z)</option>
+                <option :value="10">10</option>
+                <option :value="25">25</option>
+                <option :value="50">50</option>
+                <option :value="100">100</option>
               </select>
             </div>
           </div>
         </div>
 
-        <!-- Nagłówek Wyników Czasowych -->
+        <!-- Nagłówek Wyników Czasowych z informacją o paginacji -->
         <div class="flex items-center justify-between">
           <h3 class="text-lg font-medium text-gray-900 dark:text-white">Wyniki Czasowe</h3>
           <div class="text-sm text-gray-600 dark:text-gray-400">
-            Najszybsze czasy ({{ filteredTimeRanking.length }} pozycji)
+            <span v-if="paginationDataTime.total_results > 0">
+              Wyniki {{ paginationDataTime.start_index }}-{{ paginationDataTime.end_index }} 
+              z {{ paginationDataTime.total_results }}
+            </span>
+            <span v-else>Brak wyników</span>
           </div>
         </div>
         
@@ -209,20 +231,26 @@
                 </tr>
               </thead>
               <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                <tr v-if="filteredTimeRanking.length === 0">
-                  <td colspan="6" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-                    Brak zawodników spełniających wybrane kryteria
+                <tr v-if="timeRanking.length === 0">
+                  <td colspan="5" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                    <div v-if="searchQueryTime">
+                      Brak wyników dla wyszukiwania: "{{ searchQueryTime }}"
+                    </div>
+                    <div v-else>
+                      Brak zawodników spełniających wybrane kryteria
+                    </div>
                   </td>
                 </tr>
-                <tr v-for="(rider, index) in filteredTimeRanking" :key="rider.id" class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                <tr v-for="(rider, index) in timeRanking" :key="rider.nr_startowy" class="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                    <span v-if="index === 0">🥇</span>
-                    <span v-else-if="index === 1">🥈</span>
-                    <span v-else-if="index === 2">🥉</span>
-                    <span v-else>{{ index + 1 }}</span>
+                    <span v-if="rider.pozycja === 1">🥇</span>
+                    <span v-else-if="rider.pozycja === 2">🥈</span>
+                    <span v-else-if="rider.pozycja === 3">🥉</span>
+                    <span v-else>{{ rider.pozycja }}</span>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
                     <div class="text-sm font-medium text-gray-900 dark:text-white">{{ rider.imie }} {{ rider.nazwisko }}</div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400">Nr {{ rider.nr_startowy }}</div>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ rider.klub }}</td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ rider.kategoria }}</td>
@@ -230,6 +258,73 @@
                 </tr>
               </tbody>
             </table>
+          </div>
+        </div>
+
+        <!-- Kontrolki Paginacji -->
+        <div v-if="paginationDataTime.total_pages > 1" class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+          <div class="flex items-center justify-between">
+            <!-- Informacje o stronie -->
+            <div class="text-sm text-gray-600 dark:text-gray-400">
+              Strona {{ paginationDataTime.current_page }} z {{ paginationDataTime.total_pages }}
+            </div>
+
+            <!-- Nawigacja stron -->
+            <div class="flex items-center space-x-2">
+              <!-- Pierwsza strona -->
+              <button 
+                @click="goToPageTime(1)"
+                :disabled="paginationDataTime.current_page === 1"
+                class="px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                ⏮️
+              </button>
+
+              <!-- Poprzednia strona -->
+              <button 
+                @click="previousPageTime"
+                :disabled="!paginationDataTime.has_prev"
+                class="px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                ← Poprzednia
+              </button>
+
+              <!-- Numery stron (pokazuj max 5 stron) -->
+              <div class="flex items-center space-x-1">
+                <template v-for="page in Math.min(5, paginationDataTime.total_pages)" :key="page">
+                  <button 
+                    @click="goToPageTime(page)"
+                    :class="[
+                      'px-3 py-2 text-sm rounded-md border',
+                      page === paginationDataTime.current_page 
+                        ? 'border-purple-500 bg-purple-500 text-white' 
+                        : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
+                    ]"
+                  >
+                    {{ page }}
+                  </button>
+                </template>
+                <span v-if="paginationDataTime.total_pages > 5" class="text-gray-500">...</span>
+              </div>
+
+              <!-- Następna strona -->
+              <button 
+                @click="nextPageTime"
+                :disabled="!paginationDataTime.has_next"
+                class="px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Następna →
+              </button>
+
+              <!-- Ostatnia strona -->
+              <button 
+                @click="goToPageTime(paginationDataTime.total_pages)"
+                :disabled="paginationDataTime.current_page === paginationDataTime.total_pages"
+                class="px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                ⏭️
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -868,6 +963,21 @@ const selectedTypeTime = ref('best')  // best, latest, avg, all
 const selectedStatusTime = ref('completed')
 const sortByTime = ref('time_asc')
 
+// ===== PAGINATION AND SEARCH =====
+const currentPageTime = ref(1)
+const perPageTime = ref(25)
+const searchQueryTime = ref('')
+const paginationDataTime = ref({
+  current_page: 1,
+  total_pages: 1,
+  total_results: 0,
+  per_page: 25,
+  has_next: false,
+  has_prev: false,
+  start_index: 1,
+  end_index: 0
+})
+
 // Filters - Individual
 const selectedCategory = ref('')
 const selectedClub = ref('')
@@ -1199,12 +1309,14 @@ const fetchTimeRanking = async () => {
     const params = new URLSearchParams({
       typ: selectedTypeTime.value,
       status: selectedStatusTime.value,
-      limit: '100'
+      limit: perPageTime.value.toString(),
+      page: currentPageTime.value.toString()
     })
     
     if (selectedKategoriaTime.value) params.append('kategoria', selectedKategoriaTime.value)
     if (selectedPlecTime.value) params.append('plec', selectedPlecTime.value)
     if (selectedKlubTime.value) params.append('klub', selectedKlubTime.value)
+    if (searchQueryTime.value.trim()) params.append('search', searchQueryTime.value.trim())
     
     const response = await fetch(`/api/rankings/times?${params}&_t=${Date.now()}`)
     console.log('📡 Time ranking response status:', response.status)
@@ -1213,7 +1325,9 @@ const fetchTimeRanking = async () => {
       const result = await response.json()
       console.log('✅ Time ranking data received:', result.data?.ranking?.length || 0, 'items')
       timeRanking.value = result.data?.ranking || []
+      paginationDataTime.value = result.data?.pagination || paginationDataTime.value
       console.log("✅ timeRanking updated, length:", timeRanking.value.length)
+      console.log("📊 Pagination:", paginationDataTime.value)
     } else {
       console.error('❌ Time ranking response not ok:', response.status, response.statusText)
     }
@@ -1222,57 +1336,45 @@ const fetchTimeRanking = async () => {
   }
 }
 
-// ===== SMART POLLING FOR REAL-TIME UPDATES =====
-let pollingInterval = null
-const POLLING_INTERVALS = {
-  ACTIVE_TAB: 15000,     // 15s when times tab is active
-  BACKGROUND_TAB: 60000, // 1min when other tab is active
-  INACTIVE_TAB: 0        // No polling when not on times tab
-}
-
-const startSmartPolling = () => {
-  if (pollingInterval) {
-    clearInterval(pollingInterval)
-  }
-  
-  // Only poll when times tab is active
-  if (activeTab.value === 'times') {
-    const interval = document.hidden ? 
-      POLLING_INTERVALS.BACKGROUND_TAB : 
-      POLLING_INTERVALS.ACTIVE_TAB
-    
-    console.log(`🔄 Starting smart polling for times (${interval/1000}s intervals)`)
-    
-    pollingInterval = setInterval(() => {
-      if (activeTab.value === 'times') {
-        console.log('🔄 Auto-refresh time ranking')
-        fetchTimeRanking()
-      }
-    }, interval)
-  } else {
-    console.log('⏸️ Pausing polling - not on times tab')
+// Pagination controls
+const nextPageTime = () => {
+  if (paginationDataTime.value.has_next) {
+    currentPageTime.value++
+    fetchTimeRanking()
   }
 }
 
-const stopSmartPolling = () => {
-  if (pollingInterval) {
-    clearInterval(pollingInterval)
-    pollingInterval = null
-    console.log('⏹️ Stopped smart polling')
+const previousPageTime = () => {
+  if (paginationDataTime.value.has_prev) {
+    currentPageTime.value--
+    fetchTimeRanking()
   }
 }
 
-// Page visibility detection
-document.addEventListener('visibilitychange', () => {
-  if (activeTab.value === 'times') {
-    startSmartPolling() // Restart with appropriate interval
+const goToPageTime = (page) => {
+  if (page >= 1 && page <= paginationDataTime.value.total_pages) {
+    currentPageTime.value = page
+    fetchTimeRanking()
   }
-})
+}
+
+// Per page controls  
+const changePerPageTime = () => {
+  currentPageTime.value = 1  // Reset to first page
+  fetchTimeRanking()
+}
 
 // Watch time ranking filters
 watch([selectedTypeTime, selectedStatusTime], () => {
   console.log('🔄 Time ranking filters changed, fetching new data...')
+  currentPageTime.value = 1  // Reset to first page
   fetchTimeRanking()
+})
+
+// Watch search query
+watch(searchQueryTime, (newQuery) => {
+  console.log('🔍 Search query changed:', newQuery)
+  debouncedSearchTime(newQuery)
 })
 
 // Clear time ranking filters
@@ -1283,6 +1385,9 @@ const clearTimeFilters = () => {
   selectedTypeTime.value = 'best'
   selectedStatusTime.value = 'completed'
   sortByTime.value = 'time_asc'
+  searchQueryTime.value = ''
+  currentPageTime.value = 1
+  perPageTime.value = 25
 }
 
 // HELPER FUNCTIONS FOR FILTERS
@@ -1405,6 +1510,16 @@ const fetchMedalRanking = async () => {
   } catch (error) {
     console.error('❌ Error fetching medal ranking:', error)
   }
+}
+
+// Debounced search function
+let searchTimeoutTime = null
+const debouncedSearchTime = (query) => {
+  if (searchTimeoutTime) clearTimeout(searchTimeoutTime)
+  searchTimeoutTime = setTimeout(() => {
+    currentPageTime.value = 1  // Reset to first page on search
+    fetchTimeRanking()
+  }, 500)  // 500ms delay
 }
 
 </script>
