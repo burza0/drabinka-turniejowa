@@ -132,9 +132,6 @@
               <div v-else-if="athlete.current_time" class="text-sm font-mono text-blue-600 dark:text-blue-400">
                 {{ formatTime(athlete.current_time) }}
               </div>
-              <div v-else class="text-xs text-gray-500 dark:text-gray-400">
-                Oczekuje
-              </div>
             </div>
           </div>
         </div>
