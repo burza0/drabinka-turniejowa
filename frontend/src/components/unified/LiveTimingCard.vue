@@ -243,6 +243,9 @@ const selectedAthlete = ref('')  // Nr startowy wybranego zawodnika do testów
 const lastTestResult = ref(null)
 const currentTime = ref(0)
 const timeInterval = ref(null)
+const realtimeCurrentTime = ref(0)  // Reactive timer for current runner
+const lastActiveRunner = ref(null)  // Keep track of last active runner for persistence
+const realtimeTimers = ref(new Map())  // Map of nr_startowy -> current_time for real-time updates
 
 // ===== COMPUTED PROPERTIES =====
 const activeGroupNames = computed(() => {
@@ -250,18 +253,60 @@ const activeGroupNames = computed(() => {
 })
 
 const currentRunner = computed(() => {
+  // Szukaj aktywnie biegnącego zawodnika
   const running = props.queue.find(q => 
     q.unified_status === 'RUNNING' || q.unified_status === 'TIMING'
   )
   
-  if (running && running.start_time) {
-    const start = new Date(running.start_time).getTime()
-    const now = running.finish_time ? new Date(running.finish_time).getTime() : Date.now()
-    running.current_time = (now - start) / 1000
+  if (running) {
+    return {
+      ...running,
+      current_time: getRealtimeCurrentTime(running)
+    }
   }
   
-  return running
+  // Jeśli nie ma aktywnie biegnącego, szukaj ostatniego z start_time (ale bez finish_time)
+  const started = props.queue.find(q => 
+    q.start_time && !q.finish_time
+  )
+  
+  if (started) {
+    return {
+      ...started,
+      current_time: getRealtimeCurrentTime(started)
+    }
+  }
+  
+  // Ostatecznie, pokaż ostatniego kto miał start_time (nawet ukończonego) przez 30 sekund
+  const lastStarted = props.queue
+    .filter(q => q.start_time)
+    .sort((a, b) => new Date(b.start_time) - new Date(a.start_time))[0]
+    
+  if (lastStarted) {
+    const timeSinceStart = (Date.now() - new Date(lastStarted.start_time)) / 1000
+    // Pokaż przez 30 sekund po starcie, nawet jeśli ukończył
+    if (timeSinceStart < 30) {
+      return {
+        ...lastStarted,
+        current_time: getRealtimeCurrentTime(lastStarted)
+      }
+    }
+  }
+  
+  return null
 })
+
+// Helper function to get real-time current time
+const getRealtimeCurrentTime = (athlete) => {
+  if (!athlete.start_time) return 0
+  
+  // Use reactive timer to force re-computation
+  const _ = realtimeCurrentTime.value
+  
+  const start = new Date(athlete.start_time).getTime()
+  const end = athlete.finish_time ? new Date(athlete.finish_time).getTime() : Date.now()
+  return Math.max(0, (end - start) / 1000)
+}
 
 // ===== STATUS METHODS =====
 const getSessionStatusClass = () => {
@@ -425,13 +470,10 @@ onMounted(() => {
     selectedAthlete.value = props.queue[0].nr_startowy
   }
   
-  // Update timer every second for current runner
+  // Reactive timer - force computed property re-calculation every 100ms for smooth timing
   timeInterval.value = setInterval(() => {
-    if (currentRunner.value && currentRunner.value.start_time && !currentRunner.value.finish_time) {
-      const start = new Date(currentRunner.value.start_time).getTime()
-      const now = Date.now()
-      currentRunner.value.current_time = (now - start) / 1000
-    }
+    // Force reactivity by updating a dummy value that triggers currentRunner recomputation
+    realtimeCurrentTime.value = Date.now()
   }, 100) // Update every 100ms for smooth timing
 })
 
