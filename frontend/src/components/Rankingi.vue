@@ -58,6 +58,182 @@
 
     <!-- Tab Content -->
     <div v-else>
+      <!-- Wyniki Czasowe -->
+      <div v-if="activeTab === 'times'" class="space-y-6">
+        <!-- Filtry i sortowanie dla Wyników Czasowych -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6 transition-colors duration-200">
+          <!-- Nagłówek sekcji -->
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Filtry i sortowanie</h3>
+            <button 
+              @click="clearTimeFilters" 
+              class="text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 flex items-center space-x-1 transition-colors duration-200"
+            >
+              <span>🗑️</span>
+              <span>Wyczyść filtry</span>
+            </button>
+          </div>
+
+          <!-- Filtry w grid layout -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Filtr kategorii -->
+            <div>
+              <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                <span class="flex items-center space-x-2">
+                  <span>🏆</span>
+                  <span>Kategoria</span>
+                </span>
+              </label>
+              <select 
+                v-model="selectedKategoriaTime" 
+                class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg"
+              >
+                <option value="">Wszystkie</option>
+                <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
+              </select>
+            </div>
+            
+            <!-- Filtr płci -->
+            <div>
+              <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                <span class="flex items-center space-x-2">
+                  <span>👥</span>
+                  <span>Płeć</span>
+                </span>
+              </label>
+              <select 
+                v-model="selectedPlecTime" 
+                class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg"
+              >
+                <option value="">Wszystkie</option>
+                <option value="M">Mężczyźni</option>
+                <option value="K">Kobiety</option>
+              </select>
+            </div>
+
+            <!-- Filtr klubu -->
+            <div>
+              <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                <span class="flex items-center space-x-2">
+                  <span>🏢</span>
+                  <span>Klub</span>
+                </span>
+              </label>
+              <select 
+                v-model="selectedKlubTime" 
+                class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg"
+              >
+                <option value="">Wszystkie</option>
+                <option v-for="club in clubs" :key="club" :value="club">{{ club }}</option>
+              </select>
+            </div>
+
+            <!-- Filtr typu -->
+            <div>
+              <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                <span class="flex items-center space-x-2">
+                  <span>🕒</span>
+                  <span>Typ</span>
+                </span>
+              </label>
+              <select 
+                v-model="selectedTypeTime" 
+                class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg"
+              >
+                <option value="best">Najlepsze</option>
+                <option value="latest">Najnowsze</option>
+                <option value="avg">Średnie</option>
+                <option value="all">Wszystkie</option>
+              </select>
+            </div>
+
+            <!-- Filtr statusu -->
+            <div>
+              <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                <span class="flex items-center space-x-2">
+                  <span>🏁</span>
+                  <span>Status</span>
+                </span>
+              </label>
+              <select 
+                v-model="selectedStatusTime" 
+                class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg"
+              >
+                <option value="completed">Zakończone</option>
+                <option value="in-progress">W trakcie</option>
+              </select>
+            </div>
+
+            <!-- Sortowanie -->
+            <div>
+              <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                <span class="flex items-center space-x-2">
+                  <span>🔄</span>
+                  <span>Sortowanie</span>
+                </span>
+              </label>
+              <select 
+                v-model="sortByTime" 
+                class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg"
+              >
+                <option value="time_asc">Czas (rosnąco)</option>
+                <option value="time_desc">Czas (malejąco)</option>
+                <option value="name_asc">Nazwisko (A-Z)</option>
+                <option value="name_desc">Nazwisko (Z-A)</option>
+                <option value="kategoria_asc">Kategoria (A-Z)</option>
+                <option value="klub_asc">Klub (A-Z)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Nagłówek Wyników Czasowych -->
+        <div class="flex items-center justify-between">
+          <h3 class="text-lg font-medium text-gray-900 dark:text-white">Wyniki Czasowe</h3>
+          <div class="text-sm text-gray-600 dark:text-gray-400">
+            Najszybsze czasy ({{ filteredTimeRanking.length }} pozycji)
+          </div>
+        </div>
+        
+        <!-- Tabela Wyników Czasowych -->
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead class="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Pozycja</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Zawodnik</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Klub</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Kategoria</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Czas</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                <tr v-if="filteredTimeRanking.length === 0">
+                  <td colspan="6" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                    Brak zawodników spełniających wybrane kryteria
+                  </td>
+                </tr>
+                <tr v-for="(rider, index) in filteredTimeRanking" :key="rider.id" class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                    <span v-if="index === 0">🥇</span>
+                    <span v-else-if="index === 1">🥈</span>
+                    <span v-else-if="index === 2">🥉</span>
+                    <span v-else>{{ index + 1 }}</span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-medium text-gray-900 dark:text-white">{{ rider.imie }} {{ rider.nazwisko }}</div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ rider.klub }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ rider.kategoria }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-purple-600 dark:text-purple-400">{{ formatTime(rider.total_time) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
       <!-- Klasyfikacja Indywidualna -->
       <div v-if="activeTab === 'individual'" class="space-y-6">
         <!-- Filtry i sortowanie dla Indywidualnej -->
@@ -665,22 +841,32 @@ import {
   BuildingOfficeIcon,
   CalendarIcon,
   ArrowPathIcon,
-  StarIcon
+  StarIcon,
+  ClockIcon
 } from '@heroicons/vue/24/outline'
 
 // State
 const loading = ref(false)
 const selectedSeason = ref('2025')
-const activeTab = ref('general')
+const activeTab = ref('times')  // Default to times tab
 const lastFetchTime = ref(0)
 const CACHE_DURATION = 30000 // 30 sekund cache
 
 // Rankings data
+const timeRanking = ref([])
 const individualRanking = ref([])
 const generalRanking = ref([])
 const clubRankingTotal = ref([])
 const clubRankingTop3 = ref([])
 const medalRanking = ref([])
+
+// ===== TIME RANKING FILTERS =====
+const selectedKategoriaTime = ref('')
+const selectedPlecTime = ref('')
+const selectedKlubTime = ref('')
+const selectedTypeTime = ref('best')  // best, latest, avg, all
+const selectedStatusTime = ref('completed')
+const sortByTime = ref('time_asc')
 
 // Filters - Individual
 const selectedCategory = ref('')
@@ -706,8 +892,9 @@ const sortByClubsTop3 = ref('punkty_desc')
 const minZlote = ref(null)
 const sortByMedals = ref('zlote_desc')
 
-// Tabs configuration
+// Tabs configuration - TIMES FIRST!
 const tabs = [
+  { id: 'times', name: 'Wyniki Czasowe ⏱️', icon: ClockIcon },  // NEW FIRST TAB!
   { id: 'general', name: 'Generalna', icon: TrophyIcon },
   { id: 'individual', name: 'Indywidualna', icon: UsersIcon },
   { id: 'clubs-total', name: 'Klubowa - Suma', icon: BuildingOfficeIcon },
@@ -727,6 +914,38 @@ const clubs = computed(() => {
 const genders = computed(() => {
   const uniqueGenders = [...new Set(individualRanking.value.map(rider => rider.plec).filter(Boolean))]
   return uniqueGenders.sort()
+})
+
+const filteredTimeRanking = computed(() => {
+  let filtered = timeRanking.value
+  
+  // Apply filters
+  if (selectedKategoriaTime.value) {
+    filtered = filtered.filter(r => r.kategoria === selectedKategoriaTime.value)
+  }
+  if (selectedPlecTime.value) {
+    filtered = filtered.filter(r => r.plec === selectedPlecTime.value)
+  }
+  if (selectedKlubTime.value) {
+    filtered = filtered.filter(r => r.klub === selectedKlubTime.value)
+  }
+  
+  // Apply sorting
+  if (sortByTime.value === 'time_asc') {
+    filtered.sort((a, b) => parseFloat(a.total_time) - parseFloat(b.total_time))
+  } else if (sortByTime.value === 'time_desc') {
+    filtered.sort((a, b) => parseFloat(b.total_time) - parseFloat(a.total_time))
+  } else if (sortByTime.value === 'name_asc') {
+    filtered.sort((a, b) => a.nazwisko.localeCompare(b.nazwisko))
+  } else if (sortByTime.value === 'name_desc') {
+    filtered.sort((a, b) => b.nazwisko.localeCompare(a.nazwisko))
+  } else if (sortByTime.value === 'kategoria_asc') {
+    filtered.sort((a, b) => a.kategoria.localeCompare(b.kategoria))
+  } else if (sortByTime.value === 'klub_asc') {
+    filtered.sort((a, b) => (a.klub || '').localeCompare(b.klub || ''))
+  }
+  
+  return filtered
 })
 
 const filteredIndividualRanking = computed(() => {
@@ -924,8 +1143,9 @@ const refreshRankings = async () => {
   try {
     // Fetch all ranking data from API
     await Promise.all([
-      fetchIndividualRanking(),
-      fetchGeneralRanking(), 
+      fetchTimeRanking(),
+      fetchIndividualRanking(), 
+      fetchGeneralRanking(),
       fetchClubRankings(),
       fetchMedalRanking()
     ])
@@ -946,16 +1166,18 @@ const clearMedalsFilters = () => {
 }
 
 // Watch activeTab - nie pobieraj danych za każdym razem
-watch(activeTab, (newTab) => {
-  console.log('🔀 Przełączono na zakładkę:', newTab)
-  // Nie pobieraj danych automatycznie przy zmianie zakładki
-  // Tylko jeśli dane są bardzo stare (>30 sekund)
-  const now = Date.now()
-  if (now - lastFetchTime.value > CACHE_DURATION) {
-    console.log('📅 Cache wygasł, pobieram świeże dane...')
-    refreshRankings()
+watch(activeTab, (newTab, oldTab) => {
+  console.log('🔀 Tab changed:', oldTab, '->', newTab)
+  
+  if (newTab === 'times') {
+    // Fetch fresh data when switching to times tab
+    fetchTimeRanking()
   } else {
-    console.log('💾 Używam cache danych (', Math.round((now - lastFetchTime.value) / 1000), 's temu)')
+    const now = Date.now()
+    if (now - lastFetchTime.value > CACHE_DURATION) {
+      console.log('📅 Cache wygasł, pobieram świeże dane...')
+      refreshRankings()
+    }
   }
 })
 
@@ -969,6 +1191,133 @@ watch(selectedSeason, () => {
 onMounted(() => {
   refreshRankings()
 })
+
+// ===== TIME RANKING API FUNCTIONS =====
+const fetchTimeRanking = async () => {
+  console.log('🕐 Pobieranie rankingu czasowego...')
+  try {
+    const params = new URLSearchParams({
+      typ: selectedTypeTime.value,
+      status: selectedStatusTime.value,
+      limit: '100'
+    })
+    
+    if (selectedKategoriaTime.value) params.append('kategoria', selectedKategoriaTime.value)
+    if (selectedPlecTime.value) params.append('plec', selectedPlecTime.value)
+    if (selectedKlubTime.value) params.append('klub', selectedKlubTime.value)
+    
+    const response = await fetch(`/api/rankings/times?${params}&_t=${Date.now()}`)
+    console.log('📡 Time ranking response status:', response.status)
+    
+    if (response.ok) {
+      const result = await response.json()
+      console.log('✅ Time ranking data received:', result.data?.ranking?.length || 0, 'items')
+      timeRanking.value = result.data?.ranking || []
+      console.log("✅ timeRanking updated, length:", timeRanking.value.length)
+    } else {
+      console.error('❌ Time ranking response not ok:', response.status, response.statusText)
+    }
+  } catch (error) {
+    console.error('❌ Error fetching time ranking:', error)
+  }
+}
+
+// ===== SMART POLLING FOR REAL-TIME UPDATES =====
+let pollingInterval = null
+const POLLING_INTERVALS = {
+  ACTIVE_TAB: 15000,     // 15s when times tab is active
+  BACKGROUND_TAB: 60000, // 1min when other tab is active
+  INACTIVE_TAB: 0        // No polling when not on times tab
+}
+
+const startSmartPolling = () => {
+  if (pollingInterval) {
+    clearInterval(pollingInterval)
+  }
+  
+  // Only poll when times tab is active
+  if (activeTab.value === 'times') {
+    const interval = document.hidden ? 
+      POLLING_INTERVALS.BACKGROUND_TAB : 
+      POLLING_INTERVALS.ACTIVE_TAB
+    
+    console.log(`🔄 Starting smart polling for times (${interval/1000}s intervals)`)
+    
+    pollingInterval = setInterval(() => {
+      if (activeTab.value === 'times') {
+        console.log('🔄 Auto-refresh time ranking')
+        fetchTimeRanking()
+      }
+    }, interval)
+  } else {
+    console.log('⏸️ Pausing polling - not on times tab')
+  }
+}
+
+const stopSmartPolling = () => {
+  if (pollingInterval) {
+    clearInterval(pollingInterval)
+    pollingInterval = null
+    console.log('⏹️ Stopped smart polling')
+  }
+}
+
+// Page visibility detection
+document.addEventListener('visibilitychange', () => {
+  if (activeTab.value === 'times') {
+    startSmartPolling() // Restart with appropriate interval
+  }
+})
+
+// Watch time ranking filters
+watch([selectedTypeTime, selectedStatusTime], () => {
+  console.log('🔄 Time ranking filters changed, fetching new data...')
+  fetchTimeRanking()
+})
+
+// Clear time ranking filters
+const clearTimeFilters = () => {
+  selectedKategoriaTime.value = ''
+  selectedPlecTime.value = ''
+  selectedKlubTime.value = ''
+  selectedTypeTime.value = 'best'
+  selectedStatusTime.value = 'completed'
+  sortByTime.value = 'time_asc'
+}
+
+// HELPER FUNCTIONS FOR FILTERS
+const clearAllFilters = () => {
+  selectedCategory.value = ''
+  selectedClub.value = ''
+  selectedGender.value = ''
+  sortBy.value = 'pozycja_asc'
+}
+
+const clearGeneralFilters = () => {
+  selectedCategoryGeneral.value = ''
+  selectedClubGeneral.value = ''
+  selectedGenderGeneral.value = ''
+  sortByGeneral.value = 'punkty_desc'
+}
+
+const clearClubsTotalFilters = () => {
+  minZawodnikow.value = null
+  sortByClubsTotal.value = 'punkty_desc'
+}
+
+const clearClubsTop3Filters = () => {
+  minKategorie.value = null
+  sortByClubsTop3.value = 'punkty_desc'
+}
+
+// Helper function for time formatting  
+const formatTime = (seconds) => {
+  if (!seconds) return '--:--'
+  const totalSeconds = parseFloat(seconds)
+  const minutes = Math.floor(totalSeconds / 60)
+  const secs = (totalSeconds % 60).toFixed(3)
+  return `${minutes}:${secs.padStart(6, '0')}`
+}
 
 // MISSING FUNCTIONS - RANKING DATA FETCHERS WITH CACHE-BUSTING
 const fetchIndividualRanking = async () => {
@@ -1056,31 +1405,6 @@ const fetchMedalRanking = async () => {
   } catch (error) {
     console.error('❌ Error fetching medal ranking:', error)
   }
-}
-
-// HELPER FUNCTIONS FOR FILTERS
-const clearAllFilters = () => {
-  selectedCategory.value = ''
-  selectedClub.value = ''
-  selectedGender.value = ''
-  sortBy.value = 'pozycja_asc'
-}
-
-const clearGeneralFilters = () => {
-  selectedCategoryGeneral.value = ''
-  selectedClubGeneral.value = ''
-  selectedGenderGeneral.value = ''
-  sortByGeneral.value = 'punkty_desc'
-}
-
-const clearClubsTotalFilters = () => {
-  minZawodnikow.value = null
-  sortByClubsTotal.value = 'punkty_desc'
-}
-
-const clearClubsTop3Filters = () => {
-  minKategorie.value = null
-  sortByClubsTop3.value = 'punkty_desc'
 }
 
 </script>

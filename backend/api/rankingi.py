@@ -258,6 +258,152 @@ def calculate_medal_ranking(season=None):
     """
     return get_all(query)
 
+def calculate_time_ranking(kategoria=None, plec=None, klub=None, typ='best', season=None, status='completed', limit=100):
+    """
+    Ranking czasowy - najlepsze/najnowsze/średnie czasy zawodników
+    
+    Args:
+        kategoria: filtr kategorii (np. "Junior A") 
+        plec: filtr płci ("M"/"K")
+        klub: filtr klubu
+        typ: typ rankingu ("best", "latest", "avg", "all")
+        season: sezon (opcjonalne)
+        status: status wyników ("completed", "all")
+        limit: max liczba wyników
+    """
+    
+    # Base conditions
+    conditions = []
+    params = []
+    
+    # Basic filters
+    conditions.append("r.total_time IS NOT NULL")
+    conditions.append("r.total_time > 0")  # Exclude invalid times
+    conditions.append("r.total_time < 600")  # Exclude times > 10min (likely errors)
+    
+    if kategoria:
+        conditions.append("z.kategoria = %s")
+        params.append(kategoria)
+    
+    if plec:
+        conditions.append("z.plec = %s") 
+        params.append(plec)
+        
+    if klub:
+        conditions.append("z.klub = %s")
+        params.append(klub)
+        
+    if status != 'all':
+        conditions.append("r.status = %s")
+        params.append(status)
+    
+    where_clause = " AND ".join(conditions)
+    
+    if typ == 'best':
+        # Najlepszy czas każdego zawodnika
+        query = f"""
+            WITH best_times AS (
+                SELECT 
+                    r.nr_startowy,
+                    z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                    MIN(r.total_time) as total_time,
+                    MAX(r.status) as sectro_status,
+                    MAX(s.created_at) as last_session_date,
+                    COUNT(*) as liczba_startow
+                FROM sectro_results r
+                JOIN zawodnicy z ON r.nr_startowy = z.nr_startowy  
+                JOIN sectro_sessions s ON r.session_id = s.id
+                WHERE {where_clause}
+                GROUP BY r.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub
+            )
+            SELECT 
+                nr_startowy, imie, nazwisko, kategoria, plec, klub,
+                total_time, sectro_status, liczba_startow,
+                ROW_NUMBER() OVER (ORDER BY total_time ASC) as pozycja
+            FROM best_times 
+            ORDER BY total_time ASC
+            LIMIT %s
+        """
+        params.append(limit)
+        
+    elif typ == 'latest':
+        # Ostatni czas każdego zawodnika
+        query = f"""
+            WITH ranked_times AS (
+                SELECT 
+                    r.nr_startowy,
+                    z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                    r.total_time, r.status as sectro_status,
+                    s.created_at as session_date,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY r.nr_startowy 
+                        ORDER BY s.created_at DESC
+                    ) as rn
+                FROM sectro_results r
+                JOIN zawodnicy z ON r.nr_startowy = z.nr_startowy  
+                JOIN sectro_sessions s ON r.session_id = s.id
+                WHERE {where_clause}
+            )
+            SELECT 
+                nr_startowy, imie, nazwisko, kategoria, plec, klub,
+                total_time, sectro_status,
+                1 as liczba_startow,
+                ROW_NUMBER() OVER (ORDER BY total_time ASC) as pozycja
+            FROM ranked_times 
+            WHERE rn = 1
+            ORDER BY total_time ASC
+            LIMIT %s
+        """
+        params.append(limit)
+        
+    elif typ == 'avg':
+        # Średni czas każdego zawodnika (minimum 2 starty)
+        query = f"""
+            WITH avg_times AS (
+                SELECT 
+                    r.nr_startowy,
+                    z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                    AVG(r.total_time) as total_time,
+                    'completed' as sectro_status,
+                    COUNT(*) as liczba_startow
+                FROM sectro_results r
+                JOIN zawodnicy z ON r.nr_startowy = z.nr_startowy  
+                JOIN sectro_sessions s ON r.session_id = s.id
+                WHERE {where_clause}
+                GROUP BY r.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub
+                HAVING COUNT(*) >= 2
+            )
+            SELECT 
+                nr_startowy, imie, nazwisko, kategoria, plec, klub,
+                total_time, sectro_status, liczba_startow,
+                ROW_NUMBER() OVER (ORDER BY total_time ASC) as pozycja
+            FROM avg_times 
+            ORDER BY total_time ASC
+            LIMIT %s
+        """
+        params.append(limit)
+        
+    else:  # typ == 'all'
+        # Wszystkie czasy (bez grupowania)
+        query = f"""
+            SELECT 
+                r.nr_startowy,
+                z.imie, z.nazwisko, z.kategoria, z.plec, z.klub,
+                r.total_time, 
+                r.status as sectro_status,
+                1 as liczba_startow,
+                ROW_NUMBER() OVER (ORDER BY r.total_time ASC) as pozycja
+            FROM sectro_results r
+            JOIN zawodnicy z ON r.nr_startowy = z.nr_startowy  
+            JOIN sectro_sessions s ON r.session_id = s.id
+            WHERE {where_clause}
+            ORDER BY r.total_time ASC
+            LIMIT %s
+        """
+        params.append(limit)
+    
+    return get_all(query, params)
+
 # --- Endpointy rankingowe ---
 @rankingi_bp.route("/api/rankings/individual")
 @handle_api_errors
@@ -433,4 +579,112 @@ def get_rankings_summary():
     return APIResponse.success(
         data=summary,
         message="Podsumowanie rankingów pobrane pomyślnie"
+    )
+
+@rankingi_bp.route("/api/rankings/times")
+@handle_api_errors
+def get_time_ranking():
+    """
+    Endpoint rankingu czasowego
+    GET /api/rankings/times?kategoria=Junior A&plec=M&typ=best&limit=50
+    
+    Parameters:
+        kategoria: kategoria zawodników (opcjonalne)
+        plec: płeć M/K (opcjonalne)  
+        klub: nazwa klubu (opcjonalne)
+        typ: best/latest/avg/all (default: best)
+        status: completed/all (default: completed)
+        season: sezon (opcjonalne, obecnie nie używane)
+        limit: max wyników (default: 100, max: 500)
+    """
+    
+    # Parse parameters
+    kategoria = request.args.get('kategoria')
+    plec = request.args.get('plec')
+    klub = request.args.get('klub')
+    typ = request.args.get('typ', 'best')
+    status = request.args.get('status', 'completed')
+    season = request.args.get('season')  # Currently not used, ready for future
+    
+    # Validate and limit results
+    try:
+        limit = min(int(request.args.get('limit', 100)), 500)
+    except (ValueError, TypeError):
+        limit = 100
+    
+    # Validate typ parameter
+    if typ not in ['best', 'latest', 'avg', 'all']:
+        return APIResponse.error(
+            message="Nieprawidłowy typ rankingu. Dozwolone: best, latest, avg, all",
+            code=400
+        )
+    
+    # Get ranking data
+    ranking = calculate_time_ranking(
+        kategoria=kategoria,
+        plec=plec, 
+        klub=klub,
+        typ=typ,
+        season=season,
+        status=status,
+        limit=limit
+    )
+    
+    # Enhanced response with metadata
+    response_data = {
+        "ranking": ranking,
+        "filters": {
+            "kategoria": kategoria,
+            "plec": plec,
+            "klub": klub, 
+            "typ": typ,
+            "status": status,
+            "limit": limit
+        },
+        "meta": {
+            "count": len(ranking),
+            "typ_description": {
+                "best": "Najlepszy czas każdego zawodnika",
+                "latest": "Ostatni czas każdego zawodnika", 
+                "avg": "Średni czas każdego zawodnika (min. 2 starty)",
+                "all": "Wszystkie czasy (bez grupowania)"
+            }.get(typ, "")
+        }
+    }
+    
+    return APIResponse.success(
+        data=response_data,
+        message=f"Ranking czasowy ({typ}) pobrany pomyślnie - {len(ranking)} wyników"
+    )
+
+@rankingi_bp.route("/api/rankings/times/stats")  
+@handle_api_errors
+def get_time_ranking_stats():
+    """
+    Statystyki rankingu czasowego
+    GET /api/rankings/times/stats
+    """
+    
+    stats_query = """
+        SELECT 
+            COUNT(DISTINCT r.nr_startowy) as total_athletes,
+            COUNT(*) as total_results,
+            MIN(r.total_time) as fastest_time,
+            MAX(r.total_time) as slowest_time,
+            AVG(r.total_time) as average_time,
+            COUNT(DISTINCT z.kategoria) as total_categories,
+            COUNT(DISTINCT z.klub) as total_clubs
+        FROM sectro_results r
+        JOIN zawodnicy z ON r.nr_startowy = z.nr_startowy  
+        WHERE r.total_time IS NOT NULL 
+        AND r.total_time > 0 
+        AND r.total_time < 600
+        AND r.status = 'completed'
+    """
+    
+    stats = get_all(stats_query)
+    
+    return APIResponse.success(
+        data=stats[0] if stats else {},
+        message="Statystyki rankingu czasowego pobrane pomyślnie"
     ) 
