@@ -1,0 +1,31 @@
+{
+  "name": "skatecross-production",
+  "version": "36.1.0",
+  "description": "SKATECROSS Unified Start Control System v36.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/burza0/drabinka-turniejowa.git"
+  },
+  "engines": {
+    "node": "18.x",
+    "npm": "9.x"
+  },
+  "scripts": {
+    "heroku-prebuild": "echo 'Installing frontend dependencies...'",
+    "build": "cd frontend && npm install && npm run build",
+    "heroku-postbuild": "npm run build",
+    "start": "cd backend && python api_server.py",
+    "dev:backend": "cd backend && python api_server.py",
+    "dev:frontend": "cd frontend && npm run dev"
+  },
+  "keywords": [
+    "skatecross",
+    "timing",
+    "sectro",
+    "vue",
+    "flask",
+    "sport"
+  ],
+  "author": "SKATECROSS Team",
+  "license": "MIT"
+} 

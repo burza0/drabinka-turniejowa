@@ -1,0 +1,53 @@
+{
+  "name": "SKATECROSS v36.1",
+  "description": "Unified Start Control system dla zawodów skatecross z integracją SECTRO Live Timing",
+  "repository": "https://github.com/burza0/drabinka-turniejowa",
+  "logo": "https://via.placeholder.com/512x512.png?text=SKATECROSS",
+  "keywords": ["python", "flask", "vue", "skatecross", "timing", "sectro"],
+  "stack": "heroku-22",
+  "buildpacks": [
+    {
+      "url": "heroku/nodejs"
+    },
+    {
+      "url": "heroku/python"
+    }
+  ],
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "basic"
+    }
+  },
+  "addons": [
+    {
+      "plan": "heroku-postgresql:essential-0",
+      "as": "DATABASE"
+    }
+  ],
+  "env": {
+    "FLASK_ENV": {
+      "description": "Environment for Flask app",
+      "value": "production"
+    },
+    "SUPABASE_URL": {
+      "description": "Supabase database URL",
+      "required": true
+    },
+    "SUPABASE_ANON_KEY": {
+      "description": "Supabase anonymous key",
+      "required": true
+    },
+    "SUPABASE_SERVICE_ROLE_KEY": {
+      "description": "Supabase service role key",
+      "required": true
+    },
+    "SECTRO_API_URL": {
+      "description": "SECTRO timing system API URL",
+      "value": "http://localhost:8080"
+    }
+  },
+  "scripts": {
+    "postdeploy": "echo 'SKATECROSS v36.1 deployed successfully!'"
+  }
+} 

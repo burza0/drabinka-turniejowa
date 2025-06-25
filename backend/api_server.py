@@ -19,9 +19,9 @@ app.register_blueprint(sectro_bp)
 init_app(app)
 
 # System version
-SYSTEM_VERSION = "32.0"
+SYSTEM_VERSION = "36.1"
 SYSTEM_NAME = "SKATECROSS Drabinka Turniejowa"
-SYSTEM_FEATURES = ["SECTRO Live Timing", "QR System", "Start Queue", "Rankings", "Toggle Buttons", "Queue Management"]
+SYSTEM_FEATURES = ["Unified Start Control", "SECTRO Live Timing", "Database Cleanup", "QR System", "Start Queue", "Rankings"]
 
 # Cache aktywnej grupy
 aktywna_grupa_cache = {
@@ -36,6 +36,12 @@ def home():
     """Serwuje frontend Vue 3"""
     frontend_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'frontend', 'dist')
     return send_from_directory(frontend_path, 'index.html')
+
+@app.route('/<path:path>')
+def serve_static_files(path):
+    """Serwuje pliki statyczne frontendu"""
+    frontend_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'frontend', 'dist')
+    return send_from_directory(frontend_path, path)
 
 # Endpoint /api/version jest zdefiniowany w api/__init__.py - usunięto duplikat żeby uniknąć konfliktu
 
