@@ -63,34 +63,36 @@
         <!-- Filtry i sortowanie dla Wyników Czasowych -->
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6 transition-colors duration-200">
           <!-- Nagłówek sekcji -->
-          <div class="flex items-center justify-between mb-6">
-            <h3 class="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Filtry i sortowanie</h3>
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <div class="flex items-center gap-4">
+              <h3 class="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Filtry i sortowanie</h3>
+              
+              <!-- Pole wyszukiwania -->
+              <div class="relative w-64">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/>
+                  </svg>
+                </div>
+                <input
+                  v-model="searchQueryTime"
+                  type="text"
+                  placeholder="Szukaj zawodników..."
+                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm pl-10 pr-3 py-2 transition-all duration-200"
+                />
+                <div v-if="searchQueryTime" class="absolute -bottom-5 left-0 text-xs text-gray-500 dark:text-gray-400">
+                  {{ paginationDataTime.total_results }} wyników
+                </div>
+              </div>
+            </div>
+            
             <button 
               @click="clearTimeFilters" 
               class="text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 flex items-center space-x-1 transition-colors duration-200"
             >
               <span>🗑️</span>
-              <span>Wyczyść filtry</span>
+              <span>Wyczyść</span>
             </button>
-          </div>
-
-          <!-- Wyszukiwanie -->
-          <div class="mb-6">
-            <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
-              <span class="flex items-center space-x-2">
-                <span>🔍</span>
-                <span>Wyszukaj zawodnika</span>
-              </span>
-            </label>
-            <input
-              v-model="searchQueryTime"
-              type="text"
-              placeholder="Wpisz imię lub nazwisko..."
-              class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg"
-            />
-            <div v-if="searchQueryTime" class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-              Wyszukujesz: "{{ searchQueryTime }}" - {{ paginationDataTime.total_results }} wyników
-            </div>
           </div>
 
           <!-- Filtry w grid layout -->
@@ -147,54 +149,52 @@
               </select>
             </div>
 
-            <!-- Filtr typu -->
+
+
+            <!-- Sortowanie -->
             <div>
               <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
                 <span class="flex items-center space-x-2">
-                  <span>🕒</span>
-                  <span>Typ</span>
+                  <span>🔄</span>
+                  <span>Sortowanie</span>
                 </span>
               </label>
               <select 
-                v-model="selectedTypeTime" 
+                v-model="sortByTime" 
                 class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg"
               >
-                <option value="best">Najlepsze</option>
-                <option value="latest">Najnowsze</option>
-                <option value="avg">Średnie</option>
-                <option value="all">Wszystkie</option>
+                <option value="time_asc">Czas (najlepszy)</option>
+                <option value="time_desc">Czas (najgorszy)</option>
+                <option value="name_asc">Nazwisko (A-Z)</option>
+                <option value="name_desc">Nazwisko (Z-A)</option>
+                <option value="kategoria_asc">Kategoria (A-Z)</option>
+                <option value="klub_asc">Klub (A-Z)</option>
               </select>
             </div>
 
-            <!-- Filtr statusu -->
-            <div>
-              <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
-                <span class="flex items-center space-x-2">
-                  <span>🏁</span>
-                  <span>Status</span>
-                </span>
-              </label>
-              <select 
-                v-model="selectedStatusTime" 
-                class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg"
-              >
-                <option value="completed">Zakończone</option>
-                <option value="in-progress">W trakcie</option>
-              </select>
+
+          </div>
+        </div>
+
+        <!-- Nagłówek Wyników Czasowych z paginacją -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div class="flex items-center gap-4">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Wyniki Czasowe</h3>
+            <div class="text-sm text-gray-600 dark:text-gray-400">
+              <span v-if="paginationDataTime.total_results > 0">
+                Wyniki {{ paginationDataTime.start_index }}-{{ paginationDataTime.end_index }} 
+                z {{ paginationDataTime.total_results }}
+              </span>
+              <span v-else>Brak wyników</span>
             </div>
 
-            <!-- Wyników na stronę -->
-            <div>
-              <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
-                <span class="flex items-center space-x-2">
-                  <span>📄</span>
-                  <span>Na stronę</span>
-                </span>
-              </label>
+            <!-- Wybór ilości wyników na stronę -->
+            <div class="flex items-center gap-2">
+              <span class="text-sm text-gray-600 dark:text-gray-400">Na stronę:</span>
               <select 
                 v-model="perPageTime" 
                 @change="changePerPageTime"
-                class="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm font-medium py-2.5 px-3 transition-all duration-200 hover:shadow-lg"
+                class="text-sm rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-2 py-1 focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
               >
                 <option :value="10">10</option>
                 <option :value="25">25</option>
@@ -203,17 +203,49 @@
               </select>
             </div>
           </div>
-        </div>
+          
+          <!-- Kontrolki Paginacji w nagłówku -->
+          <div v-if="paginationDataTime.total_pages > 1" class="flex items-center space-x-2">
+            <!-- Pierwsza strona -->
+            <button 
+              @click="goToPageTime(1)"
+              :disabled="paginationDataTime.current_page === 1"
+              class="px-2 py-1 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              ⏮️
+            </button>
 
-        <!-- Nagłówek Wyników Czasowych z informacją o paginacji -->
-        <div class="flex items-center justify-between">
-          <h3 class="text-lg font-medium text-gray-900 dark:text-white">Wyniki Czasowe</h3>
-          <div class="text-sm text-gray-600 dark:text-gray-400">
-            <span v-if="paginationDataTime.total_results > 0">
-              Wyniki {{ paginationDataTime.start_index }}-{{ paginationDataTime.end_index }} 
-              z {{ paginationDataTime.total_results }}
+            <!-- Poprzednia strona -->
+            <button 
+              @click="previousPageTime"
+              :disabled="!paginationDataTime.has_prev"
+              class="px-2 py-1 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              ←
+            </button>
+
+            <!-- Info o stronie -->
+            <span class="text-xs text-gray-600 dark:text-gray-400 px-2">
+              {{ paginationDataTime.current_page }}/{{ paginationDataTime.total_pages }}
             </span>
-            <span v-else>Brak wyników</span>
+
+            <!-- Następna strona -->
+            <button 
+              @click="nextPageTime"
+              :disabled="!paginationDataTime.has_next"
+              class="px-2 py-1 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              →
+            </button>
+
+            <!-- Ostatnia strona -->
+            <button 
+              @click="goToPageTime(paginationDataTime.total_pages)"
+              :disabled="paginationDataTime.current_page === paginationDataTime.total_pages"
+              class="px-2 py-1 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              ⏭️
+            </button>
           </div>
         </div>
         
@@ -261,72 +293,7 @@
           </div>
         </div>
 
-        <!-- Kontrolki Paginacji -->
-        <div v-if="paginationDataTime.total_pages > 1" class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
-          <div class="flex items-center justify-between">
-            <!-- Informacje o stronie -->
-            <div class="text-sm text-gray-600 dark:text-gray-400">
-              Strona {{ paginationDataTime.current_page }} z {{ paginationDataTime.total_pages }}
-            </div>
 
-            <!-- Nawigacja stron -->
-            <div class="flex items-center space-x-2">
-              <!-- Pierwsza strona -->
-              <button 
-                @click="goToPageTime(1)"
-                :disabled="paginationDataTime.current_page === 1"
-                class="px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                ⏮️
-              </button>
-
-              <!-- Poprzednia strona -->
-              <button 
-                @click="previousPageTime"
-                :disabled="!paginationDataTime.has_prev"
-                class="px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                ← Poprzednia
-              </button>
-
-              <!-- Numery stron (pokazuj max 5 stron) -->
-              <div class="flex items-center space-x-1">
-                <template v-for="page in Math.min(5, paginationDataTime.total_pages)" :key="page">
-                  <button 
-                    @click="goToPageTime(page)"
-                    :class="[
-                      'px-3 py-2 text-sm rounded-md border',
-                      page === paginationDataTime.current_page 
-                        ? 'border-purple-500 bg-purple-500 text-white' 
-                        : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
-                    ]"
-                  >
-                    {{ page }}
-                  </button>
-                </template>
-                <span v-if="paginationDataTime.total_pages > 5" class="text-gray-500">...</span>
-              </div>
-
-              <!-- Następna strona -->
-              <button 
-                @click="nextPageTime"
-                :disabled="!paginationDataTime.has_next"
-                class="px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Następna →
-              </button>
-
-              <!-- Ostatnia strona -->
-              <button 
-                @click="goToPageTime(paginationDataTime.total_pages)"
-                :disabled="paginationDataTime.current_page === paginationDataTime.total_pages"
-                class="px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                ⏭️
-              </button>
-            </div>
-          </div>
-        </div>
       </div>
 
       <!-- Klasyfikacja Indywidualna -->
@@ -334,14 +301,35 @@
         <!-- Filtry i sortowanie dla Indywidualnej -->
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6 transition-colors duration-200">
           <!-- Nagłówek sekcji -->
-          <div class="flex items-center justify-between mb-6">
-            <h3 class="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Filtry i sortowanie</h3>
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <div class="flex items-center gap-4">
+              <h3 class="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Filtry i sortowanie</h3>
+              
+              <!-- Pole wyszukiwania -->
+              <div class="relative w-64">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/>
+                  </svg>
+                </div>
+                <input
+                  v-model="searchQuery"
+                  type="text"
+                  placeholder="Szukaj zawodników..."
+                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm pl-10 pr-3 py-2 transition-all duration-200"
+                />
+                <div v-if="searchQuery" class="absolute -bottom-5 left-0 text-xs text-gray-500 dark:text-gray-400">
+                  {{ filteredIndividualRanking.length }} wyników
+                </div>
+              </div>
+            </div>
+            
             <button 
               @click="clearAllFilters" 
               class="text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 flex items-center space-x-1 transition-colors duration-200"
             >
               <span>🗑️</span>
-              <span>Wyczyść filtry</span>
+              <span>Wyczyść</span>
             </button>
           </div>
 
@@ -424,11 +412,75 @@
           </div>
         </div>
 
-        <!-- Nagłówek klasyfikacji indywidualnej -->
-        <div class="flex items-center justify-between">
-          <h3 class="text-lg font-medium text-gray-900 dark:text-white">Klasyfikacja Indywidualna</h3>
-          <div class="text-sm text-gray-600 dark:text-gray-400">
-            Suma wszystkich punktów ({{ filteredIndividualRanking.length }} pozycji)
+        <!-- Nagłówek Klasyfikacji Indywidualnej z paginacją -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div class="flex items-center gap-4">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Klasyfikacja Indywidualna</h3>
+            <div class="text-sm text-gray-600 dark:text-gray-400">
+              <span v-if="paginationDataIndividual.total_results > 0">
+                Wyniki {{ paginationDataIndividual.start_index }}-{{ paginationDataIndividual.end_index }} 
+                z {{ paginationDataIndividual.total_results }}
+              </span>
+              <span v-else>Brak wyników</span>
+            </div>
+            <!-- Kontrolka Na stronę -->
+            <div class="flex items-center gap-2">
+              <span class="text-sm text-gray-600 dark:text-gray-400">Na stronę:</span>
+              <select 
+                v-model="perPageIndividual" 
+                @change="changePerPageIndividual"
+                class="text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded px-2 py-1 focus:ring-2 focus:ring-purple-500"
+              >
+                <option :value="10">10</option>
+                <option :value="25">25</option>
+                <option :value="50">50</option>
+                <option :value="100">100</option>
+              </select>
+            </div>
+          </div>
+          
+          <!-- Kontrolki Paginacji w nagłówku -->
+          <div v-if="paginationDataIndividual.total_pages > 1" class="flex items-center space-x-2">
+            <!-- Pierwsza strona -->
+            <button 
+              @click="goToPageIndividual(1)"
+              :disabled="paginationDataIndividual.current_page === 1"
+              class="px-2 py-1 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              ⏮️
+            </button>
+
+            <!-- Poprzednia strona -->
+            <button 
+              @click="previousPageIndividual"
+              :disabled="!paginationDataIndividual.has_prev"
+              class="px-2 py-1 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              ←
+            </button>
+
+            <!-- Info o stronie -->
+            <span class="text-xs text-gray-600 dark:text-gray-400 px-2">
+              {{ paginationDataIndividual.current_page }}/{{ paginationDataIndividual.total_pages }}
+            </span>
+
+            <!-- Następna strona -->
+            <button 
+              @click="nextPageIndividual"
+              :disabled="!paginationDataIndividual.has_next"
+              class="px-2 py-1 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              →
+            </button>
+
+            <!-- Ostatnia strona -->
+            <button 
+              @click="goToPageIndividual(paginationDataIndividual.total_pages)"
+              :disabled="paginationDataIndividual.current_page === paginationDataIndividual.total_pages"
+              class="px-2 py-1 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              ⏭️
+            </button>
           </div>
         </div>
         
@@ -447,12 +499,17 @@
                 </tr>
               </thead>
               <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                <tr v-if="filteredIndividualRanking.length === 0">
+                <tr v-if="paginatedIndividualRanking.length === 0">
                   <td colspan="6" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-                    Brak zawodników spełniających wybrane kryteria
+                    <div v-if="searchQuery">
+                      Brak wyników dla wyszukiwania: "{{ searchQuery }}"
+                    </div>
+                    <div v-else>
+                      Brak zawodników spełniających wybrane kryteria
+                    </div>
                   </td>
                 </tr>
-                <tr v-for="(rider, index) in filteredIndividualRanking" :key="rider.id" class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                <tr v-for="(rider, index) in paginatedIndividualRanking" :key="rider.id" class="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                     <span v-if="index === 0">🥇</span>
                     <span v-else-if="index === 1">🥈</span>
@@ -478,16 +535,37 @@
         <!-- Filtry i sortowanie dla Generalnej -->
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6 transition-colors duration-200">
           <!-- Nagłówek sekcji -->
-          <div class="flex items-center justify-between mb-6">
-            <h3 class="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Filtry i sortowanie</h3>
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <div class="flex items-center gap-4">
+              <h3 class="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Filtry i sortowanie</h3>
+              
+              <!-- Pole wyszukiwania -->
+              <div class="relative w-64">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/>
+                  </svg>
+                </div>
+                <input
+                  v-model="searchQueryGeneral"
+                  type="text"
+                  placeholder="Szukaj zawodników..."
+                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm pl-10 pr-3 py-2 transition-all duration-200"
+                />
+                <div v-if="searchQueryGeneral" class="absolute -bottom-5 left-0 text-xs text-gray-500 dark:text-gray-400">
+                  {{ filteredGeneralRanking.length }} wyników
+                </div>
+              </div>
+            </div>
+            
             <button 
               @click="clearGeneralFilters" 
               class="text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 flex items-center space-x-1 transition-colors duration-200"
             >
               <span>🗑️</span>
-              <span>Wyczyść filtry</span>
+              <span>Wyczyść</span>
             </button>
-              </div>
+          </div>
 
           <!-- Filtry w grid layout -->
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -567,10 +645,75 @@
           </div>
         </div>
         
-        <div class="flex items-center justify-between">
-          <h3 class="text-lg font-medium text-gray-900 dark:text-white">Klasyfikacja Generalna (n-2)</h3>
-          <div class="text-sm text-gray-600 dark:text-gray-400">
-            <span class="font-medium">Zasada n-2:</span> Najlepsze wyniki minus 2 najsłabsze
+        <!-- Nagłówek Klasyfikacji Generalnej z paginacją -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div class="flex items-center gap-4">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Klasyfikacja Generalna (n-2)</h3>
+            <div class="text-sm text-gray-600 dark:text-gray-400">
+              <span v-if="paginationDataGeneral.total_results > 0">
+                Wyniki {{ paginationDataGeneral.start_index }}-{{ paginationDataGeneral.end_index }} 
+                z {{ paginationDataGeneral.total_results }}
+              </span>
+              <span v-else>Brak wyników</span>
+            </div>
+            <!-- Kontrolka Na stronę -->
+            <div class="flex items-center gap-2">
+              <span class="text-sm text-gray-600 dark:text-gray-400">Na stronę:</span>
+              <select 
+                v-model="perPageGeneral" 
+                @change="changePerPageGeneral"
+                class="text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded px-2 py-1 focus:ring-2 focus:ring-purple-500"
+              >
+                <option :value="10">10</option>
+                <option :value="25">25</option>
+                <option :value="50">50</option>
+                <option :value="100">100</option>
+              </select>
+            </div>
+          </div>
+          
+          <!-- Kontrolki Paginacji w nagłówku -->
+          <div v-if="paginationDataGeneral.total_pages > 1" class="flex items-center space-x-2">
+            <!-- Pierwsza strona -->
+            <button 
+              @click="goToPageGeneral(1)"
+              :disabled="paginationDataGeneral.current_page === 1"
+              class="px-2 py-1 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              ⏮️
+            </button>
+
+            <!-- Poprzednia strona -->
+            <button 
+              @click="previousPageGeneral"
+              :disabled="!paginationDataGeneral.has_prev"
+              class="px-2 py-1 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              ←
+            </button>
+
+            <!-- Info o stronie -->
+            <span class="text-xs text-gray-600 dark:text-gray-400 px-2">
+              {{ paginationDataGeneral.current_page }}/{{ paginationDataGeneral.total_pages }}
+            </span>
+
+            <!-- Następna strona -->
+            <button 
+              @click="nextPageGeneral"
+              :disabled="!paginationDataGeneral.has_next"
+              class="px-2 py-1 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              →
+            </button>
+
+            <!-- Ostatnia strona -->
+            <button 
+              @click="goToPageGeneral(paginationDataGeneral.total_pages)"
+              :disabled="paginationDataGeneral.current_page === paginationDataGeneral.total_pages"
+              class="px-2 py-1 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              ⏭️
+            </button>
           </div>
         </div>
         
@@ -587,12 +730,17 @@
               </tr>
             </thead>
             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              <tr v-if="filteredGeneralRanking.length === 0">
+              <tr v-if="paginatedGeneralRanking.length === 0">
                 <td colspan="6" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-                  Brak zawodników spełniających wybrane kryteria
+                  <div v-if="searchQueryGeneral">
+                    Brak wyników dla wyszukiwania: "{{ searchQueryGeneral }}"
+                  </div>
+                  <div v-else>
+                    Brak zawodników spełniających wybrane kryteria
+                  </div>
                 </td>
               </tr>
-              <tr v-for="(rider, index) in filteredGeneralRanking" :key="rider.id" class="hover:bg-gray-50 dark:hover:bg-gray-700">
+              <tr v-for="(rider, index) in paginatedGeneralRanking" :key="rider.id" class="hover:bg-gray-50 dark:hover:bg-gray-700">
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                   <span v-if="index === 0">🏆</span>
                   <span v-else>{{ index + 1 }}</span>
@@ -959,7 +1107,6 @@ const medalRanking = ref([])
 const selectedKategoriaTime = ref('')
 const selectedPlecTime = ref('')
 const selectedKlubTime = ref('')
-const selectedTypeTime = ref('best')  // best, latest, avg, all
 const selectedStatusTime = ref('completed')
 const sortByTime = ref('time_asc')
 
@@ -983,12 +1130,42 @@ const selectedCategory = ref('')
 const selectedClub = ref('')
 const selectedGender = ref('')
 const sortBy = ref('pozycja_asc')
+const searchQuery = ref('')
+
+// Pagination - Individual  
+const currentPageIndividual = ref(1)
+const perPageIndividual = ref(25)
+const paginationDataIndividual = ref({
+  current_page: 1,
+  total_pages: 1,
+  total_results: 0,
+  per_page: 25,
+  has_next: false,
+  has_prev: false,
+  start_index: 1,
+  end_index: 0
+})
 
 // Filters - General
 const selectedCategoryGeneral = ref('')
 const selectedClubGeneral = ref('')
 const selectedGenderGeneral = ref('')
 const sortByGeneral = ref('punkty_desc')
+const searchQueryGeneral = ref('')
+
+// Pagination - General
+const currentPageGeneral = ref(1)
+const perPageGeneral = ref(25)
+const paginationDataGeneral = ref({
+  current_page: 1,
+  total_pages: 1,
+  total_results: 0,
+  per_page: 25,
+  has_next: false,
+  has_prev: false,
+  start_index: 1,
+  end_index: 0
+})
 
 // Filters - Clubs Total
 const minZawodnikow = ref(null)
@@ -1026,117 +1203,147 @@ const genders = computed(() => {
   return uniqueGenders.sort()
 })
 
-const filteredTimeRanking = computed(() => {
-  let filtered = timeRanking.value
-  
-  // Apply filters
-  if (selectedKategoriaTime.value) {
-    filtered = filtered.filter(r => r.kategoria === selectedKategoriaTime.value)
-  }
-  if (selectedPlecTime.value) {
-    filtered = filtered.filter(r => r.plec === selectedPlecTime.value)
-  }
-  if (selectedKlubTime.value) {
-    filtered = filtered.filter(r => r.klub === selectedKlubTime.value)
-  }
-  
-  // Apply sorting
-  if (sortByTime.value === 'time_asc') {
-    filtered.sort((a, b) => parseFloat(a.total_time) - parseFloat(b.total_time))
-  } else if (sortByTime.value === 'time_desc') {
-    filtered.sort((a, b) => parseFloat(b.total_time) - parseFloat(a.total_time))
-  } else if (sortByTime.value === 'name_asc') {
-    filtered.sort((a, b) => a.nazwisko.localeCompare(b.nazwisko))
-  } else if (sortByTime.value === 'name_desc') {
-    filtered.sort((a, b) => b.nazwisko.localeCompare(a.nazwisko))
-  } else if (sortByTime.value === 'kategoria_asc') {
-    filtered.sort((a, b) => a.kategoria.localeCompare(b.kategoria))
-  } else if (sortByTime.value === 'klub_asc') {
-    filtered.sort((a, b) => (a.klub || '').localeCompare(b.klub || ''))
-  }
-  
-  return filtered
-})
+// REMOVED: filteredTimeRanking - unnecessary double filtering, backend handles all filtering
 
-const filteredIndividualRanking = computed(() => {
+const paginatedIndividualRanking = computed(() => {
   let filtered = individualRanking.value
+  
+  // Filter by search query
+  if (searchQuery.value.trim()) {
+    const searchTerm = searchQuery.value.trim().toLowerCase()
+    filtered = filtered.filter((rider: any) => 
+      `${rider.imie} ${rider.nazwisko}`.toLowerCase().includes(searchTerm) ||
+      rider.nazwisko.toLowerCase().includes(searchTerm) ||
+      rider.imie.toLowerCase().includes(searchTerm)
+    )
+  }
   
   // Filter by category
   if (selectedCategory.value) {
-    filtered = filtered.filter(rider => rider.kategoria === selectedCategory.value)
+    filtered = filtered.filter((rider: any) => rider.kategoria === selectedCategory.value)
   }
   
   // Filter by club
   if (selectedClub.value) {
-    filtered = filtered.filter(rider => rider.klub === selectedClub.value)
+    filtered = filtered.filter((rider: any) => rider.klub === selectedClub.value)
   }
   
   // Filter by gender
   if (selectedGender.value) {
-    filtered = filtered.filter(rider => rider.plec === selectedGender.value)
+    filtered = filtered.filter((rider: any) => rider.plec === selectedGender.value)
   }
   
   // Sorting
   if (sortBy.value === 'pozycja_asc') {
     // Default ranking order (by points descending, then by best time)
-    filtered.sort((a, b) => parseFloat(b.punkty) - parseFloat(a.punkty))
+    filtered.sort((a: any, b: any) => parseFloat(b.punkty) - parseFloat(a.punkty))
   } else if (sortBy.value === 'pozycja_desc') {
-    filtered.sort((a, b) => parseFloat(a.punkty) - parseFloat(b.punkty))
+    filtered.sort((a: any, b: any) => parseFloat(a.punkty) - parseFloat(b.punkty))
   } else if (sortBy.value === 'punkty_desc') {
-    filtered.sort((a, b) => parseFloat(b.punkty) - parseFloat(a.punkty))
+    filtered.sort((a: any, b: any) => parseFloat(b.punkty) - parseFloat(a.punkty))
   } else if (sortBy.value === 'punkty_asc') {
-    filtered.sort((a, b) => parseFloat(a.punkty) - parseFloat(b.punkty))
+    filtered.sort((a: any, b: any) => parseFloat(a.punkty) - parseFloat(b.punkty))
   } else if (sortBy.value === 'nazwisko_asc') {
-    filtered.sort((a, b) => a.nazwisko.localeCompare(b.nazwisko))
+    filtered.sort((a: any, b: any) => a.nazwisko.localeCompare(b.nazwisko))
   } else if (sortBy.value === 'nazwisko_desc') {
-    filtered.sort((a, b) => b.nazwisko.localeCompare(a.nazwisko))
+    filtered.sort((a: any, b: any) => b.nazwisko.localeCompare(a.nazwisko))
   } else if (sortBy.value === 'klub_asc') {
-    filtered.sort((a, b) => (a.klub || '').localeCompare(b.klub || ''))
+    filtered.sort((a: any, b: any) => (a.klub || '').localeCompare(b.klub || ''))
   } else if (sortBy.value === 'kategoria_asc') {
-    filtered.sort((a, b) => a.kategoria.localeCompare(b.kategoria))
+    filtered.sort((a: any, b: any) => a.kategoria.localeCompare(b.kategoria))
   } else if (sortBy.value === 'starty_desc') {
-    filtered.sort((a, b) => parseInt(b.liczba_zawodow) - parseInt(a.liczba_zawodow))
+    filtered.sort((a: any, b: any) => parseInt(b.liczba_zawodow) - parseInt(a.liczba_zawodow))
   }
   
-  return filtered
+  // Update pagination data
+  const totalResults = filtered.length
+  const totalPages = Math.ceil(totalResults / perPageIndividual.value)
+  const startIndex = (currentPageIndividual.value - 1) * perPageIndividual.value + 1
+  const endIndex = Math.min(currentPageIndividual.value * perPageIndividual.value, totalResults)
+  
+  paginationDataIndividual.value = {
+    current_page: currentPageIndividual.value,
+    total_pages: totalPages,
+    total_results: totalResults,
+    per_page: perPageIndividual.value,
+    has_next: currentPageIndividual.value < totalPages,
+    has_prev: currentPageIndividual.value > 1,
+    start_index: totalResults > 0 ? startIndex : 0,
+    end_index: totalResults > 0 ? endIndex : 0
+  }
+  
+  // Return paginated results
+  const start = (currentPageIndividual.value - 1) * perPageIndividual.value
+  const end = start + perPageIndividual.value
+  return filtered.slice(start, end)
 })
 
-const filteredGeneralRanking = computed(() => {
+const paginatedGeneralRanking = computed(() => {
   let filtered = generalRanking.value
+  
+  // Filter by search query
+  if (searchQueryGeneral.value.trim()) {
+    const searchTerm = searchQueryGeneral.value.trim().toLowerCase()
+    filtered = filtered.filter((rider: any) => 
+      `${rider.imie} ${rider.nazwisko}`.toLowerCase().includes(searchTerm) ||
+      rider.nazwisko.toLowerCase().includes(searchTerm) ||
+      rider.imie.toLowerCase().includes(searchTerm)
+    )
+  }
   
   // Filter by category
   if (selectedCategoryGeneral.value) {
-    filtered = filtered.filter(rider => rider.kategoria === selectedCategoryGeneral.value)
+    filtered = filtered.filter((rider: any) => rider.kategoria === selectedCategoryGeneral.value)
   }
   
   // Filter by club
   if (selectedClubGeneral.value) {
-    filtered = filtered.filter(rider => rider.klub === selectedClubGeneral.value)
+    filtered = filtered.filter((rider: any) => rider.klub === selectedClubGeneral.value)
   }
   
   // Filter by gender
   if (selectedGenderGeneral.value) {
-    filtered = filtered.filter(rider => rider.plec === selectedGenderGeneral.value)
+    filtered = filtered.filter((rider: any) => rider.plec === selectedGenderGeneral.value)
   }
   
   // Sorting
   if (sortByGeneral.value === 'punkty_desc') {
-    filtered.sort((a, b) => parseFloat(b.punkty_koncowe) - parseFloat(a.punkty_koncowe))
+    filtered.sort((a: any, b: any) => parseFloat(b.punkty_koncowe) - parseFloat(a.punkty_koncowe))
   } else if (sortByGeneral.value === 'punkty_asc') {
-    filtered.sort((a, b) => parseFloat(a.punkty_koncowe) - parseFloat(b.punkty_koncowe))
+    filtered.sort((a: any, b: any) => parseFloat(a.punkty_koncowe) - parseFloat(b.punkty_koncowe))
   } else if (sortByGeneral.value === 'nazwisko_asc') {
-    filtered.sort((a, b) => a.nazwisko.localeCompare(b.nazwisko))
+    filtered.sort((a: any, b: any) => a.nazwisko.localeCompare(b.nazwisko))
   } else if (sortByGeneral.value === 'nazwisko_desc') {
-    filtered.sort((a, b) => b.nazwisko.localeCompare(a.nazwisko))
+    filtered.sort((a: any, b: any) => b.nazwisko.localeCompare(a.nazwisko))
   } else if (sortByGeneral.value === 'kategoria_asc') {
-    filtered.sort((a, b) => a.kategoria.localeCompare(b.kategoria))
+    filtered.sort((a: any, b: any) => a.kategoria.localeCompare(b.kategoria))
   } else if (sortByGeneral.value === 'starty_desc') {
-    filtered.sort((a, b) => parseInt(b.uczestnictwa) - parseInt(a.uczestnictwa))
+    filtered.sort((a: any, b: any) => parseInt(b.uczestnictwa) - parseInt(a.uczestnictwa))
   } else if (sortByGeneral.value === 'odrzucone_desc') {
-    filtered.sort((a, b) => parseInt(b.odrzucone || 0) - parseInt(a.odrzucone || 0))
+    filtered.sort((a: any, b: any) => parseInt(b.odrzucone || 0) - parseInt(a.odrzucone || 0))
   }
   
-  return filtered
+  // Update pagination data
+  const totalResults = filtered.length
+  const totalPages = Math.ceil(totalResults / perPageGeneral.value)
+  const startIndex = (currentPageGeneral.value - 1) * perPageGeneral.value + 1
+  const endIndex = Math.min(currentPageGeneral.value * perPageGeneral.value, totalResults)
+  
+  paginationDataGeneral.value = {
+    current_page: currentPageGeneral.value,
+    total_pages: totalPages,
+    total_results: totalResults,
+    per_page: perPageGeneral.value,
+    has_next: currentPageGeneral.value < totalPages,
+    has_prev: currentPageGeneral.value > 1,
+    start_index: totalResults > 0 ? startIndex : 0,
+    end_index: totalResults > 0 ? endIndex : 0
+  }
+  
+  // Return paginated results
+  const start = (currentPageGeneral.value - 1) * perPageGeneral.value
+  const end = start + perPageGeneral.value
+  return filtered.slice(start, end)
 })
 
 const filteredClubsTotal = computed(() => {
@@ -1307,10 +1514,11 @@ const fetchTimeRanking = async () => {
   console.log('🕐 Pobieranie rankingu czasowego...')
   try {
     const params = new URLSearchParams({
-      typ: selectedTypeTime.value,
+      typ: 'best',  // Always use best times
       status: selectedStatusTime.value,
       limit: perPageTime.value.toString(),
-      page: currentPageTime.value.toString()
+      page: currentPageTime.value.toString(),
+      sort: sortByTime.value
     })
     
     if (selectedKategoriaTime.value) params.append('kategoria', selectedKategoriaTime.value)
@@ -1365,8 +1573,15 @@ const changePerPageTime = () => {
 }
 
 // Watch time ranking filters
-watch([selectedTypeTime, selectedStatusTime], () => {
+watch([selectedStatusTime], () => {
   console.log('🔄 Time ranking filters changed, fetching new data...')
+  currentPageTime.value = 1  // Reset to first page
+  fetchTimeRanking()
+})
+
+// FIXED: Add missing watchers for all time ranking filters
+watch([selectedKategoriaTime, selectedPlecTime, selectedKlubTime, sortByTime], () => {
+  console.log('🔄 Time ranking filters/sort changed, fetching new data...')
   currentPageTime.value = 1  // Reset to first page
   fetchTimeRanking()
 })
@@ -1382,12 +1597,57 @@ const clearTimeFilters = () => {
   selectedKategoriaTime.value = ''
   selectedPlecTime.value = ''
   selectedKlubTime.value = ''
-  selectedTypeTime.value = 'best'
   selectedStatusTime.value = 'completed'
   sortByTime.value = 'time_asc'
   searchQueryTime.value = ''
   currentPageTime.value = 1
   perPageTime.value = 25
+}
+
+// PAGINATION FUNCTIONS FOR INDIVIDUAL
+const nextPageIndividual = () => {
+  if (paginationDataIndividual.value.has_next) {
+    currentPageIndividual.value++
+  }
+}
+
+const previousPageIndividual = () => {
+  if (paginationDataIndividual.value.has_prev) {
+    currentPageIndividual.value--
+  }
+}
+
+const goToPageIndividual = (page: number) => {
+  if (page >= 1 && page <= paginationDataIndividual.value.total_pages) {
+    currentPageIndividual.value = page
+  }
+}
+
+const changePerPageIndividual = () => {
+  currentPageIndividual.value = 1  // Reset to first page
+}
+
+// PAGINATION FUNCTIONS FOR GENERAL
+const nextPageGeneral = () => {
+  if (paginationDataGeneral.value.has_next) {
+    currentPageGeneral.value++
+  }
+}
+
+const previousPageGeneral = () => {
+  if (paginationDataGeneral.value.has_prev) {
+    currentPageGeneral.value--
+  }
+}
+
+const goToPageGeneral = (page: number) => {
+  if (page >= 1 && page <= paginationDataGeneral.value.total_pages) {
+    currentPageGeneral.value = page
+  }
+}
+
+const changePerPageGeneral = () => {
+  currentPageGeneral.value = 1  // Reset to first page
 }
 
 // HELPER FUNCTIONS FOR FILTERS
@@ -1396,6 +1656,9 @@ const clearAllFilters = () => {
   selectedClub.value = ''
   selectedGender.value = ''
   sortBy.value = 'pozycja_asc'
+  searchQuery.value = ''
+  currentPageIndividual.value = 1
+  perPageIndividual.value = 25
 }
 
 const clearGeneralFilters = () => {
@@ -1403,6 +1666,9 @@ const clearGeneralFilters = () => {
   selectedClubGeneral.value = ''
   selectedGenderGeneral.value = ''
   sortByGeneral.value = 'punkty_desc'
+  searchQueryGeneral.value = ''
+  currentPageGeneral.value = 1
+  perPageGeneral.value = 25
 }
 
 const clearClubsTotalFilters = () => {

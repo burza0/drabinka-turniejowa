@@ -258,7 +258,7 @@ def calculate_medal_ranking(season=None):
     """
     return get_all(query)
 
-def calculate_time_ranking(kategoria=None, plec=None, klub=None, typ='best', season=None, status='completed', limit=100, page=1, search=None):
+def calculate_time_ranking(kategoria=None, plec=None, klub=None, typ='best', season=None, status='completed', limit=100, page=1, search=None, sort='time_asc'):
     """
     Ranking czasowy - najlepsze/najnowsze/średnie czasy zawodników
     
@@ -272,6 +272,7 @@ def calculate_time_ranking(kategoria=None, plec=None, klub=None, typ='best', sea
         limit: max liczba wyników na stronę
         page: numer strony (1-based)
         search: wyszukiwanie po imieniu/nazwisku
+        sort: sortowanie time_asc/time_desc/name_asc/name_desc/kategoria_asc/klub_asc
     """
     
     # Base conditions
@@ -310,6 +311,18 @@ def calculate_time_ranking(kategoria=None, plec=None, klub=None, typ='best', sea
     # Calculate offset for pagination
     offset = (page - 1) * limit
     
+    # Build sorting clause based on sort parameter
+    sort_clauses = {
+        'time_asc': 'total_time ASC',
+        'time_desc': 'total_time DESC', 
+        'name_asc': 'z.nazwisko ASC, z.imie ASC',
+        'name_desc': 'z.nazwisko DESC, z.imie DESC',
+        'kategoria_asc': 'z.kategoria ASC, total_time ASC',
+        'klub_asc': 'z.klub ASC, total_time ASC'
+    }
+    
+    order_by = sort_clauses.get(sort, 'total_time ASC')  # Default to time ascending
+    
     if typ == 'best':
         # Count query for pagination
         count_query = f"""
@@ -320,7 +333,7 @@ def calculate_time_ranking(kategoria=None, plec=None, klub=None, typ='best', sea
             WHERE {where_clause}
         """
         
-        # Main query with pagination
+        # Main query with pagination and sorting
         query = f"""
             WITH best_times AS (
                 SELECT 
@@ -335,15 +348,15 @@ def calculate_time_ranking(kategoria=None, plec=None, klub=None, typ='best', sea
                 JOIN sectro_sessions s ON r.session_id = s.id
                 WHERE {where_clause}
                 GROUP BY r.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub
-                ORDER BY MIN(r.total_time) ASC
+                ORDER BY {order_by}
                 LIMIT %s OFFSET %s
             )
             SELECT 
                 nr_startowy, imie, nazwisko, kategoria, plec, klub,
                 total_time, sectro_status, liczba_startow,
-                ROW_NUMBER() OVER (ORDER BY total_time ASC) + %s as pozycja
+                ROW_NUMBER() OVER (ORDER BY {order_by}) + %s as pozycja
             FROM best_times 
-            ORDER BY total_time ASC
+            ORDER BY {order_by}
         """
         params_main = params + [limit, offset, offset]
         
@@ -360,7 +373,7 @@ def calculate_time_ranking(kategoria=None, plec=None, klub=None, typ='best', sea
             SELECT COUNT(*) FROM ranked_times
         """
         
-        # Main query with pagination
+        # Main query with pagination and sorting
         query = f"""
             WITH ranked_times AS (
                 SELECT 
@@ -384,15 +397,15 @@ def calculate_time_ranking(kategoria=None, plec=None, klub=None, typ='best', sea
                     1 as liczba_startow
                 FROM ranked_times 
                 WHERE rn = 1
-                ORDER BY total_time ASC
+                ORDER BY {order_by}
                 LIMIT %s OFFSET %s
             )
             SELECT 
                 nr_startowy, imie, nazwisko, kategoria, plec, klub,
                 total_time, sectro_status, liczba_startow,
-                ROW_NUMBER() OVER (ORDER BY total_time ASC) + %s as pozycja
+                ROW_NUMBER() OVER (ORDER BY {order_by}) + %s as pozycja
             FROM latest_times
-            ORDER BY total_time ASC
+            ORDER BY {order_by}
         """
         params_main = params + [limit, offset, offset]
         
@@ -407,7 +420,7 @@ def calculate_time_ranking(kategoria=None, plec=None, klub=None, typ='best', sea
             HAVING COUNT(*) >= 2
         """
         
-        # Main query with pagination
+        # Main query with pagination and sorting
         query = f"""
             WITH avg_times AS (
                 SELECT 
@@ -422,15 +435,15 @@ def calculate_time_ranking(kategoria=None, plec=None, klub=None, typ='best', sea
                 WHERE {where_clause}
                 GROUP BY r.nr_startowy, z.imie, z.nazwisko, z.kategoria, z.plec, z.klub
                 HAVING COUNT(*) >= 2
-                ORDER BY AVG(r.total_time) ASC
+                ORDER BY {order_by}
                 LIMIT %s OFFSET %s
             )
             SELECT 
                 nr_startowy, imie, nazwisko, kategoria, plec, klub,
                 total_time, sectro_status, liczba_startow,
-                ROW_NUMBER() OVER (ORDER BY total_time ASC) + %s as pozycja
+                ROW_NUMBER() OVER (ORDER BY {order_by}) + %s as pozycja
             FROM avg_times 
-            ORDER BY total_time ASC
+            ORDER BY {order_by}
         """
         params_main = params + [limit, offset, offset]
         
@@ -444,7 +457,7 @@ def calculate_time_ranking(kategoria=None, plec=None, klub=None, typ='best', sea
             WHERE {where_clause}
         """
         
-        # Main query with pagination
+        # Main query with pagination and sorting
         query = f"""
             SELECT 
                 r.nr_startowy,
@@ -452,12 +465,12 @@ def calculate_time_ranking(kategoria=None, plec=None, klub=None, typ='best', sea
                 r.total_time, 
                 r.status as sectro_status,
                 1 as liczba_startow,
-                ROW_NUMBER() OVER (ORDER BY r.total_time ASC) + %s as pozycja
+                ROW_NUMBER() OVER (ORDER BY {order_by}) + %s as pozycja
             FROM sectro_results r
             JOIN zawodnicy z ON r.nr_startowy = z.nr_startowy  
             JOIN sectro_sessions s ON r.session_id = s.id
             WHERE {where_clause}
-            ORDER BY r.total_time ASC
+            ORDER BY {order_by}
             LIMIT %s OFFSET %s
         """
         params_main = params + [offset, limit, offset]
@@ -670,7 +683,7 @@ def get_rankings_summary():
 def get_time_ranking():
     """
     Endpoint rankingu czasowego
-    GET /api/rankings/times?kategoria=Junior A&plec=M&typ=best&limit=25&page=1&search=Anna
+    GET /api/rankings/times?kategoria=Junior A&plec=M&typ=best&limit=25&page=1&search=Anna&sort=time_asc
     
     Parameters:
         kategoria: kategoria zawodników (opcjonalne)
@@ -682,6 +695,7 @@ def get_time_ranking():
         limit: wyników na stronę (default: 25, max: 100)
         page: numer strony (default: 1)
         search: wyszukiwanie po imieniu/nazwisku (opcjonalne)
+        sort: sortowanie time_asc/time_desc/name_asc/name_desc/kategoria_asc/klub_asc (default: time_asc)
     """
     
     # Parse parameters
@@ -692,6 +706,7 @@ def get_time_ranking():
     status = request.args.get('status', 'completed')
     season = request.args.get('season')  # Currently not used, ready for future
     search = request.args.get('search', '').strip()
+    sort = request.args.get('sort', 'time_asc')  # NEW: sorting parameter
     
     # Validate and parse pagination parameters
     try:
@@ -711,10 +726,18 @@ def get_time_ranking():
             code=400
         )
     
+    # Validate sort parameter
+    valid_sorts = ['time_asc', 'time_desc', 'name_asc', 'name_desc', 'kategoria_asc', 'klub_asc']
+    if sort not in valid_sorts:
+        return APIResponse.error(
+            message=f"Nieprawidłowe sortowanie. Dozwolone: {', '.join(valid_sorts)}",
+            code=400
+        )
+    
     # Clean search parameter
     search_query = search if search else None
     
-    # Get ranking data with pagination
+    # Get ranking data with pagination and sorting
     result = calculate_time_ranking(
         kategoria=kategoria,
         plec=plec, 
@@ -724,7 +747,8 @@ def get_time_ranking():
         status=status,
         limit=limit,
         page=page,
-        search=search_query
+        search=search_query,
+        sort=sort  # NEW: pass sort parameter
     )
     
     # Enhanced response with metadata
@@ -738,6 +762,7 @@ def get_time_ranking():
             "typ": typ,
             "status": status,
             "search": search_query,
+            "sort": sort,  # NEW: include sort in response
             "limit": limit,
             "page": page
         },
