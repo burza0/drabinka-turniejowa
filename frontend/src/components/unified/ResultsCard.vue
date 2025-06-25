@@ -113,8 +113,8 @@
       </div>
 
       <!-- Table Body -->
-      <div v-if="results.length > 0" class="divide-y divide-gray-200 dark:divide-gray-600">
-        <div v-for="(result, index) in results" :key="result.id"
+      <div v-if="sortedResults.length > 0" class="divide-y divide-gray-200 dark:divide-gray-600">
+        <div v-for="(result, index) in sortedResults" :key="result.nr_startowy"
              :class="getResultRowClass(result, index)"
              class="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150">
           
@@ -133,10 +133,10 @@
               <div class="flex items-center space-x-3">
                 <div class="flex-1">
                   <div class="font-semibold text-gray-900 dark:text-white">
-                    {{ result.imie_nazwisko }}
+                    {{ result.imie }} {{ result.nazwisko }}
                   </div>
                   <div class="text-sm text-gray-600 dark:text-gray-400">
-                    ID: {{ result.zawodnik_id }}
+                    ID: {{ result.nr_startowy }}
                   </div>
                 </div>
                 
@@ -150,14 +150,14 @@
             <!-- Club -->
             <div class="col-span-3">
               <div class="text-sm text-gray-900 dark:text-white">
-                {{ result.klub_nazwa || 'Brak klubu' }}
+                {{ result.klub || 'Brak klubu' }}
               </div>
             </div>
 
             <!-- Time -->
             <div class="col-span-2">
-              <div v-if="result.final_time" class="text-lg font-mono font-bold text-gray-900 dark:text-white">
-                {{ formatTime(result.final_time) }}
+              <div v-if="result.total_time" class="text-lg font-mono font-bold text-gray-900 dark:text-white">
+                {{ formatTime(result.total_time) }}
               </div>
               <div v-else-if="result.current_time" class="text-lg font-mono text-blue-600 dark:text-blue-400">
                 {{ formatTime(result.current_time) }}
@@ -175,15 +175,15 @@
 
             <!-- Status -->
             <div class="col-span-2">
-              <div :class="getStatusClass(result.unified_status)"
-                   class="inline-flex px-2 py-1 rounded-full text-xs font-medium">
-                {{ getStatusText(result.unified_status) }}
+              <!-- Time diff from leader -->
+              <div v-if="result.position > 1 && result.total_time && bestTimeSeconds" 
+                   class="text-xs text-gray-500 dark:text-gray-400">
+                +{{ formatTime(result.total_time - bestTimeSeconds) }}
               </div>
               
-              <!-- Time diff from leader -->
-              <div v-if="result.position > 1 && result.final_time && bestTimeSeconds" 
-                   class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                +{{ formatTime(result.final_time - bestTimeSeconds) }}
+              <!-- Debug info - sprawdźmy co się wyświetla -->
+              <div class="text-xs text-gray-400 mt-1">
+                Status: {{ result.unified_status }}
               </div>
             </div>
 
@@ -208,13 +208,17 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { computed } from 'vue'
 
 // ===== PROPS & EMITS =====
 const props = defineProps({
   sessionId: {
     type: Number,
     required: true
+  },
+  results: {
+    type: Array,
+    default: () => []
   },
   loading: {
     type: Boolean,
@@ -225,23 +229,37 @@ const props = defineProps({
 const emit = defineEmits(['refresh-requested'])
 
 // ===== REACTIVE STATE =====
-const results = ref([])
+// results jest teraz w props - nie potrzebujemy lokalnej zmiennej
 
 // ===== COMPUTED PROPERTIES =====
+const sortedResults = computed(() => {
+  // Sortuj i przypisz pozycje
+  const finished = props.results
+    .filter(r => r.unified_status === 'FINISHED' && r.total_time)
+    .sort((a, b) => a.total_time - b.total_time)
+    .map((r, index) => ({ ...r, position: index + 1 }))
+  
+  const pending = props.results
+    .filter(r => r.unified_status !== 'FINISHED' || !r.total_time)
+    .map(r => ({ ...r, position: null }))
+  
+  return [...finished, ...pending]
+})
+
 const finishedResults = computed(() => 
-  results.value.filter(r => r.unified_status === 'FINISHED' && r.final_time)
+  sortedResults.value.filter(r => r.unified_status === 'FINISHED' && r.total_time)
 )
 
 const finishedCount = computed(() => finishedResults.value.length)
 
 const pendingCount = computed(() => 
-  results.value.filter(r => r.unified_status !== 'FINISHED').length
+  sortedResults.value.filter(r => r.unified_status !== 'FINISHED').length
 )
 
 const bestTimeSeconds = computed(() => {
   const finished = finishedResults.value
   if (finished.length === 0) return null
-  return Math.min(...finished.map(r => r.final_time))
+  return Math.min(...finished.map(r => r.total_time))
 })
 
 const bestTime = computed(() => {
@@ -253,7 +271,7 @@ const averageTime = computed(() => {
   const finished = finishedResults.value
   if (finished.length === 0) return '--:--'
   
-  const sum = finished.reduce((acc, r) => acc + r.final_time, 0)
+  const sum = finished.reduce((acc, r) => acc + r.total_time, 0)
   const avg = sum / finished.length
   return formatTime(avg)
 })
@@ -276,7 +294,7 @@ const getResultRowClass = (result, index) => {
 }
 
 const getPositionClass = (index) => {
-  const result = results.value[index]
+  const result = sortedResults.value[index]
   
   if (result.position === 1) {
     return 'bg-yellow-500 text-white'
@@ -287,7 +305,7 @@ const getPositionClass = (index) => {
   if (result.position === 3) {
     return 'bg-amber-600 text-white'
   }
-  if (result.final_time) {
+  if (result.total_time) {
     return 'bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
   }
   return 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
@@ -337,35 +355,8 @@ const formatTimestamp = (timestamp) => {
 
 // ===== ACTION METHODS =====
 const refreshResults = async () => {
-  await loadResults()
+  // Dane są teraz przekazywane przez props - wystarczy emit do nadrzędnego komponentu
   emit('refresh-requested')
-}
-
-const loadResults = async () => {
-  try {
-    const response = await fetch(`/api/sectro/sessions/${props.sessionId}/results`)
-    const data = await response.json()
-    
-    if (data.success) {
-      // Process results and assign positions
-      const finishedResults = data.results
-        .filter(r => r.final_time)
-        .sort((a, b) => a.final_time - b.final_time)
-        .map((r, index) => ({ ...r, position: index + 1 }))
-      
-      const pendingResults = data.results
-        .filter(r => !r.final_time)
-        .map(r => ({ ...r, position: null }))
-      
-      results.value = [...finishedResults, ...pendingResults]
-      
-      console.log('✅ Results loaded:', results.value.length)
-    } else {
-      console.error('❌ Failed to load results:', data.error)
-    }
-  } catch (error) {
-    console.error('❌ Error loading results:', error)
-  }
 }
 
 const exportResults = () => {
@@ -373,12 +364,12 @@ const exportResults = () => {
   const headers = ['Pozycja', 'Zawodnik', 'Klub', 'Czas', 'Start', 'Finish', 'Status']
   const csvRows = [headers.join(',')]
   
-  results.value.forEach(result => {
+  sortedResults.value.forEach(result => {
     const row = [
       result.position || '',
-      `"${result.imie_nazwisko}"`,
-      `"${result.klub_nazwa || ''}"`,
-      result.final_time ? formatTime(result.final_time) : '',
+      `"${result.imie} ${result.nazwisko}"`,
+      `"${result.klub || ''}"`,
+      result.total_time ? formatTime(result.total_time) : '',
       result.start_time ? formatTimestamp(result.start_time) : '',
       result.finish_time ? formatTimestamp(result.finish_time) : '',
       getStatusText(result.unified_status)
@@ -402,9 +393,7 @@ const exportResults = () => {
 }
 
 // ===== LIFECYCLE =====
-onMounted(() => {
-  loadResults()
-})
+// Dane są teraz przekazywane przez props - nie potrzebujemy onMounted
 </script>
 
 <style scoped>

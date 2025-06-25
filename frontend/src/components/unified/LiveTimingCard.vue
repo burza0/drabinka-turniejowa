@@ -12,7 +12,12 @@
         <div>
           <h2 class="text-xl font-bold text-gray-900 dark:text-white">SECTRO Live Timing</h2>
           <p class="text-sm text-gray-600 dark:text-gray-400">
-            {{ session.kategoria }} {{ session.plec }} • {{ session.nazwa }}
+            <span v-if="sessions.length === 1">
+              {{ sessions[0].kategoria }} {{ sessions[0].plec }} • {{ sessions[0].nazwa }}
+            </span>
+            <span v-else>
+              {{ sessions.length }} aktywnych grup: {{ activeGroupNames }}
+            </span>
           </p>
         </div>
       </div>
@@ -21,7 +26,7 @@
         <div :class="getSessionStatusClass()" 
              class="px-3 py-1 rounded-full text-sm font-medium flex items-center space-x-2">
           <div class="w-2 h-2 rounded-full animate-pulse" 
-               :class="session.status === 'active' ? 'bg-green-400' : 'bg-yellow-400'"></div>
+               :class="sessions.some(s => s.status === 'active') ? 'bg-green-400' : 'bg-yellow-400'"></div>
           <span>{{ getSessionStatusText() }}</span>
         </div>
         
@@ -149,6 +154,23 @@
       <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Manual Testing</h3>
       
       <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+        <!-- Athlete Selection -->
+        <div class="mb-4">
+          <select 
+            v-model="selectedAthlete"
+            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+          >
+            <option value="">-- Wybierz zawodnika do testów --</option>
+            <option 
+              v-for="athlete in queue.slice(0, 5)" 
+              :key="athlete.nr_startowy"
+              :value="athlete.nr_startowy"
+            >
+              #{{ athlete.nr_startowy }} - {{ athlete.imie }} {{ athlete.nazwisko }} ({{ athlete.unified_status }})
+            </option>
+          </select>
+        </div>
+        
         <div class="flex space-x-2 mb-4">
           <input 
             v-model="manualFrame"
@@ -158,7 +180,7 @@
           />
           <button 
             @click="sendManualFrame"
-            :disabled="!manualFrame.trim()"
+            :disabled="!manualFrame.trim() || !selectedAthlete"
             class="px-4 py-2 bg-purple-600 disabled:bg-gray-400 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors duration-200 text-sm"
           >
             Wyślij
@@ -201,9 +223,10 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 
 // ===== PROPS & EMITS =====
 const props = defineProps({
-  session: {
-    type: Object,
-    required: true
+  sessions: {
+    type: Array,
+    required: true,
+    default: () => []
   },
   queue: {
     type: Array,
@@ -219,11 +242,16 @@ const emit = defineEmits(['timing-started', 'measurement-recorded', 'refresh-req
 
 // ===== REACTIVE STATE =====
 const manualFrame = ref('')
+const selectedAthlete = ref('')  // Nr startowy wybranego zawodnika do testów
 const lastTestResult = ref(null)
 const currentTime = ref(0)
 const timeInterval = ref(null)
 
 // ===== COMPUTED PROPERTIES =====
+const activeGroupNames = computed(() => {
+  return props.sessions.map(s => `${s.kategoria} ${s.plec}`).join(', ')
+})
+
 const currentRunner = computed(() => {
   const running = props.queue.find(q => 
     q.unified_status === 'RUNNING' || q.unified_status === 'TIMING'
@@ -240,17 +268,22 @@ const currentRunner = computed(() => {
 
 // ===== STATUS METHODS =====
 const getSessionStatusClass = () => {
-  if (props.session.status === 'active') {
+  // Sprawdź czy wszystkie sesje są aktywne
+  const allActive = props.sessions.every(s => s.status === 'active')
+  if (allActive && props.sessions.length > 0) {
     return 'bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400'
   }
   return 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400'
 }
 
 const getSessionStatusText = () => {
-  if (props.session.status === 'active') {
-    return 'AKTYWNA'
+  if (props.sessions.length === 0) return 'BRAK SESJI'
+  
+  const activeCount = props.sessions.filter(s => s.status === 'active').length
+  if (activeCount === props.sessions.length) {
+    return `${activeCount} AKTYWNA${activeCount > 1 ? 'E' : ''}`
   }
-  return 'OCZEKUJE'
+  return `${activeCount}/${props.sessions.length} AKTYWNE`
 }
 
 const getQueueItemClass = (athlete, index) => {
@@ -319,21 +352,29 @@ const sendManualFrame = async () => {
 }
 
 const sendTestFrame = async (type) => {
-  const timestamp = Date.now().toString().slice(-9)
+  // Generuj prawidłowy timestamp SECTRO w formacie HHMMSSMMM
+  const now = new Date()
+  const hours = now.getHours().toString().padStart(2, '0')
+  const minutes = now.getMinutes().toString().padStart(2, '0')
+  const seconds = now.getSeconds().toString().padStart(2, '0')
+  const milliseconds = now.getMilliseconds().toString().padStart(3, '0')
+  const sectroTimestamp = `${hours}${minutes}${seconds}${milliseconds}`
+  
   let frame = ''
   
   switch (type) {
     case 'START':
-      frame = `CZL1${timestamp}`
+      frame = `CZL1${sectroTimestamp}`  // Input 1 = START
       break
     case 'FINISH':
-      frame = `CZL2${timestamp}`
+      frame = `CZL4${sectroTimestamp}`  // Input 4 = FINISH (domyślnie w parser)
       break
     case 'INVALID':
-      frame = `INVALID${timestamp}`
+      frame = `INVALID${sectroTimestamp}`
       break
   }
   
+  console.log(`🧪 Generuję ramkę testową: ${frame}`)
   await processFrame(frame)
 }
 
@@ -345,8 +386,9 @@ const processFrame = async (frame) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ 
-        session_id: props.session.id,
-        frame: frame
+        session_id: props.sessions[0]?.id,  // Użyj pierwszej aktywnej sesji do testów
+        raw_frame: frame,  // Backend oczekuje raw_frame, nie frame
+                 nr_startowy: selectedAthlete.value  // Użyj wybranego zawodnika do testów
       })
     })
     
@@ -381,6 +423,11 @@ const refreshData = () => {
 
 // ===== LIFECYCLE =====
 onMounted(() => {
+  // Auto-select first athlete in queue for testing
+  if (props.queue.length > 0) {
+    selectedAthlete.value = props.queue[0].nr_startowy
+  }
+  
   // Update timer every second for current runner
   timeInterval.value = setInterval(() => {
     if (currentRunner.value && currentRunner.value.start_time && !currentRunner.value.finish_time) {

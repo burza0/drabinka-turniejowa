@@ -352,7 +352,7 @@
           <!-- Card Layout for Mobile -->
           <div class="md:hidden p-4 space-y-4">
             <ZawodnikCard 
-              v-for="zawodnik in filteredZawodnicyNew" 
+              v-for="zawodnik in paginatedZawodnicy" 
               :key="zawodnik.nr_startowy"
               :zawodnik="zawodnik"
               :isAdmin="isAdmin"
@@ -397,7 +397,7 @@
                 </tr>
               </thead>
               <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                <tr v-for="zawodnik in filteredZawodnicyNew" :key="zawodnik.nr_startowy">
+                <tr v-for="zawodnik in paginatedZawodnicy" :key="zawodnik.nr_startowy">
                   <td class="px-6 py-4 whitespace-nowrap">
                     <input 
                       type="checkbox" 
@@ -585,7 +585,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import axios from 'axios'
 import { 
   MagnifyingGlassIcon, 
@@ -673,10 +673,10 @@ const zawodnicyFilters = ref({
 })
 const selectedZawodnicy = ref<number[]>([])
 
-// Paginacja
+// Client-side paginacja
 const currentPage = ref(1)
 const itemsPerPage = 50
-const totalItems = ref(0)
+const totalItems = computed(() => filteredZawodnicyNew.value.length)
 const totalPages = computed(() => Math.ceil(totalItems.value / itemsPerPage))
 
 // Tabs configuration
@@ -753,6 +753,13 @@ const filteredZawodnicyNew = computed(() => {
   }
   
   return result
+})
+
+// Client-side pagination - zwraca tylko aktualną stronę przefiltrowanych wyników
+const paginatedZawodnicy = computed(() => {
+  const startIndex = (currentPage.value - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  return filteredZawodnicyNew.value.slice(startIndex, endIndex)
 })
 
 const stats = computed((): Stats => {
@@ -858,20 +865,21 @@ const formatTime = (seconds: number): string => {
   return `${mins}:${secs.padStart(5, '0')}`
 }
 
-const fetchZawodnicy = async (page = 1) => {
+const fetchZawodnicy = async () => {
   try {
     loading.value = true
-    const response = await axios.get(`/api/zawodnicy?page=${page}&limit=${itemsPerPage}`)
+    // Pobierz WSZYSTKICH zawodników jednym zapytaniem
+    const response = await axios.get(`/api/zawodnicy?limit=1000`)
     
     // Backend zwraca obiekt z paginacją
     if (response.data.success) {
       zawodnicy.value = response.data.data || []
-      totalItems.value = response.data.meta?.total || 0
-      currentPage.value = response.data.meta?.page || 1
     } else {
       // Fallback dla starszego formatu
       zawodnicy.value = response.data.data || response.data || []
     }
+    
+    console.log(`✅ Pobrano ${zawodnicy.value.length} zawodników dla client-side pagination`)
   } catch (error) {
     console.error('Błąd podczas pobierania zawodników:', error)
     error.value = 'Nie udało się pobrać danych zawodników'
@@ -1047,32 +1055,37 @@ const handleDashboardNavigation = (section: string) => {
   activeTab.value = section
 }
 
-// Funkcje paginacji
+// Client-side funkcje paginacji
 const goToPage = (page: number) => {
   if (page >= 1 && page <= totalPages.value) {
-    fetchZawodnicy(page)
+    currentPage.value = page
   }
 }
 
 const nextPage = () => {
   if (currentPage.value < totalPages.value) {
-    goToPage(currentPage.value + 1)
+    currentPage.value += 1
   }
 }
 
 const prevPage = () => {
   if (currentPage.value > 1) {
-    goToPage(currentPage.value - 1)
+    currentPage.value -= 1
   }
 }
 
 const firstPage = () => {
-  goToPage(1)
+  currentPage.value = 1
 }
 
 const lastPage = () => {
-  goToPage(totalPages.value)
+  currentPage.value = totalPages.value
 }
+
+// Reset strony na 1 gdy zmieniają się filtry
+watch([zawodnicyFilters, searchTerm], () => {
+  currentPage.value = 1
+}, { deep: true })
 
 // Lifecycle
 onMounted(() => {

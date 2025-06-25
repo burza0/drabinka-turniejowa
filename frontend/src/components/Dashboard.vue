@@ -12,7 +12,7 @@
             </div>
             <div>
               <h1 class="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">
-                🎯 SKATECROSS QR Dashboard
+                SKATECROSS QR Dashboard
               </h1>
               <p class="text-gray-600 dark:text-gray-400 text-sm lg:text-base">
                 Zarządzanie systemem QR turnieju SKATECROSS
@@ -77,7 +77,7 @@
           :progress="(stats.checkedIn / stats.totalZawodnicy) * 100"
           :trend="stats.checkedIn > 0 ? 'up' : 'neutral'"
           actionLabel="Centrum startu"
-          @action="navigateTo('start-line')"
+          @action="navigateTo('unified-start')"
         />
         
         <EnhancedStatsCard 
@@ -103,7 +103,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
             </div>
-            <h2 class="text-3xl lg:text-4xl font-bold text-white mb-2">📊 Visualization</h2>
+            <h2 class="text-3xl lg:text-4xl font-bold text-white mb-2">Visualization</h2>
             <p class="text-indigo-100 text-lg">Dane turnieju prezentowane w przejrzysty sposób</p>
             <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
               <div class="bg-white bg-opacity-20 rounded-lg p-3">
@@ -161,7 +161,7 @@
         </div>
 
         <!-- Start Line Management -->
-        <div @click="navigateTo('start-line')" class="group cursor-pointer transform hover:scale-105 transition-all duration-300">
+        <div @click="navigateTo('unified-start')" class="group cursor-pointer transform hover:scale-105 transition-all duration-300">
           <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-green-500 to-emerald-600 shadow-xl hover:shadow-2xl">
             <div class="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
             <div class="relative px-8 py-12 text-center">
@@ -191,7 +191,7 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
               </div>
-              <h2 class="text-3xl lg:text-4xl font-bold text-white mb-3">📊 Key Analytics</h2>
+              <h2 class="text-3xl lg:text-4xl font-bold text-white mb-3">Key Analytics</h2>
               <p class="text-orange-100 text-lg mb-6">Rankingi i statystyki turnieju</p>
               <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                 <div class="bg-white bg-opacity-20 rounded-lg p-3">

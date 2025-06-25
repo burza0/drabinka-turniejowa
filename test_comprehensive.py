@@ -31,7 +31,7 @@ class TestResults:
             self.passed += 1
         else:
             self.failed += 1
-    
+    emt a 
     def print_summary(self):
         print("\n" + "="*60)
         print("📊 PODSUMOWANIE TESTÓW")

@@ -395,13 +395,15 @@ class UnifiedStartManager:
             groups = self.get_groups_with_status()
             queue = self.get_unified_queue()
             active_session = self._get_current_active_session()
+            active_sessions = self._get_all_active_sessions()  # NEW: wszystkie aktywne sesje
             stats = self._get_unified_stats()
             
             return {
                 'success': True,
                 'groups': groups,
                 'queue': queue,
-                'activeSession': active_session,
+                'activeSession': active_session,  # backward compatibility
+                'activeSessions': active_sessions,  # NEW: lista wszystkich aktywnych
                 'stats': stats,
                 'timestamp': datetime.now().isoformat()
             }
@@ -479,6 +481,15 @@ class UnifiedStartManager:
             FROM sectro_sessions 
             WHERE status IN ('active', 'timing')
             ORDER BY created_at DESC LIMIT 1
+        """)
+    
+    def _get_all_active_sessions(self):
+        """Pobierz wszystkie aktywne sesje SECTRO"""
+        return get_all("""
+            SELECT id, nazwa, kategoria, plec, status, config, created_at, start_time
+            FROM sectro_sessions 
+            WHERE status IN ('active', 'timing')
+            ORDER BY created_at DESC
         """)
     
     def _get_unified_stats(self):

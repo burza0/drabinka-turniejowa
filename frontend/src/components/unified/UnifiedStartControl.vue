@@ -11,7 +11,7 @@
             </svg>
           </div>
           <div>
-            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">🚀 Unified Start Control</h1>
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Unified Start Control</h1>
             <p class="text-gray-600 dark:text-gray-400">Centrum Startu + SECTRO Live Timing</p>
           </div>
         </div>
@@ -109,15 +109,8 @@
     <!-- Dynamic content based on workflow phase -->
     <div class="space-y-8">
       
-      <!-- PHASE 1: QR Scanner - Always visible -->
-      <QRScannerCard 
-        @athlete-registered="onAthleteRegistered"
-        @refresh-requested="refreshData"
-      />
-      
-      <!-- PHASE 2: Start Groups - Show when athletes registered -->
+      <!-- PHASE 2: Start Groups - Always show groups section -->
       <StartGroupsCard 
-        v-if="hasRegisteredAthletes"
         :groups="groups"
         :loading="loading"
         @group-activated="onGroupActivated"
@@ -125,12 +118,12 @@
         @refresh-requested="refreshData"
       />
       
-      <!-- PHASE 3: Live Timing - Show when group active -->
-      <LiveTimingCard
-        v-if="activeSession"
-        :session="activeSession"
-        :queue="queue"
-        :loading="loading"
+              <!-- PHASE 3: Live Timing - Show when groups active -->
+        <LiveTimingCard
+          v-if="activeSessions && activeSessions.length > 0"
+          :sessions="activeSessions"
+          :queue="queue"
+          :loading="loading"
         @timing-started="onTimingStarted"
         @measurement-recorded="onMeasurementRecorded"
         @refresh-requested="refreshData"
@@ -140,6 +133,7 @@
       <ResultsCard
         v-if="activeSession && hasResults"
         :session-id="activeSession.id"
+        :results="queue"
         :loading="loading"
         @refresh-requested="refreshData"
       />
@@ -168,7 +162,6 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import QRScannerCard from './QRScannerCard.vue'
 import StartGroupsCard from './StartGroupsCard.vue'
 import LiveTimingCard from './LiveTimingCard.vue'
 import ResultsCard from './ResultsCard.vue'
@@ -178,11 +171,12 @@ const loading = ref(false)
 const groups = ref([])
 const queue = ref([])
 const activeSession = ref(null)
+const activeSessions = ref([])  // NEW: wszystkie aktywne sesje
 const stats = ref({})
 const refreshInterval = ref(null)
 
 // ===== WORKFLOW CONSTANTS =====
-const workflowSteps = ['Rejestracja', 'Grupy', 'Timing', 'Wyniki']
+const workflowSteps = ['Grupy', 'Timing', 'Wyniki']
 
 // ===== COMPUTED PROPERTIES =====
 const hasRegisteredAthletes = computed(() => 
@@ -198,10 +192,10 @@ const hasResults = computed(() =>
 )
 
 const currentPhase = computed(() => {
-  if (activeSession.value && hasResults.value) return '4. Wyniki'
-  if (activeSession.value) return '3. Live Timing'
-  if (hasRegisteredAthletes.value) return '2. Grupy Startowe'
-  return '1. Rejestracja Zawodników'
+  if (activeSession.value && hasResults.value) return '3. Wyniki'
+  if (activeSession.value) return '2. Live Timing'
+  if (hasRegisteredAthletes.value) return '1. Grupy Startowe'
+  return '1. Grupy Startowe'
 })
 
 // ===== WORKFLOW STYLING METHODS =====
@@ -234,10 +228,10 @@ const getStepTextClass = (index) => {
 }
 
 const getCurrentStepIndex = () => {
-  if (activeSession.value && hasResults.value) return 3  // Wyniki
-  if (activeSession.value) return 2                      // Timing
-  if (hasRegisteredAthletes.value) return 1              // Grupy
-  return 0                                               // Rejestracja
+  if (activeSession.value && hasResults.value) return 2  // Wyniki
+  if (activeSession.value) return 1                      // Timing
+  if (hasRegisteredAthletes.value) return 0              // Grupy
+  return 0                                               // Grupy
 }
 
 // ===== API METHODS =====
@@ -251,6 +245,7 @@ const refreshData = async () => {
       groups.value = data.groups || []
       queue.value = data.queue || []
       activeSession.value = data.activeSession
+      activeSessions.value = data.activeSessions || []  // NEW: wszystkie aktywne sesje
       stats.value = data.stats || {}
       
       console.log('✅ Unified dashboard data refreshed:', {
@@ -270,21 +265,6 @@ const refreshData = async () => {
 }
 
 // ===== EVENT HANDLERS =====
-const onAthleteRegistered = async (data) => {
-  console.log('🏃 Athlete registered:', data)
-  await refreshData()
-  
-  // Auto-scroll to groups if first registration
-  if (groups.value.length === 1) {
-    setTimeout(() => {
-      const groupsCard = document.querySelector('.start-groups-card')
-      if (groupsCard) {
-        groupsCard.scrollIntoView({ behavior: 'smooth' })
-      }
-    }, 500)
-  }
-}
-
 const onGroupActivated = async (data) => {
   console.log('🏁 Group activated:', data)
   await refreshData()
