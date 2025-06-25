@@ -152,6 +152,38 @@
           />
         </div>
 
+        <!-- QR Statistics -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <StatsCard 
+            title="Z kodami QR" 
+            :value="qrStats.withQr.toString()"
+            icon="📱"
+            color="green"
+            subtitle="Mają QR kody"
+          />
+          <StatsCard 
+            title="Bez kodów QR" 
+            :value="qrStats.withoutQr.toString()"
+            icon="❌"
+            color="red"
+            subtitle="Wymagają generowania"
+          />
+          <StatsCard 
+            title="Zaznaczonych" 
+            :value="selectedZawodnicy.length.toString()"
+            icon="☑️"
+            color="indigo"
+            subtitle="Do operacji grupowych"
+          />
+          <StatsCard 
+            title="Gotowych do druku" 
+            :value="selectedWithQr.length.toString()"
+            icon="🖨️"
+            color="purple"
+            subtitle="Zaznaczonych z QR"
+          />
+        </div>
+
         <!-- Table -->
         <div class="bg-white dark:bg-gray-800 shadow rounded-lg transition-colors duration-200">
           <!-- Filtry i sortowanie -->
@@ -248,7 +280,7 @@
               </div>
             </div>
 
-            <!-- Operacje grupowe -->
+            <!-- Operacje grupowe - rozszerzone o funkcje QR -->
             <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
               <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">
                 <span class="flex items-center space-x-2">
@@ -256,7 +288,9 @@
                   <span>Operacje grupowe</span>
                 </span>
               </label>
-              <div class="flex flex-wrap gap-3">
+              
+              <!-- Pierwsze rzędne - operacje zaznaczania -->
+              <div class="flex flex-wrap gap-3 mb-4">
                 <button 
                   @click="toggleAllZawodnicy"
                   :class="[
@@ -345,6 +379,59 @@
                   <span>🗑️</span>
                   <span>Wyczyść zaznaczenia ({{ selectedZawodnicy.length }})</span>
                 </button>
+              </div>
+
+              <!-- Drugi rząd - akcje QR -->
+              <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
+                <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">
+                  <span class="flex items-center space-x-2">
+                    <span>📱</span>
+                    <span>Akcje QR</span>
+                  </span>
+                </label>
+                <div class="flex flex-wrap gap-3">
+                  <button 
+                    @click="generateSelectedQr"
+                    :disabled="selectedWithoutQr.length === 0 || isGeneratingQr"
+                    :class="[
+                      'px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 flex items-center space-x-2 border-2',
+                      selectedWithoutQr.length === 0 || isGeneratingQr
+                        ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed border-transparent'
+                        : 'bg-indigo-600 text-white hover:bg-indigo-700 border-transparent'
+                    ]"
+                  >
+                    <QrCodeIcon class="h-4 w-4" />
+                    <span>{{ isGeneratingQr ? 'Generowanie...' : `Generuj QR (${selectedWithoutQr.length})` }}</span>
+                  </button>
+                  
+                  <button 
+                    @click="printSelectedQr"
+                    :disabled="selectedWithQr.length === 0 || isGeneratingQr"
+                    :class="[
+                      'px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 flex items-center space-x-2 border-2',
+                      selectedWithQr.length === 0 || isGeneratingQr
+                        ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed border-transparent'
+                        : 'bg-green-600 text-white hover:bg-green-700 border-transparent'
+                    ]"
+                  >
+                    <PrinterIcon class="h-4 w-4" />
+                    <span>{{ isGeneratingQr ? 'Przygotowywanie...' : `Drukuj QR (${selectedWithQr.length})` }}</span>
+                  </button>
+
+                  <button 
+                    @click="previewSelectedQr"
+                    :disabled="selectedWithQr.length === 0"
+                    :class="[
+                      'px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 flex items-center space-x-2 border-2',
+                      selectedWithQr.length === 0
+                        ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed border-transparent'
+                        : 'bg-blue-600 text-white hover:bg-blue-700 border-transparent'
+                    ]"
+                  >
+                    <span>👁️</span>
+                    <span>Podgląd QR ({{ selectedWithQr.length }})</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -556,19 +643,9 @@
         <Rankingi />
       </div>
 
-      <!-- Unified Start Control -->
-      <div v-if="activeTab === 'unified-start'">
-        <UnifiedStartControl />
-      </div>
-
       <!-- QR Admin Dashboard -->
       <div v-if="activeTab === 'qr-dashboard'">
         <QrAdminDashboard />
-      </div>
-
-      <!-- QR Print -->
-      <div v-if="activeTab === 'qr-print'">
-        <QrPrint />
       </div>
 
     </main>
@@ -581,6 +658,47 @@
       @updated="handleZawodnikUpdated"
       @deleted="handleZawodnikDeleted"
     />
+
+    <!-- QR Print Modal -->
+    <div v-if="showQrPrintModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-4xl w-full m-4 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Podgląd QR kodów do druku</h3>
+          <button @click="closeQrPrintModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+            <XMarkIcon class="h-6 w-6" />
+          </button>
+        </div>
+        
+        <div class="mb-4 flex space-x-4">
+          <button @click="doPrintQr" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center space-x-2">
+            <PrinterIcon class="h-5 w-5" />
+            <span>Drukuj teraz</span>
+          </button>
+          <button @click="closeQrPrintModal" class="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500">
+            Anuluj
+          </button>
+        </div>
+        
+        <!-- Podgląd naklejek -->
+        <div id="qrPrintArea" class="print-content">
+          <div class="sticker-grid">
+            <div v-for="zawodnik in qrPrintData" :key="zawodnik.nr_startowy" class="sticker">
+              <div class="sticker-header">
+                <div class="nr-startowy">{{ zawodnik.nr_startowy }}</div>
+                <div class="zawodnik-name">{{ zawodnik.imie }} {{ zawodnik.nazwisko }}</div>
+              </div>
+              <div class="qr-container">
+                <img :src="zawodnik.qr_image" :alt="`QR ${zawodnik.nr_startowy}`" class="qr-code">
+              </div>
+              <div class="sticker-footer">
+                <div class="kategoria">{{ zawodnik.kategoria }}</div>
+                <div class="klub">{{ zawodnik.klub || '' }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -610,7 +728,8 @@ import {
   WrenchScrewdriverIcon,
   DocumentTextIcon,
   UserGroupIcon,
-  PrinterIcon
+  PrinterIcon,
+  XMarkIcon
 } from '@heroicons/vue/24/outline'
 import StatsCard from './components/StatsCard.vue'
 import StatusBadge from './components/StatusBadge.vue'
@@ -620,10 +739,7 @@ import EditZawodnikModal from './components/EditZawodnikModal.vue'
 import Rankingi from './components/Rankingi.vue'
 
 import QrAdminDashboard from './components/QrAdminDashboard.vue'
-import QrPrint from './components/QrPrint.vue'
-import QrPrintAdvanced from './components/QrPrintAdvanced.vue'
 import Dashboard from './components/Dashboard.vue'
-import UnifiedStartControl from './components/unified/UnifiedStartControl.vue'
 
 
 // Types
@@ -639,6 +755,15 @@ interface Zawodnik {
   status?: string
   checked_in?: boolean
   id?: number
+}
+
+interface QrPrintItem {
+  nr_startowy: number
+  imie: string
+  nazwisko: string
+  kategoria: string
+  klub: string
+  qr_image: string
 }
 
 interface Stats {
@@ -658,7 +783,7 @@ const loading = ref(true)
 const error = ref<string | null>(null)
 const showEditModal = ref(false)
 const selectedZawodnik = ref<Zawodnik | null>(null)
-const activeTab = ref('unified-start')
+const activeTab = ref('dashboard')
 const filters = ref({
   kluby: [],
   kategorie: [],
@@ -673,6 +798,11 @@ const zawodnicyFilters = ref({
 })
 const selectedZawodnicy = ref<number[]>([])
 
+// QR functionality
+const showQrPrintModal = ref(false)
+const qrPrintData = ref<QrPrintItem[]>([])
+const isGeneratingQr = ref(false)
+
 // Client-side paginacja
 const currentPage = ref(1)
 const itemsPerPage = 50
@@ -682,11 +812,9 @@ const totalPages = computed(() => Math.ceil(totalItems.value / itemsPerPage))
 // Tabs configuration
 const tabs = [
   { id: 'dashboard', name: 'Dashboard', icon: ChartBarIcon, adminOnly: false },
-  { id: 'zawodnicy', name: 'Zawodnicy', icon: UsersIcon, adminOnly: false },
+  { id: 'zawodnicy', name: 'Zawodnicy', icon: UsersIcon, adminOnly: true },
   { id: 'drabinka', name: 'Drabinka', icon: TrophyIcon, adminOnly: false },
   { id: 'rankingi', name: 'Rankingi', icon: ListBulletIcon, adminOnly: false },
-  { id: 'unified-start', name: 'Start Control', icon: ClockIcon, adminOnly: true },
-  { id: 'qr-print', name: 'Drukowanie QR', icon: PrinterIcon, adminOnly: true },
   { id: 'qr-dashboard', name: 'QR Dashboard', icon: QrCodeIcon, adminOnly: true },
 ]
 
@@ -819,6 +947,27 @@ const withoutQrSelected = computed(() => {
 })
 
 const countWithoutQr = computed(() => filteredZawodnicyNew.value.filter(z => !z.qr_code).length)
+
+// QR Statistics computed properties
+const qrStats = computed(() => {
+  const withQr = zawodnicy.value.filter(z => z.qr_code).length
+  const withoutQr = zawodnicy.value.length - withQr
+  return { withQr, withoutQr }
+})
+
+const selectedWithQr = computed(() => {
+  return selectedZawodnicy.value.filter(id => {
+    const zawodnik = zawodnicy.value.find(z => z.nr_startowy === id)
+    return zawodnik && zawodnik.qr_code
+  })
+})
+
+const selectedWithoutQr = computed(() => {
+  return selectedZawodnicy.value.filter(id => {
+    const zawodnik = zawodnicy.value.find(z => z.nr_startowy === id)
+    return zawodnik && !zawodnik.qr_code
+  })
+})
 
 const filteredZawodnicy = computed(() => {
   let result = zawodnicy.value
@@ -1082,6 +1231,104 @@ const lastPage = () => {
   currentPage.value = totalPages.value
 }
 
+// QR Methods
+const generateSelectedQr = async () => {
+  if (selectedWithoutQr.value.length === 0) return
+  
+  isGeneratingQr.value = true
+  try {
+    const response = await fetch('/api/qr/bulk-generate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        numery_startowe: selectedWithoutQr.value
+      })
+    })
+    
+    if (response.ok) {
+      const data = await response.json()
+      console.log(`✅ Wygenerowano ${data.data.codes.length} kodów QR`)
+      
+      // Odśwież dane zawodników aby pobrać nowe QR kody
+      await fetchZawodnicy()
+    } else {
+      console.error('Błąd podczas generowania QR kodów')
+    }
+  } catch (error) {
+    console.error('Błąd:', error)
+  } finally {
+    isGeneratingQr.value = false
+  }
+}
+
+const generateQrImage = async (qrCode: string): Promise<string> => {
+  const qr = await import('qrcode')
+  return await qr.toDataURL(qrCode, {
+    width: 200,
+    margin: 2,
+    color: {
+      dark: '#000000',
+      light: '#FFFFFF'
+    }
+  })
+}
+
+const printSelectedQr = async () => {
+  if (selectedWithQr.value.length === 0) return
+  
+  isGeneratingQr.value = true
+  try {
+    // Znajdź zawodników z QR kodami
+    const zawodnicyWithQr = selectedWithQr.value.map(id => {
+      return zawodnicy.value.find(z => z.nr_startowy === id)
+    }).filter(Boolean) as Zawodnik[]
+    
+    // Wygeneruj obrazy QR kodów
+    const qrPromises = zawodnicyWithQr.map(async (zawodnik) => {
+      if (!zawodnik.qr_code) return null
+      
+      const qrDataUrl = await generateQrImage(zawodnik.qr_code)
+      
+      return {
+        nr_startowy: zawodnik.nr_startowy,
+        imie: zawodnik.imie,
+        nazwisko: zawodnik.nazwisko,
+        kategoria: zawodnik.kategoria,
+        klub: zawodnik.klub || '',
+        qr_image: qrDataUrl
+      }
+    })
+    
+    const qrResults = await Promise.all(qrPromises)
+    const validQrCodes = qrResults.filter(Boolean) as QrPrintItem[]
+    
+    // Ustaw dane do druku i otwórz modal
+    qrPrintData.value = validQrCodes
+    showQrPrintModal.value = true
+    
+  } catch (error) {
+    console.error('Błąd podczas przygotowywania QR kodów do druku:', error)
+  } finally {
+    isGeneratingQr.value = false
+  }
+}
+
+const previewSelectedQr = async () => {
+  await printSelectedQr() // Używa tej samej logiki co drukowanie
+}
+
+const closeQrPrintModal = () => {
+  showQrPrintModal.value = false
+  qrPrintData.value = []
+}
+
+const doPrintQr = () => {
+  window.print()
+  closeQrPrintModal()
+}
+
 // Reset strony na 1 gdy zmieniają się filtry
 watch([zawodnicyFilters, searchTerm], () => {
   currentPage.value = 1
@@ -1099,7 +1346,112 @@ onMounted(() => {
 })
 </script>
 
-<style>
-/* Custom styles if needed */
+<style scoped>
+/* QR Print Styles */
+.sticker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+  padding: 20px;
+}
+
+.sticker {
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 10px;
+  text-align: center;
+  background: white;
+  page-break-inside: avoid;
+}
+
+.sticker-header {
+  margin-bottom: 8px;
+}
+
+.nr-startowy {
+  font-size: 18px;
+  font-weight: bold;
+  color: #1f2937;
+}
+
+.zawodnik-name {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+.qr-container {
+  margin: 8px 0;
+}
+
+.qr-code {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto;
+}
+
+.sticker-footer {
+  margin-top: 8px;
+  font-size: 10px;
+  color: #9ca3af;
+}
+
+.kategoria {
+  font-weight: 500;
+}
+
+.klub {
+  margin-top: 2px;
+}
+
+/* Style do drukowania */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  
+  .print-content,
+  .print-content * {
+    visibility: visible;
+  }
+  
+  .print-content {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+  
+  .sticker-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 5px;
+    padding: 10px;
+  }
+  
+  .sticker {
+    border: 1px solid #000;
+    margin: 0;
+    padding: 5px;
+    font-size: 10px;
+  }
+  
+  .nr-startowy {
+    font-size: 14px;
+  }
+  
+  .zawodnik-name {
+    font-size: 8px;
+  }
+  
+  .qr-code {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .kategoria,
+  .klub {
+    font-size: 8px;
+  }
+}
 </style>
 
