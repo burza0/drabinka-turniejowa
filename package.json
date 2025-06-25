@@ -1,7 +1,7 @@
 {
   "name": "skatecross-production",
-  "version": "36.1.0",
-  "description": "SKATECROSS Unified Start Control System v36.1",
+  "version": "37.0.0",
+  "description": "SKATECROSS Unified Start Control System v37.0 with Integrated QR Management",
   "repository": {
     "type": "git",
     "url": "https://github.com/burza0/drabinka-turniejowa.git"

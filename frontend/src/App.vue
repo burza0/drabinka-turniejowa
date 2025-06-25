@@ -643,6 +643,11 @@
         <Rankingi />
       </div>
 
+      <!-- Unified Start Control -->
+      <div v-if="activeTab === 'unified-start'">
+        <UnifiedStartControl />
+      </div>
+
       <!-- QR Admin Dashboard -->
       <div v-if="activeTab === 'qr-dashboard'">
         <QrAdminDashboard />
@@ -740,6 +745,7 @@ import Rankingi from './components/Rankingi.vue'
 
 import QrAdminDashboard from './components/QrAdminDashboard.vue'
 import Dashboard from './components/Dashboard.vue'
+import UnifiedStartControl from './components/unified/UnifiedStartControl.vue'
 
 
 // Types
@@ -815,6 +821,7 @@ const tabs = [
   { id: 'zawodnicy', name: 'Zawodnicy', icon: UsersIcon, adminOnly: true },
   { id: 'drabinka', name: 'Drabinka', icon: TrophyIcon, adminOnly: false },
   { id: 'rankingi', name: 'Rankingi', icon: ListBulletIcon, adminOnly: false },
+  { id: 'unified-start', name: 'Start Control', icon: ClockIcon, adminOnly: true },
   { id: 'qr-dashboard', name: 'QR Dashboard', icon: QrCodeIcon, adminOnly: true },
 ]
 
