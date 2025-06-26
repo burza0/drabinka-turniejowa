@@ -1633,8 +1633,8 @@ watch([selectedKategoriaTime, selectedPlecTime, selectedKlubTime, sortByTime], (
 })
 
 // Watch search query - tylko gdy jesteśmy na times tab
-watch(searchQueryTime, (newQuery) => {
-  console.log('🔍 Search query changed:', newQuery, 'Active tab:', activeTab.value)
+watch(searchQueryTime, (newQuery, oldQuery) => {
+  console.log('🔍 Search query changed:', oldQuery, '->', newQuery, 'Active tab:', activeTab.value)
   if (activeTab.value === 'times') {
     debouncedSearchTime(newQuery)
   } else {
@@ -1841,9 +1841,11 @@ const debouncedSearchTime = (query) => {
     return
   }
   
-  // ZABEZPIECZENIE: Jeśli query jest puste (czyszczenie), anuluj search
+  // KLUCZOWE: Obsługuj także puste query (czyszczenie pola) - załaduj pełną listę
   if (!query || query.trim() === '') {
-    console.log('🚫 Search debounce canceled - empty query')
+    console.log('🔍 Search cleared - fetching full list immediately')
+    currentPageTime.value = 1  // Reset to first page
+    fetchTimeRanking()  // Natychmiast załaduj pełną listę
     return
   }
   
