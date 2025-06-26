@@ -1458,17 +1458,21 @@ const refreshRankings = async () => {
   console.log('🔄 ROZPOCZYNAM refresh rankings...')
   
   try {
-    // Fetch all ranking data from API
-    await Promise.all([
-      fetchTimeRanking(),
-      fetchIndividualRanking(), 
-      fetchGeneralRanking(),
-      fetchClubRankings(),
-      fetchMedalRanking()
-    ])
+    // Fetch różne dane w zależności od aktywnego tabu
+    if (activeTab.value === 'times') {
+      await fetchTimeRanking()
+    } else {
+      // Fetch tylko te rankingi które nie używają backend search (nie ma konfliktu)
+      await Promise.all([
+        fetchIndividualRanking(), 
+        fetchGeneralRanking(),
+        fetchClubRankings(),
+        fetchMedalRanking()
+      ])
+    }
     // Aktualizuj timestamp cache po udanym pobraniu
     lastFetchTime.value = Date.now()
-    console.log('✅ ZAKOŃCZONO refresh rankings - wszystkie dane pobrane')
+    console.log('✅ ZAKOŃCZONO refresh rankings - dane pobrane dla aktywnego tabu')
   } catch (error) {
     console.error('❌ Error fetching rankings:', error)
     // Nie czyścimy danych przy błędzie - zachowujemy cache
@@ -1482,18 +1486,36 @@ const clearMedalsFilters = () => {
   sortByMedals.value = 'zlote_desc'
 }
 
-// Watch activeTab - nie pobieraj danych za każdym razem
+// Watch activeTab - rozdzielona logika dla każdego tabu
 watch(activeTab, (newTab, oldTab) => {
   console.log('🔀 Tab changed:', oldTab, '->', newTab)
   
+  // Nie mieszaj backend search (times) z frontend search (individual/general)
   if (newTab === 'times') {
-    // Fetch fresh data when switching to times tab
+    // Ranking czasowy - używa backend API z search
     fetchTimeRanking()
-  } else {
+  } else if (newTab === 'individual' || newTab === 'general') {
+    // Rankingi indywidualny/generalny - używają frontend filtering
     const now = Date.now()
     if (now - lastFetchTime.value > CACHE_DURATION) {
-      console.log('📅 Cache wygasł, pobieram świeże dane...')
-      refreshRankings()
+      console.log('📅 Cache wygasł, pobieram dane dla', newTab)
+      // Fetch tylko potrzebne dane, nie wszystkie naraz
+      if (newTab === 'individual') {
+        fetchIndividualRanking()
+      } else if (newTab === 'general') {
+        fetchGeneralRanking()
+      }
+    }
+  } else {
+    // Pozostałe taby (clubs, medals) - fetch jeśli cache wygasł
+    const now = Date.now()
+    if (now - lastFetchTime.value > CACHE_DURATION) {
+      console.log('📅 Cache wygasł, pobieram dane klubowe/medalowe')
+      if (newTab.includes('clubs')) {
+        fetchClubRankings()
+      } else if (newTab === 'medals') {
+        fetchMedalRanking()
+      }
     }
   }
 })
