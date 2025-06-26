@@ -38,7 +38,7 @@ echo "✅ Frontend build complete"
 # 5. DODANIE DIST DO GIT
 cd ..
 echo "📦 Dodaję nowy frontend dist do git..."
-git add frontend/dist/
+git add -f frontend/dist/
 if [ -n "$(git diff --cached)" ]; then
     git commit -m "BUILD: Frontend dist update - $(date '+%Y-%m-%d %H:%M')"
     echo "✅ Frontend dist committed"
