@@ -13,7 +13,7 @@ Obsługuje ramki SECTRO w formacie CZL1123456789:
 """
 
 from flask import Blueprint, request, jsonify
-from database_utils import get_all, get_one, execute_query
+from utils.database import get_all, get_one, execute_query
 from .sectro_parser import SectroParser
 import datetime
 import logging
