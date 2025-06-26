@@ -1488,36 +1488,44 @@ const clearMedalsFilters = () => {
   sortByMedals.value = 'zlote_desc'
 }
 
-// Watch activeTab - rozdzielona logika dla każdego tabu
+// Watch activeTab - zabezpieczona logika z czyszczeniem timeout-ów + cleanup
 watch(activeTab, (newTab, oldTab) => {
   console.log('🔀 Tab changed:', oldTab, '->', newTab)
+  
+  // KRYTYCZNE: Wyczyść wszystkie timeout-y przy zmianie tabu
+  if (searchTimeoutTime) {
+    clearTimeout(searchTimeoutTime)
+    searchTimeoutTime = null
+    console.log('🧹 Cleared search timeout on tab change')
+  }
+  
+  // DODATKOWE CZYSZCZENIE: Gdy opuszczamy times tab
+  if (oldTab === 'times' && newTab !== 'times') {
+    console.log('🧹 Leaving times tab - additional cleanup')
+  }
   
   // Nie mieszaj backend search (times) z frontend search (individual/general)
   if (newTab === 'times') {
     // Ranking czasowy - używa backend API z search
+    console.log('🔄 Switching to times tab - fetching time ranking')
     fetchTimeRanking()
-  } else if (newTab === 'individual' || newTab === 'general') {
-    // Rankingi indywidualny/generalny - używają frontend filtering
+  } else {
+    // Pozostałe taby - sprawdź cache ale NIE ładuj ranking czasowy
     const now = Date.now()
     if (now - lastFetchTime.value > CACHE_DURATION) {
       console.log('📅 Cache wygasł, pobieram dane dla', newTab)
-      // Fetch tylko potrzebne dane, nie wszystkie naraz
+      
       if (newTab === 'individual') {
         fetchIndividualRanking()
       } else if (newTab === 'general') {
         fetchGeneralRanking()
-      }
-    }
-  } else {
-    // Pozostałe taby (clubs, medals) - fetch jeśli cache wygasł
-    const now = Date.now()
-    if (now - lastFetchTime.value > CACHE_DURATION) {
-      console.log('📅 Cache wygasł, pobieram dane klubowe/medalowe')
-      if (newTab.includes('clubs')) {
+      } else if (newTab.includes('clubs')) {
         fetchClubRankings()
       } else if (newTab === 'medals') {
         fetchMedalRanking()
       }
+    } else {
+      console.log('📊 Using cached data for', newTab)
     }
   }
 })
@@ -1535,6 +1543,12 @@ onMounted(() => {
 
 // ===== TIME RANKING API FUNCTIONS =====
 const fetchTimeRanking = async () => {
+  // ZABEZPIECZENIE: Nie wykonuj fetch jeśli nie jesteśmy na tabie times
+  if (activeTab.value !== 'times') {
+    console.log('🚫 fetchTimeRanking canceled - not on times tab (current:', activeTab.value, ')')
+    return
+  }
+  
   console.log('🕐 Pobieranie rankingu czasowego...')
   try {
     const params = new URLSearchParams({
@@ -1550,8 +1564,15 @@ const fetchTimeRanking = async () => {
     if (selectedKlubTime.value) params.append('klub', selectedKlubTime.value)
     if (searchQueryTime.value.trim()) params.append('search', searchQueryTime.value.trim())
     
+    console.log('📡 Fetching time ranking with params:', params.toString())
     const response = await fetch(`/api/rankings/times?${params}&_t=${Date.now()}`)
     console.log('📡 Time ranking response status:', response.status)
+    
+    // SPRAWDŹ PONOWNIE czy nadal jesteśmy na times tab (asynchroniczne operacje)
+    if (activeTab.value !== 'times') {
+      console.log('🚫 fetchTimeRanking result discarded - tab changed during fetch')
+      return
+    }
     
     if (response.ok) {
       const result = await response.json()
@@ -1610,11 +1631,17 @@ watch([selectedKategoriaTime, selectedPlecTime, selectedKlubTime, sortByTime], (
   fetchTimeRanking()
 })
 
-// Watch search query
+// Watch search query - tylko gdy jesteśmy na times tab
 watch(searchQueryTime, (newQuery) => {
-  console.log('🔍 Search query changed:', newQuery)
-  debouncedSearchTime(newQuery)
+  console.log('🔍 Search query changed:', newQuery, 'Active tab:', activeTab.value)
+  if (activeTab.value === 'times') {
+    debouncedSearchTime(newQuery)
+  } else {
+    console.log('🚫 Search ignored - not on times tab')
+  }
 })
+
+
 
 // Clear time ranking filters
 const clearTimeFilters = () => {
@@ -1802,13 +1829,27 @@ const fetchMedalRanking = async () => {
   }
 }
 
-// Debounced search function
+// Debounced search function z zabezpieczeniem aktywnego tabu
 let searchTimeoutTime = null
 const debouncedSearchTime = (query) => {
   if (searchTimeoutTime) clearTimeout(searchTimeoutTime)
+  
+  // ZABEZPIECZENIE: Nie ustawiaj timeout jeśli nie jesteśmy na times tab
+  if (activeTab.value !== 'times') {
+    console.log('🚫 Search debounce canceled - not on times tab')
+    return
+  }
+  
   searchTimeoutTime = setTimeout(() => {
-    currentPageTime.value = 1  // Reset to first page on search
-    fetchTimeRanking()
+    // SPRAWDŹ PONOWNIE przed wykonaniem fetch
+    if (activeTab.value === 'times') {
+      console.log('🔍 Debounced search executing for query:', query)
+      currentPageTime.value = 1  // Reset to first page on search
+      fetchTimeRanking()
+    } else {
+      console.log('🚫 Debounced search canceled - tab changed during timeout')
+    }
+    searchTimeoutTime = null
   }, 500)  // 500ms delay
 }
 
