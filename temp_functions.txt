@@ -1,2 +1,0 @@
-const showSuccess = (message: string) => { console.log(`✅ ${message}`); alert(`✅ SUKCES: ${message}`) }
-const showError = (message: string) => { console.error(`❌ ${message}`); alert(`❌ BŁĄD: ${message}`) }

@@ -1,8 +1,15 @@
-# 🏁 SKATECROSS v36.0 - Unified Tournament Management System
+# 🏁 SKATECROSS v37.0 - Unified Tournament Management System
 
-**Profesjonalny system zarządzania turniejami skatecross z integracją QR, pomiarami czasu SECTRO i zaawansowanym centrum startu.**
+**Profesjonalny system zarządzania turniejami skatecross z integracją QR, pomiarami czasu SECTRO, zaawansowanym centrum startu i rankingiem czasowym.**
 
 ## 🚀 Najważniejsze funkcje
+
+### 📊 **Ranking Czasowy** (NOWA FUNKCJA v37.0!)
+- **Pierwszy tab w Rankingach** - ranking biegów czasowych jako główny
+- **4 typy rankingów** - najlepszy czas, ostatni czas, średni czas, wszystkie czasy
+- **Filtry zaawansowane** - kategoria, płeć, klub, typ wyniku, status
+- **Paginacja i search** - 25/50/100 per page, wyszukiwanie po imieniu/nazwisku
+- **Format MM:SS.mmm** - precyzyjne wyświetlanie czasów z medalami 🥇🥈🥉
 
 ### 📊 **Unified Start Control** (FAZA 3 - UKOŃCZONA)
 - **Centrum Startu + SECTRO** - zintegrowany system meldowania i pomiarów
@@ -238,9 +245,16 @@ GET    /api/qr/dashboard             # Dashboard QR (DEPRECATED)
 
 ## 🚧 **Historia Rozwoju**
 
-### **v36.0 (Aktualna) - Unified Start Control**
+### **v37.0 (Aktualna) - Ranking Czasowy + Production Ready**
+- ✅ **RANKING CZASOWY** - pierwsza pozycja w Rankingach z pełną funkcjonalnością
+- ✅ Backend API `/api/rankings/times` z paginacją i search
+- ✅ Deployment na Heroku sk8lc - https://sk8lc-07194bee9be5.herokuapp.com/
+- ✅ Pełna synchronizacja local/production
+- ✅ Wielkie porządkowanie kodu - usunięto 80+ plików śmieci
+
+### **v36.0 - Unified Start Control**
 - ✅ Integracja Centrum Startu + SECTRO
-- ✅ Zarządzanie grupami startowymi
+- ✅ Zarządzanie grupami startowymi  
 - ✅ Naprawa wszystkich starych API endpoints
 - ✅ Unified system meldowania
 - ✅ Kompletna migracja z v2 na unified
@@ -264,12 +278,6 @@ GET    /api/qr/dashboard             # Dashboard QR (DEPRECATED)
 - ✅ Vue.js frontend
 
 ## 🔮 **Roadmap**
-
-### **v37.0 - Enhanced Analytics**
-- 📊 Zaawansowane raporty i wykresy
-- 📈 Performance analytics
-- 🎯 Predictive insights
-- 📱 Mobile app companion
 
 ### **v38.0 - Multi-Tournament**
 - 🏟️ Obsługa wielu turniejów jednocześnie
@@ -299,7 +307,7 @@ GET    /api/qr/dashboard             # Dashboard QR (DEPRECATED)
 
 ---
 
-**© 2025 SKATECROSS Tournament Management System v36.0**  
-*Professional software for skatecross tournament management with QR integration, SECTRO time measurements, and unified start control.*
+**© 2025 SKATECROSS Tournament Management System v37.0**  
+*Professional software for skatecross tournament management with QR integration, SECTRO time measurements, unified start control, and advanced time rankings.*
 
 **🔥 System gotowy do profesjonalnego użytku na turniejach skatecross! 🏁** 

@@ -1,7 +1,76 @@
+# Environment files
 .env
-node_modules
-__pycache__
-venv/
+.env.local
+.env.*.local
+
+# Dependencies
+node_modules/
 backend/venv/
+venv/
+
+# Build outputs
+dist/
+build/
+*.pyc
+__pycache__/
+
+# Logs
+*.log
 backend/api_server.log
 qr-scanner/server.log
+backend/*.log
+frontend/*.log
+
+# Backup files
+*backup*
+*.bak
+*.backup
+backup_*
+
+# Test and fix files  
+test_*
+fix_*
+*_test.*
+*_fix.*
+
+# Legacy/temp files
+temp_*
+*.tmp
+*_old.*
+*_legacy.*
+legacy_*
+old_*
+
+# System files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Desktop.ini
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Generated files
+*.pid
+.backend_pid
+.frontend_pid
+
+# Documentation (keep only README.md)
+*.md
+!README.md
+
+# PDFs and media (unless specific)
+*.pdf
+!SKATECROSS_Workflow_Zawodow.pdf
