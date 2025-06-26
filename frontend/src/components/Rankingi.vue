@@ -319,7 +319,7 @@
                   class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm pl-10 pr-3 py-2 transition-all duration-200"
                 />
                 <div v-if="searchQuery" class="absolute -bottom-5 left-0 text-xs text-gray-500 dark:text-gray-400">
-                  {{ filteredIndividualRanking.length }} wyników
+                  {{ paginationDataIndividual.total_results }} wyników
                 </div>
               </div>
             </div>
@@ -553,7 +553,7 @@
                   class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:border-purple-500 focus:ring-2 focus:ring-purple-500 text-sm pl-10 pr-3 py-2 transition-all duration-200"
                 />
                 <div v-if="searchQueryGeneral" class="absolute -bottom-5 left-0 text-xs text-gray-500 dark:text-gray-400">
-                  {{ filteredGeneralRanking.length }} wyników
+                  {{ paginationDataGeneral.total_results }} wyników
                 </div>
               </div>
             </div>
@@ -1499,9 +1499,10 @@ watch(activeTab, (newTab, oldTab) => {
     console.log('🧹 Cleared search timeout on tab change')
   }
   
-  // DODATKOWE CZYSZCZENIE: Gdy opuszczamy times tab
+  // KRYTYCZNE: Gdy opuszczamy times tab - wyczyść search query!
   if (oldTab === 'times' && newTab !== 'times') {
-    console.log('🧹 Leaving times tab - additional cleanup')
+    console.log('🧹 Leaving times tab - clearing search query and additional cleanup')
+    searchQueryTime.value = ''  // KLUCZOWE: Wyczyść search query times!
   }
   
   // Nie mieszaj backend search (times) z frontend search (individual/general)
@@ -1837,6 +1838,12 @@ const debouncedSearchTime = (query) => {
   // ZABEZPIECZENIE: Nie ustawiaj timeout jeśli nie jesteśmy na times tab
   if (activeTab.value !== 'times') {
     console.log('🚫 Search debounce canceled - not on times tab')
+    return
+  }
+  
+  // ZABEZPIECZENIE: Jeśli query jest puste (czyszczenie), anuluj search
+  if (!query || query.trim() === '') {
+    console.log('🚫 Search debounce canceled - empty query')
     return
   }
   
