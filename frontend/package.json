@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy": "cd .. && ./deploy-sk8lc.sh",
+    "check": "cd .. && ./check-sk8lc.sh"
   },
   "dependencies": {
     "@heroicons/vue": "^2.2.0",
