@@ -1458,21 +1458,23 @@ const refreshRankings = async () => {
   console.log('🔄 ROZPOCZYNAM refresh rankings...')
   
   try {
-    // Fetch różne dane w zależności od aktywnego tabu
+    // ZAWSZE ładuj wszystkie dane (poza czasowym który ma osobną logikę)
+    // Ranking czasowy ma osobną funkcję fetchTimeRanking() wywoływaną przez watch
+    await Promise.all([
+      fetchIndividualRanking(), 
+      fetchGeneralRanking(),
+      fetchClubRankings(),
+      fetchMedalRanking()
+    ])
+    
+    // Osobno fetch ranking czasowy jeśli jest aktywny
     if (activeTab.value === 'times') {
       await fetchTimeRanking()
-    } else {
-      // Fetch tylko te rankingi które nie używają backend search (nie ma konfliktu)
-      await Promise.all([
-        fetchIndividualRanking(), 
-        fetchGeneralRanking(),
-        fetchClubRankings(),
-        fetchMedalRanking()
-      ])
     }
+    
     // Aktualizuj timestamp cache po udanym pobraniu
     lastFetchTime.value = Date.now()
-    console.log('✅ ZAKOŃCZONO refresh rankings - dane pobrane dla aktywnego tabu')
+    console.log('✅ ZAKOŃCZONO refresh rankings - wszystkie dane pobrane')
   } catch (error) {
     console.error('❌ Error fetching rankings:', error)
     // Nie czyścimy danych przy błędzie - zachowujemy cache
