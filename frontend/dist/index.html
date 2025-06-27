@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pl" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    
+    <!-- PWA Meta Tags -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="SKATECROSS" />
+    <meta name="application-name" content="SKATECROSS PWA" />
+    <meta name="theme-color" content="#3b82f6" />
+    <meta name="msapplication-TileColor" content="#1f2937" />
+    <meta name="msapplication-navbutton-color" content="#3b82f6" />
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16x16.png" />
+    <link rel="apple-touch-icon" href="/icons/icon-180x180.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180x180.png" />
+    <link rel="apple-touch-icon" sizes="167x167" href="/icons/icon-167x167.png" />
+    
+    <!-- MS Tiles -->
+    <meta name="msapplication-TileImage" content="/icons/icon-144x144.png" />
+    <meta name="msapplication-square70x70logo" content="/icons/icon-70x70.png" />
+    <meta name="msapplication-square150x150logo" content="/icons/icon-150x150.png" />
+    <meta name="msapplication-wide310x150logo" content="/icons/icon-310x150.png" />
+    <meta name="msapplication-square310x310logo" content="/icons/icon-310x310.png" />
+    
+    <!-- SEO & Social -->
+    <meta name="description" content="SKATECROSS PWA v37.0 - System turniejowy ze skanerem QR, rankingami czasowymi i kontrolą startu. Dostępny offline." />
+    <meta name="keywords" content="skatecross, turniej, QR skaner, ranking, sport, PWA, offline" />
+    <meta name="author" content="SKATECROSS Team" />
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="SKATECROSS PWA v37.0" />
+    <meta property="og:description" content="System turniejowy ze skanerem QR i rankingami czasowymi" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/icons/icon-512x512.png" />
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="SKATECROSS PWA v37.0" />
+    <meta name="twitter:description" content="System turniejowy ze skanerem QR i rankingami czasowymi" />
+    <meta name="twitter:image" content="/icons/icon-512x512.png" />
+    
+    <title>SKATECROSS Tournament System v37.0 PWA</title>
+    
+    <!-- Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then((registration) => {
+              console.log('🏁 SKATECROSS PWA: Service Worker registered successfully', registration.scope);
+              
+              // Background Sync registration
+              if ('sync' in window.ServiceWorkerRegistration.prototype) {
+                registration.sync.register('offline-queue');
+              }
+            })
+            .catch((error) => {
+              console.log('❌ SKATECROSS PWA: Service Worker registration failed', error);
+            });
+        });
+        
+        // Listen for updates
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          console.log('🔄 SKATECROSS PWA: Service Worker updated - reloading...');
+          window.location.reload();
+        });
+      }
+      
+      // PWA Install Prompt
+      let deferredPrompt;
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        console.log('💫 SKATECROSS PWA: Install prompt ready');
+        
+        // Show custom install UI
+        const installBanner = document.createElement('div');
+        installBanner.innerHTML = `
+          <div style="
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(135deg, #3b82f6, #1f2937);
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            z-index: 9999;
+            font-family: system-ui;
+          ">
+            <div style="margin-bottom: 0.5rem;">🏁 Zainstaluj SKATECROSS PWA</div>
+            <button onclick="installPWA()" style="
+              background: white;
+              color: #3b82f6;
+              border: none;
+              padding: 0.5rem 1rem;
+              border-radius: 4px;
+              margin-right: 0.5rem;
+              cursor: pointer;
+            ">Zainstaluj</button>
+            <button onclick="this.parentElement.remove()" style="
+              background: transparent;
+              color: white;
+              border: 1px solid white;
+              padding: 0.5rem 1rem;
+              border-radius: 4px;
+              cursor: pointer;
+            ">Może później</button>
+          </div>
+        `;
+        document.body.appendChild(installBanner);
+      });
+      
+      window.installPWA = () => {
+        if (deferredPrompt) {
+          deferredPrompt.prompt();
+          deferredPrompt.userChoice.then((choiceResult) => {
+            if (choiceResult.outcome === 'accepted') {
+              console.log('✅ SKATECROSS PWA: User accepted install');
+            }
+            deferredPrompt = null;
+          });
+        }
+      };
+      
+      // PWA Install Success
+      window.addEventListener('appinstalled', (evt) => {
+        console.log('🎉 SKATECROSS PWA: Successfully installed');
+      });
+    </script>
+    <script type="module" crossorigin src="/assets/index-BLP_lJ9A.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/vue-vendor-whJcvE-1.js">
+    <link rel="modulepreload" crossorigin href="/assets/axios-vendor-xsH4HHeE.js">
+    <link rel="modulepreload" crossorigin href="/assets/heroicons-Bj72tfci.js">
+    <link rel="stylesheet" crossorigin href="/assets/index-5MySK7Rr.css">
+  <link rel="manifest" href="/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/registerSW.js"></script></head>
+  <body>
+    <div id="app"></div>
+  </body>
+</html>
