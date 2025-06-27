@@ -64,34 +64,93 @@ export const useScannerStore = defineStore('scanner', () => {
       cameraState.value.isLoading = true
       cameraState.value.error = null
 
-      // Sprawdź czy QrScanner jest obsługiwany
-      const hasCamera = await QrScanner.hasCamera()
-      if (!hasCamera) {
-        cameraState.value.error = 'Urządzenie nie ma kamery'
+      console.log('🔐 Checking camera support...')
+      
+      // Check if running on secure context (required for camera)
+      if (!window.isSecureContext) {
+        console.error('❌ Not a secure context! Camera requires HTTPS or localhost')
+        cameraState.value.error = 'Kamera wymaga HTTPS lub localhost'
         return false
       }
 
+      // Check if navigator.mediaDevices is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        console.error('❌ MediaDevices API not available')
+        cameraState.value.error = 'API kamery niedostępne'
+        return false
+      }
+
+      // Sprawdź czy QrScanner jest obsługiwany
+      console.log('📷 Checking QrScanner camera support...')
+      const hasCamera = await QrScanner.hasCamera()
+      console.log('📷 QrScanner hasCamera result:', hasCamera)
+      
+      if (!hasCamera) {
+        cameraState.value.error = 'Urządzenie nie ma kamery lub jest niedostępna'
+        return false
+      }
+
+      // Test basic camera access
+      console.log('🔐 Testing basic camera access...')
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode: 'environment' } 
+        })
+        stream.getTracks().forEach(track => track.stop()) // Stop immediately after test
+        console.log('✅ Basic camera access successful')
+      } catch (testError) {
+        console.error('❌ Basic camera access failed:', testError)
+        throw testError
+      }
+
       // Pobierz dostępne kamery
+      console.log('📷 Listing available cameras...')
       const cameras = await QrScanner.listCameras(true)
+      console.log('📷 Available cameras:', cameras.map(c => ({ id: c.id, label: c.label })))
       cameraState.value.availableCameras = cameras
+
+      if (cameras.length === 0) {
+        cameraState.value.error = 'Nie znaleziono dostępnych kamer'
+        return false
+      }
 
       // Wybierz odpowiednią kamerę (preferuj tylną)
       const preferredCamera = cameras.find(camera => 
         camera.label.toLowerCase().includes('back') ||
-        camera.label.toLowerCase().includes('rear')
+        camera.label.toLowerCase().includes('rear') ||
+        camera.label.toLowerCase().includes('environment')
       ) || cameras[0]
+
+      console.log('📷 Selected camera:', preferredCamera.label)
 
       if (preferredCamera) {
         cameraState.value.currentCameraId = preferredCamera.id
       }
 
       cameraState.value.hasPermission = true
-      console.log('📷 Camera permission granted, available cameras:', cameras.length)
+      console.log('✅ Camera permission granted successfully!')
       
       return true
     } catch (error) {
-      console.error('Camera permission error:', error)
-      cameraState.value.error = 'Brak dostępu do kamery'
+      console.error('❌ Camera permission error:', error)
+      
+      let errorMessage = 'Brak dostępu do kamery'
+      
+      if (error instanceof Error) {
+        if (error.name === 'NotAllowedError') {
+          errorMessage = 'Odmówiono dostępu do kamery. Kliknij ikonę kamery w pasku adresu i zezwól.'
+        } else if (error.name === 'NotFoundError') {
+          errorMessage = 'Nie znaleziono kamery na urządzeniu'
+        } else if (error.name === 'NotSupportedError') {
+          errorMessage = 'Kamera nie jest obsługiwana'
+        } else if (error.name === 'NotReadableError') {
+          errorMessage = 'Kamera jest używana przez inną aplikację'
+        } else {
+          errorMessage = `Błąd kamery: ${error.message}`
+        }
+      }
+      
+      cameraState.value.error = errorMessage
       cameraState.value.hasPermission = false
       return false
     } finally {

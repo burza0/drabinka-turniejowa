@@ -88,13 +88,31 @@ export default defineConfig(({ mode }) => {
     }
   }
 
-  // Proxy tylko w developmencie
+  // Dev server konfiguracja z HTTPS dla mobile camera access
   if (mode === 'development') {
     config.server = {
+      port: 5173, // WYMUSZONY port 5173
+      strictPort: true, // BRAK SKAKANIA PORTÓW!
+      https: false, // HTTP dla debugowania połączenia
+      host: '0.0.0.0', // Pozwala na dostęp z innych urządzeń w sieci
       proxy: {
         '/api': {
           target: 'http://localhost:5001',
-          changeOrigin: true
+          changeOrigin: true,
+          secure: false, // Backend jest na HTTP
+          logLevel: 'debug', // Debug proxy issues
+          ws: true, // WebSocket support
+          configure: (proxy, _options) => {
+            proxy.on('error', (err, _req, _res) => {
+              console.log('🔴 Proxy error:', err.message);
+            });
+            proxy.on('proxyReq', (proxyReq, req, _res) => {
+              console.log('📤 Proxy request:', req.method, req.url, '-> http://localhost:5001' + req.url);
+            });
+            proxy.on('proxyRes', (proxyRes, req, _res) => {
+              console.log('📥 Proxy response:', proxyRes.statusCode, req.url);
+            });
+          }
         }
       }
     }

@@ -653,6 +653,11 @@
         <QrAdminDashboard />
       </div>
 
+      <!-- PWA QR Scanner -->
+      <div v-if="activeTab === 'pwa-scanner'">
+        <PWARouter />
+      </div>
+
     </main>
 
     <!-- Edit Modal -->
@@ -742,6 +747,8 @@ import ZawodnikCard from './components/ZawodnikCard.vue'
 import DrabinkaPucharowa from './components/DrabinkaPucharowa.vue'
 import EditZawodnikModal from './components/EditZawodnikModal.vue'
 import Rankingi from './components/Rankingi.vue'
+import PWAQRScanner from './components/PWAQRScanner.vue'
+import PWARouter from './components/PWARouter.vue'
 
 import QrAdminDashboard from './components/QrAdminDashboard.vue'
 import Dashboard from './components/Dashboard.vue'
@@ -823,6 +830,7 @@ const tabs = [
   { id: 'rankingi', name: 'Rankingi', icon: ListBulletIcon, adminOnly: false },
   { id: 'unified-start', name: 'Start Control', icon: ClockIcon, adminOnly: true },
   { id: 'qr-dashboard', name: 'QR Dashboard', icon: QrCodeIcon, adminOnly: true },
+  { id: 'pwa-scanner', name: 'PWA Scanner', icon: DevicePhoneMobileIcon, adminOnly: false },
 ]
 
 // Computed
