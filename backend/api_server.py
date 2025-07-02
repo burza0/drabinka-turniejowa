@@ -10,7 +10,12 @@ from api import init_app
 
 load_dotenv()
 app = Flask(__name__)
-CORS(app)
+
+# ✅ POPRAWIONA KONFIGURACJA CORS - WSPARCIE DLA PORTÓW 5173 I 5175
+CORS(app, 
+     origins=["http://localhost:5173", "http://localhost:5175", "http://127.0.0.1:5173", "http://127.0.0.1:5175"],
+     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+     allow_headers=["Content-Type", "Authorization", "X-User-ID"])
 
 # Register SECTRO blueprint
 app.register_blueprint(sectro_bp)
@@ -57,4 +62,11 @@ def version():
 # ... reszta endpointów, które jeszcze nie zostały przeniesione ...
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 5003)); app.run(debug=True, port=port, host="0.0.0.0") 
+    # ✅ NAPRAWIONE: POPRAWNY PORT 5001 I WYŁĄCZONY DEBUG MODE
+    port = int(os.getenv("PORT", 5001))
+    debug_mode = os.getenv("FLASK_DEBUG", "0") == "1"
+    
+    print(f"🚀 Uruchamiam SKATECROSS v{SYSTEM_VERSION} na porcie {port}")
+    print(f"🔧 Debug mode: {'ON' if debug_mode else 'OFF'}")
+    
+    app.run(debug=debug_mode, port=port, host="0.0.0.0") 

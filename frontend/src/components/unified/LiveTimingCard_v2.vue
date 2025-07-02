@@ -236,7 +236,7 @@
           <!-- Result feedback for this athlete -->
           <div v-if="actionResults[athlete.nr_startowy]" 
                class="mt-2 p-2 rounded text-xs"
-               :class="actionResults[athlete.nr_startowy].success ? 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400' : 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400'">
+               :class="actionResults[athlete.nr_startowy].success ? 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400' : 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400">
             {{ actionResults[athlete.nr_startowy].message }}
           </div>
           

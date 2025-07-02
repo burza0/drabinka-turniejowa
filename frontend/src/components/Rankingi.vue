@@ -303,7 +303,7 @@
           <!-- Nagłówek sekcji -->
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <div class="flex items-center gap-4">
-              <h3 class="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Filtry i sortowanie</h3>
+            <h3 class="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Filtry i sortowanie</h3>
               
               <!-- Pole wyszukiwania -->
               <div class="relative w-64">
@@ -415,8 +415,8 @@
         <!-- Nagłówek Klasyfikacji Indywidualnej z paginacją -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div class="flex items-center gap-4">
-            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Klasyfikacja Indywidualna</h3>
-            <div class="text-sm text-gray-600 dark:text-gray-400">
+          <h3 class="text-lg font-medium text-gray-900 dark:text-white">Klasyfikacja Indywidualna</h3>
+          <div class="text-sm text-gray-600 dark:text-gray-400">
               <span v-if="paginationDataIndividual.total_results > 0">
                 Wyniki {{ paginationDataIndividual.start_index }}-{{ paginationDataIndividual.end_index }} 
                 z {{ paginationDataIndividual.total_results }}
@@ -505,7 +505,7 @@
                       Brak wyników dla wyszukiwania: "{{ searchQuery }}"
                     </div>
                     <div v-else>
-                      Brak zawodników spełniających wybrane kryteria
+                    Brak zawodników spełniających wybrane kryteria
                     </div>
                   </td>
                 </tr>
@@ -537,7 +537,7 @@
           <!-- Nagłówek sekcji -->
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <div class="flex items-center gap-4">
-              <h3 class="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Filtry i sortowanie</h3>
+            <h3 class="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Filtry i sortowanie</h3>
               
               <!-- Pole wyszukiwania -->
               <div class="relative w-64">
@@ -565,7 +565,7 @@
               <span>🗑️</span>
               <span>Wyczyść</span>
             </button>
-          </div>
+              </div>
 
           <!-- Filtry w grid layout -->
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -648,8 +648,8 @@
         <!-- Nagłówek Klasyfikacji Generalnej z paginacją -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div class="flex items-center gap-4">
-            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Klasyfikacja Generalna (n-2)</h3>
-            <div class="text-sm text-gray-600 dark:text-gray-400">
+          <h3 class="text-lg font-medium text-gray-900 dark:text-white">Klasyfikacja Generalna (n-2)</h3>
+          <div class="text-sm text-gray-600 dark:text-gray-400">
               <span v-if="paginationDataGeneral.total_results > 0">
                 Wyniki {{ paginationDataGeneral.start_index }}-{{ paginationDataGeneral.end_index }} 
                 z {{ paginationDataGeneral.total_results }}
@@ -736,7 +736,7 @@
                     Brak wyników dla wyszukiwania: "{{ searchQueryGeneral }}"
                   </div>
                   <div v-else>
-                    Brak zawodników spełniających wybrane kryteria
+                  Brak zawodników spełniających wybrane kryteria
                   </div>
                 </td>
               </tr>
@@ -1461,8 +1461,8 @@ const refreshRankings = async () => {
     // ZAWSZE ładuj wszystkie dane (poza czasowym który ma osobną logikę)
     // Ranking czasowy ma osobną funkcję fetchTimeRanking() wywoływaną przez watch
     await Promise.all([
-      fetchIndividualRanking(), 
-      fetchGeneralRanking(),
+      fetchIndividualRanking(),
+      fetchGeneralRanking(), 
       fetchClubRankings(),
       fetchMedalRanking()
     ])
@@ -1512,8 +1512,8 @@ watch(activeTab, (newTab, oldTab) => {
     fetchTimeRanking()
   } else {
     // Pozostałe taby - sprawdź cache ale NIE ładuj ranking czasowy
-    const now = Date.now()
-    if (now - lastFetchTime.value > CACHE_DURATION) {
+  const now = Date.now()
+  if (now - lastFetchTime.value > CACHE_DURATION) {
       console.log('📅 Cache wygasł, pobieram dane dla', newTab)
       
       if (newTab === 'individual') {
@@ -1525,7 +1525,7 @@ watch(activeTab, (newTab, oldTab) => {
       } else if (newTab === 'medals') {
         fetchMedalRanking()
       }
-    } else {
+  } else {
       console.log('📊 Using cached data for', newTab)
     }
   }

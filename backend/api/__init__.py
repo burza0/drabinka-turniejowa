@@ -28,9 +28,9 @@ def init_app(app: Flask) -> None:
         app: Instancja aplikacji Flask
     """
     
-    # Konfiguracja CORS
+    # ✅ POPRAWIONA KONFIGURACJA CORS - WSPARCIE DLA PORTÓW 5173 I 5175
     CORS(app, 
-         origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+         origins=["http://localhost:5173", "http://localhost:5175", "http://127.0.0.1:5173", "http://127.0.0.1:5175"],
          methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
          allow_headers=["Content-Type", "Authorization", "X-User-ID"])
     

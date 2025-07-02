@@ -33,22 +33,11 @@ export default defineConfig(({ mode }) => {
           ]
         },
         workbox: {
-          globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
-          runtimeCaching: [
-            {
-              urlPattern: /^\/api\//,
-              handler: 'NetworkFirst',
-              options: {
-                cacheName: 'api-cache',
-                cacheableResponse: {
-                  statuses: [0, 200]
-                }
-              }
-            }
-          ]
+          globPatterns: ['**/*.{js,css,html,ico,png,svg}']
+          // USUNIĘTO runtimeCaching API - powodowało konflikty z proxy w development
         },
         devOptions: {
-          enabled: true,
+          enabled: false, // WYŁĄCZONE w development - eliminuje konflikty z proxy
           type: 'module'
         }
       })
@@ -88,26 +77,30 @@ export default defineConfig(({ mode }) => {
     }
   }
 
-  // Dev server konfiguracja z HTTPS dla mobile camera access
+  // Dev server konfiguracja - UPROSZCZONA dla debugowania
   if (mode === 'development') {
     config.server = {
       port: 5173, // WYMUSZONY port 5173
       strictPort: true, // BRAK SKAKANIA PORTÓW!
       https: false, // HTTP dla debugowania połączenia
       host: '0.0.0.0', // Pozwala na dostęp z innych urządzeń w sieci
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      },
       proxy: {
         '/api': {
           target: 'http://localhost:5001',
           changeOrigin: true,
-          secure: false, // Backend jest na HTTP
-          logLevel: 'debug', // Debug proxy issues
-          ws: true, // WebSocket support
+          secure: false,
+          ws: true,
           configure: (proxy, _options) => {
             proxy.on('error', (err, _req, _res) => {
               console.log('🔴 Proxy error:', err.message);
             });
             proxy.on('proxyReq', (proxyReq, req, _res) => {
-              console.log('📤 Proxy request:', req.method, req.url, '-> http://localhost:5001' + req.url);
+              console.log('📤 Proxy request:', req.method, req.url);
             });
             proxy.on('proxyRes', (proxyRes, req, _res) => {
               console.log('📥 Proxy response:', proxyRes.statusCode, req.url);

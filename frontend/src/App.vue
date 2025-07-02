@@ -96,16 +96,27 @@
           <button
             v-for="tab in filteredTabs"
             :key="tab.id"
-            @click="activeTab = tab.id"
+            @click="activeTab = tab.id; console.log('🔥 CLICKED TAB:', tab.name, tab.id)"
             :class="[
               activeTab === tab.id
                 ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
                 : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600',
               'whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 flex items-center'
             ]"
+            :data-tab-id="tab.id"
+            :data-tab-name="tab.name"
           >
             <component :is="tab.icon" class="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2" />
             <span class="text-xs sm:text-sm">{{ tab.name }}</span>
+          </button>
+          <!-- 🔍 DEBUG: Manual PWA Scanner button if missing -->
+          <button
+            v-if="!filteredTabs.find(t => t.id === 'pwa-scanner')"
+            @click="activeTab = 'pwa-scanner'; console.log('🆘 MANUAL PWA SCANNER ACTIVATED')"
+            class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 flex items-center border-red-500 text-red-600 bg-red-100"
+            data-debug="manual-pwa-scanner"
+          >
+            📱 PWA Scanner (MANUAL DEBUG)
           </button>
         </nav>
       </div>
@@ -935,7 +946,14 @@ const uniqueKategorie = computed(() => {
 })
 
 const filteredTabs = computed(() => {
-  return tabs.filter(tab => !tab.adminOnly || isAdmin.value)
+  const result = tabs.filter(tab => !tab.adminOnly || isAdmin.value)
+  console.log('🔍 DEBUG filteredTabs:', {
+    isAdmin: isAdmin.value,
+    allTabs: tabs.map(t => t.name),
+    filteredTabs: result.map(t => t.name),
+    pwaTabExists: !!tabs.find(t => t.id === 'pwa-scanner')
+  })
+  return result
 })
 
 // Computed properties dla operacji grupowych
@@ -1351,6 +1369,23 @@ watch([zawodnicyFilters, searchTerm], () => {
 
 // Lifecycle
 onMounted(() => {
+  console.log('🚀 SKATECROSS App.vue mounted!')
+  console.log('🔍 DEBUG tabs:', tabs)
+  console.log('🔍 DEBUG isAdmin:', isAdmin.value)
+  
+  // 🛡️ DEBUG Service Worker status  
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(registrations => {
+      console.log('🔍 SERVICE WORKERS:', registrations.length > 0 ? registrations : 'NONE')
+      if (registrations.length > 0) {
+        console.log('⚠️ Found Service Workers - this may interfere with dev proxy!')
+        registrations.forEach((registration, index) => {
+          console.log(`SW ${index}:`, registration.scope)
+        })
+      }
+    })
+  }
+  
   fetchZawodnicy()
   // Inicjalizacja dark mode na podstawie localStorage
   if (isDarkMode.value) {

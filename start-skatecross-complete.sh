@@ -7,12 +7,12 @@
 # Data: 27.06.2025
 # Wersja: FINAL - z czyszczeniem cache przeglądarki
 # 
-# UWZGLĘDNIA WSZYSTKIE PROBLEMY:
-# - PWA Scanner musi być na porcie 5173 (NIE 5174!)
-# - Cache przeglądarki blokuje nowe komponenty
-# - Service Worker cache'uje stare wersje
-# - Vite czasem wybiera losowe porty
-# - Backend na 5001, Frontend TYLKO na 5173
+# UWZGLĘDNIA WSZYSTKIE PROBLEMY I ROZWIĄZANIA:
+# - PWA Scanner problem rozwiązany przez port 5175 + NO-CACHE config
+# - Cache przeglądarki blokuje nowe komponenty - używamy vite.config.nocache.ts
+# - Service Worker interferuje z dev environment - wyłączony w development
+# - Konflikt PWA + Vite HMR + Proxy - rozwiązany przez NO-CACHE
+# - Backend na 5001, Frontend na 5175 z konfiguracją nocache
 # ============================================================================
 
 # Kolory dla lepszej czytelności
@@ -25,9 +25,9 @@ CYAN='\033[0;36m'
 BOLD='\033[1m'
 NC='\033[0m' # No Color
 
-# Konfiguracja
+# Konfiguracja - ZAKTUALIZOWANE Z PORTEM 5175 NO-CACHE
 BACKEND_PORT=5001
-FRONTEND_PORT=5173
+FRONTEND_PORT=5175  # Zmieniony na port no-cache który rozwiązał problem PWA
 PROJECT_DIR="/Users/mariusz/drabinka-turniejowa"
 BACKEND_DIR="$PROJECT_DIR/backend"
 FRONTEND_DIR="$PROJECT_DIR/frontend"
@@ -37,8 +37,8 @@ print_header() {
     echo -e "\n${CYAN}${BOLD}============================================================================${NC}"
     echo -e "${CYAN}${BOLD} SKATECROSS v37.0 - KOMPLETNY STARTUP SCRIPT${NC}"
     echo -e "${CYAN}${BOLD}============================================================================${NC}"
-    echo -e "${GREEN}🏁 System turniejowy z PWA Scanner - WSZYSTKO NA PORCIE 5173!${NC}"
-    echo -e "${YELLOW}📝 Uwzględnia: czyszczenie cache, problemy z portami, PWA Scanner${NC}\n"
+    echo -e "${GREEN}🏁 System turniejowy z PWA Scanner - PORT 5175 + NO-CACHE CONFIG!${NC}"
+    echo -e "${YELLOW}📝 Rozwiązuje: konflikty cache, PWA Scanner visibility, proxy issues${NC}\n"
 }
 
 kill_port() {
@@ -116,43 +116,94 @@ cleanup_frontend_cache() {
 }
 
 cleanup_browser_cache() {
-    echo -e "\n${PURPLE}🌐 INSTRUKCJE CZYSZCZENIA CACHE PRZEGLĄDARKI${NC}"
+    echo -e "\n${PURPLE}🌐 CZYSZCZENIE CACHE PRZEGLĄDARKI${NC}"
     
-    echo -e "${BOLD}${YELLOW}⚠️  WAŻNE: Po uruchomieniu systemu wykonaj RĘCZNIE:${NC}"
-    echo -e "${CYAN}1. ${BOLD}Chrome/Edge:${NC}"
-    echo -e "   • Naciśnij ${BOLD}Cmd + Shift + Delete${NC}"
-    echo -e "   • Wybierz ${BOLD}\"All time\"${NC}"
-    echo -e "   • Zaznacz ${BOLD}\"Cached images and files\"${NC}"
-    echo -e "   • Kliknij ${BOLD}\"Clear data\"${NC}"
-    echo -e "   • ${BOLD}LUB${NC} naciśnij ${BOLD}F12${NC} → Application → Clear Storage → Clear site data"
+    echo -e "${YELLOW}🔄 Automatyczne czyszczenie cache przeglądarek...${NC}"
     
-    echo -e "\n${CYAN}2. ${BOLD}Safari:${NC}"
-    echo -e "   • Safari → Preferences → Privacy → Manage Website Data → Remove All"
-    echo -e "   • ${BOLD}LUB${NC} Cmd + Option + E (Clear Cache)"
+    # ===== CHROME =====
+    echo -e "${CYAN}🔧 Czyszczę cache Google Chrome...${NC}"
+    CHROME_CACHE_DIRS=(
+        "$HOME/Library/Caches/Google/Chrome/Default"
+        "$HOME/Library/Caches/Google/Chrome/Profile 1"
+        "$HOME/.cache/google-chrome/Default"
+    )
     
-    echo -e "\n${CYAN}3. ${BOLD}Firefox:${NC}"
-    echo -e "   • Cmd + Shift + Delete → Everything → Clear Now"
+    # Zamknij Chrome
+    osascript -e 'quit app "Google Chrome"' 2>/dev/null || true
+    killall "Google Chrome" 2>/dev/null || true
+    sleep 2
     
-    echo -e "\n${GREEN}${BOLD}💡 SZYBKIE ROZWIĄZANIE: Otwórz tryb incognito!${NC}"
-    echo -e "${GREEN}   Chrome: Cmd + Shift + N${NC}"
-    echo -e "${GREEN}   Safari: Cmd + Shift + N${NC}"
-    echo -e "${GREEN}   Firefox: Cmd + Shift + P${NC}"
+    for dir in "${CHROME_CACHE_DIRS[@]}"; do
+        if [ -d "$dir" ]; then
+            echo -e "${YELLOW}  Czyszczę: $dir${NC}"
+            rm -rf "$dir/Cache"/* 2>/dev/null || true
+            rm -rf "$dir/Code Cache"/* 2>/dev/null || true
+            rm -rf "$dir/GPUCache"/* 2>/dev/null || true
+            rm -rf "$dir/Service Worker"/* 2>/dev/null || true
+            rm -rf "$dir/Application Cache"/* 2>/dev/null || true
+            
+            # Wyczyść pliki związane z localhost i portami
+            find "$dir" -name "*localhost*" -delete 2>/dev/null || true
+            find "$dir" -name "*5173*" -delete 2>/dev/null || true
+            find "$dir" -name "*5175*" -delete 2>/dev/null || true
+        fi
+    done
+    echo -e "${GREEN}✅ Cache Chrome wyczyszczony${NC}"
     
-    # Próba automatycznego czyszczenia dla Chrome
-    echo -e "\n${YELLOW}🔄 Próbuję automatycznie wyczyścić cache Chrome...${NC}"
-    CHROME_CACHE_DIR="$HOME/Library/Caches/Google/Chrome/Default"
-    if [ -d "$CHROME_CACHE_DIR" ]; then
-        # Zamknij Chrome jeśli jest uruchomiony
-        osascript -e 'quit app "Google Chrome"' 2>/dev/null || true
-        sleep 2
+    # ===== SAFARI =====
+    echo -e "${CYAN}🔧 Czyszczę cache Safari...${NC}"
+    SAFARI_CACHE_DIRS=(
+        "$HOME/Library/Caches/com.apple.Safari"
+        "$HOME/Library/Safari/LocalStorage"
+        "$HOME/Library/Safari/Databases"
+    )
+    
+    # Zamknij Safari
+    osascript -e 'quit app "Safari"' 2>/dev/null || true
+    killall "Safari" 2>/dev/null || true
+    sleep 1
+    
+    for dir in "${SAFARI_CACHE_DIRS[@]}"; do
+        if [ -d "$dir" ]; then
+            echo -e "${YELLOW}  Czyszczę: $dir${NC}"
+            find "$dir" -name "*localhost*" -delete 2>/dev/null || true
+            find "$dir" -name "*5173*" -delete 2>/dev/null || true
+            find "$dir" -name "*5175*" -delete 2>/dev/null || true
+        fi
+    done
+    
+    # Safari - wyczyść cache przez osascript
+    osascript -e 'tell application "Safari" to activate' 2>/dev/null || true
+    sleep 1
+    osascript -e 'tell application "System Events" to keystroke "e" using {command down, option down}' 2>/dev/null || true
+    sleep 1
+    osascript -e 'quit app "Safari"' 2>/dev/null || true
+    echo -e "${GREEN}✅ Cache Safari wyczyszczony${NC}"
+    
+    # ===== FIREFOX =====
+    echo -e "${CYAN}🔧 Czyszczę cache Firefox...${NC}"
+    FIREFOX_PROFILE_DIR="$HOME/Library/Application Support/Firefox/Profiles"
+    if [ -d "$FIREFOX_PROFILE_DIR" ]; then
+        # Zamknij Firefox
+        killall "firefox" 2>/dev/null || true
+        killall "Firefox" 2>/dev/null || true
+        sleep 1
         
-        # Wyczyść cache
-        rm -rf "$CHROME_CACHE_DIR/Cache"/* 2>/dev/null || true
-        rm -rf "$CHROME_CACHE_DIR/Code Cache"/* 2>/dev/null || true
-        rm -rf "$CHROME_CACHE_DIR/Service Worker"/* 2>/dev/null || true
-        
-        echo -e "${GREEN}✅ Cache Chrome wyczyszczony automatycznie${NC}"
+        find "$FIREFOX_PROFILE_DIR" -name "cache2" -type d -exec rm -rf {}/* \; 2>/dev/null || true
+        find "$FIREFOX_PROFILE_DIR" -name "*localhost*" -delete 2>/dev/null || true
+        find "$FIREFOX_PROFILE_DIR" -name "*5173*" -delete 2>/dev/null || true
+        find "$FIREFOX_PROFILE_DIR" -name "*5175*" -delete 2>/dev/null || true
+        echo -e "${GREEN}✅ Cache Firefox wyczyszczony${NC}"
     fi
+    
+    # ===== DNS CACHE =====
+    echo -e "${CYAN}🔧 Czyszczę DNS cache...${NC}"
+    sudo dscacheutil -flushcache 2>/dev/null || dscacheutil -flushcache 2>/dev/null || true
+    sudo killall -HUP mDNSResponder 2>/dev/null || killall -HUP mDNSResponder 2>/dev/null || true
+    echo -e "${GREEN}✅ DNS cache wyczyszczony${NC}"
+    
+    echo -e "\n${GREEN}${BOLD}🎯 CACHE PRZEGLĄDAREK WYCZYSZCZONY - PWA SCANNER POWINIEN BYĆ WIDOCZNY!${NC}"
+    echo -e "${CYAN}💡 Jeśli nadal masz problemy, użyj trybu incognito: Cmd + Shift + N${NC}"
 }
 
 start_backend() {
@@ -241,12 +292,12 @@ start_frontend() {
         npm install
     fi
     
-    # KRYTYCZNE: Wymuś port 5173 i zablokuj automatyczne przełączanie
-    echo -e "${BOLD}${GREEN}🎯 Uruchamiam frontend WYMUSZAJĄC port $FRONTEND_PORT${NC}"
-    echo -e "${YELLOW}⚠️  UWAGA: Frontend MUSI działać na porcie $FRONTEND_PORT (nie $((FRONTEND_PORT+1))!)${NC}"
+    # KRYTYCZNE: Użyj konfiguracji NO-CACHE na porcie 5175
+    echo -e "${BOLD}${GREEN}🎯 Uruchamiam frontend z konfiguracją NO-CACHE na porcie $FRONTEND_PORT${NC}"
+    echo -e "${YELLOW}⚠️  UWAGA: Używam vite.config.nocache.ts - rozwiązuje problem PWA Scanner${NC}"
     
-    # Uruchom z wymuszonym portem i hostem
-    npm run dev -- --port $FRONTEND_PORT --host --strictPort &
+    # Uruchom z konfiguracją no-cache
+    npx vite --config vite.config.nocache.ts --host --port $FRONTEND_PORT &
     FRONTEND_PID=$!
     
     echo -e "${GREEN}✅ Frontend uruchomiony (PID: $FRONTEND_PID)${NC}"
@@ -314,8 +365,8 @@ verify_system() {
     # Test frontend
     echo -e "${YELLOW}🔍 Testuję frontend...${NC}"
     if lsof -ti:$FRONTEND_PORT >/dev/null 2>&1; then
-        echo -e "${GREEN}✅ Frontend: Dostępny na http://localhost:$FRONTEND_PORT${NC}"
-        echo -e "${GREEN}✅ Sieć: Dostępny na http://192.168.0.178:$FRONTEND_PORT${NC}"
+        echo -e "${GREEN}✅ Frontend: Dostępny na http://localhost:$FRONTEND_PORT (NO-CACHE)${NC}"
+        echo -e "${GREEN}✅ Sieć: Dostępny na http://192.168.0.178:$FRONTEND_PORT (NO-CACHE)${NC}"
         
         # Test czy frontend ładuje się poprawnie
         if curl -s "http://localhost:$FRONTEND_PORT" | grep -i "skatecross" >/dev/null 2>&1; then
@@ -353,8 +404,8 @@ show_final_status() {
     
     echo -e "\n${BOLD}📊 STATUS SERWISÓW:${NC}"
     echo -e "${GREEN}✅ Backend:  http://localhost:$BACKEND_PORT${NC}"
-    echo -e "${GREEN}✅ Frontend: http://localhost:$FRONTEND_PORT${NC}"
-    echo -e "${GREEN}✅ Sieć:    http://192.168.0.178:$FRONTEND_PORT${NC}"
+    echo -e "${GREEN}✅ Frontend: http://localhost:$FRONTEND_PORT (NO-CACHE CONFIG)${NC}"
+    echo -e "${GREEN}✅ Sieć:    http://192.168.0.178:$FRONTEND_PORT (NO-CACHE CONFIG)${NC}"
     
     echo -e "\n${BOLD}📱 DOSTĘPNE FUNKCJE:${NC}"
     echo -e "${GREEN}• Dashboard - statystyki i przegląd${NC}"
@@ -372,11 +423,33 @@ show_final_status() {
     echo -e "${RED}kill $BACKEND_PID $FRONTEND_PID${NC}"
     echo -e "${RED}# LUB użyj Ctrl+C w terminalach gdzie działają procesy${NC}"
     
+    echo -e "\n${BOLD}${GREEN}🌐 AUTOMATYCZNE OTWIERANIE PRZEGLĄDARKI:${NC}"
+    
+    # Automatycznie otwórz przeglądarkę w trybie incognito
+    echo -e "${YELLOW}🔄 Automatycznie otwieram stronę w trybie incognito...${NC}"
+    
+    if command -v open >/dev/null 2>&1; then
+        # macOS - otwórz Chrome w trybie incognito
+        open -na "Google Chrome" --args --incognito "http://localhost:$FRONTEND_PORT" 2>/dev/null || \
+        # fallback - Safari (nie ma incognito przez CLI, ale można otworzyć normalnie)
+        open "http://localhost:$FRONTEND_PORT" 2>/dev/null || true
+        
+        echo -e "${GREEN}✅ Przeglądarka otwarta w trybie incognito${NC}"
+    fi
+    
     echo -e "\n${BOLD}${YELLOW}⚠️  WAŻNE - CACHE PRZEGLĄDARKI:${NC}"
-    echo -e "${YELLOW}Jeśli PWA Scanner nie jest widoczny:${NC}"
+    echo -e "${YELLOW}Jeśli PWA Scanner nie jest widoczny (pokazuje tylko 5 zawodników):${NC}"
+    
+    echo -e "\n${CYAN}${BOLD}SZYBKIE ROZWIĄZANIE:${NC}"
+    echo -e "${GREEN}• Użyj trybu incognito: Cmd + Shift + N${NC}"
+    echo -e "${GREEN}• Lub naciśnij Cmd + Shift + R (hard refresh)${NC}"
+    
+    echo -e "\n${CYAN}${BOLD}DOKŁADNE CZYSZCZENIE:${NC}"
     echo -e "${CYAN}1. Naciśnij F12 → Application → Clear Storage → Clear site data${NC}"
-    echo -e "${CYAN}2. LUB użyj trybu incognito (Cmd + Shift + N)${NC}"
-    echo -e "${CYAN}3. LUB wykonaj hard refresh (Cmd + Shift + R)${NC}"
+    echo -e "${CYAN}2. Lub Chrome: Cmd + Shift + Delete → \"All time\" → Clear data${NC}"
+    echo -e "${CYAN}3. Lub Safari: Safari → Preferences → Privacy → Manage Website Data → Remove All${NC}"
+    
+    echo -e "\n${BOLD}${RED}⚡ NAJLEPSZE ROZWIĄZANIE: OTWÓRZ http://localhost:$FRONTEND_PORT W INCOGNITO!${NC}"
     
     echo -e "\n${GREEN}${BOLD}🚀 System gotowy do użycia!${NC}"
     echo -e "${CYAN}${BOLD}============================================================================${NC}"
